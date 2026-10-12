@@ -73,6 +73,8 @@ All successful vocabulary commits use one refresh/notification path. Import keep
 
 The JSON `words` array determines list order. Moving swaps neighboring positions; the first and last items disable impossible moves. Delete removes the selected entry. The selection-add button creates a word with declared pronunciation paths, but does not generate definitions or MP3 files.
 
+Delete requires an active, writable vocabulary and an entry belonging to that vocabulary. Requests with no article or a stale entry do nothing. The matching pronunciation is stopped only after the deletion has been saved successfully.
+
 Paragraph documents are rebuilt when the case-insensitive vocabulary set changes. A reorder, capitalization-only change, or duplicate-only set change updates styles without rebuilding the document. Valid text selections and SID mappings are preserved through document updates.
 
 ### Playback
@@ -92,8 +94,8 @@ On close, timers stop, playback stops, and both media players are disposed. Norm
 
 ## Display and settings
 
-- Startup width and height are 70% of the primary screen's working area, centered; previous window dimensions are not restored.
-- The tree and title use 11 pt and 12 pt respectively. The shared body/vocabulary setting offers 11, 12, or 13 pt. Settings menus use 10 pt.
+- Startup width and height are the rounded 70% of the primary screen's working area, centered to whole DIP coordinates; previous window dimensions are not restored.
+- The tree and title use 11 pt and 12 pt respectively. The shared body/vocabulary setting directly uses 14, 15, or 16 DIP, defaulting to 15 DIP. Settings menus use 10 pt.
 - Each paragraph has a two-em first-line indent. All panes scroll independently and column splitters allow resizing.
 - The three bottom toolbars share their height and alignment. Playback controls remain present when disabled.
 - Highlighting starts off. The selection-add action is a 14 by 14 DIP native vector circle-plus; it follows selection scrolling and layout and hides outside the viewport or when selection is cleared.
@@ -113,3 +115,9 @@ Tests exercise these production modules directly; the obsolete prototype applica
 Keyboard focus remains available, but the global focus visual uses an empty template so no control displays a dotted focus outline.
 
 Focusable buttons use a pale teal (#D7EFEB) background while they have keyboard focus, including the settings circle. Focus outlines remain hidden. Local MP3s and personal resource directories are excluded from Git; embedded UI icons remain source dependencies.
+
+The Portable publish profile creates one framework-dependent Windows x64 executable in dist/. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses the executable stem plus .settings.json in the executable directory; missing settings initialize at startup, recoverable JSON corruption keeps a backup, and settings changes save without waiting for exit. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
+
+ReaderSettings owns configuration defaults, recovery, and value normalization on load and save. It rounds stored column widths, bounds the font and volume, and validates accent and progress choices. MainWindow.Settings applies those values to controls and constrains column widths to the current viewport; it does not duplicate configuration validation.
+
+Program-computed window dimensions, column widths and limits, scrollbar width, and paragraph line heights are rounded before they feed subsequent size calculations. Saved LeftWidth and RightWidth are integers. Direct XAML pt font declarations for the title, tree, and settings menus remain unchanged. SVG geometry and text-selection positions are not rounded, preserving drawing and text alignment.

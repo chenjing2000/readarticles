@@ -4,9 +4,11 @@
 
 # Published application, test outputs, screenshots, and temporary validation
 /artifacts/
+/dist/
 
 # Machine-specific application settings
 reader-settings.json
+*.settings.json
 
 # IDE and local tool files
 .vs/

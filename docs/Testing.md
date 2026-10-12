@@ -18,12 +18,12 @@ The main branch has no exercise module or exercise test category. No test restor
 
 | Category | Responsibility |
 | --- | --- |
-| `--content-only` | Passage JSON contracts, library discovery, optional account label, atomic vocabulary writes, metadata, and external edits |
+| `--content-only` | Passage JSON contracts, library discovery, optional account label, atomic vocabulary writes, metadata, external edits, and harmless deletion requests without an active entry |
 | `--rendering-only` | Literal matching, SID ownership, valid and invalid selections, blank passages, and styles |
 | `--window-only` | Loaded-control hit-testing, selection action, three-pane rendering, independent scrolling, and status lifecycle |
 | `--tree-only` | One-level expansion and recursive collapse |
 | `--audio-only` | Single-file playback, two-player coordination, stale callbacks, invalid resources, and real MP3 decoding |
-| `--controls-only` | Library-only startup, settings, keyboard shortcuts, progress/time, and sibling MP3 controls |
+| `--controls-only` | Library-only startup, configuration initialization and value normalization, immediate settings saves, keyboard shortcuts, progress/time, and sibling MP3 controls |
 | `--icons-only` | Embedded icons, circle-plus movement, footer alignment, startup size, and highlighting |
 | `--editing-only` | Vocabulary move/delete UI and corresponding persisted order |
 | `--source-only` | Optional read-only integration against a local Economist article; excluded from default checks |
@@ -54,4 +54,6 @@ Do not manually edit checked-in fixtures. Screenshots support inspection but do 
 
 MP3 files are local resources and are ignored by Git. Keep the local fixture audio when cleaning generated files. A fresh checkout needs the corresponding MP3 files restored under the fixture library before running audio and playback integration checks; these checks intentionally verify real decoding rather than silently skipping missing resources.
 
-Build outputs and screenshots are ignored by Git and can be removed after review. Keep the formal `artifacts/app/` release and its settings. See [Getting Started](Getting-Started.md) for publishing and settings-preserving replacement.
+Build outputs and screenshots are ignored by Git and can be removed after review. Tests may recreate artifacts; the published application does not use it. The font checks use 14/15/16 DIP and verify that direct pt declarations stay unchanged. Size checks use rounded window and column calculations, and settings checks verify integer persisted widths. Keep the formal `dist/` release and its settings. See [Getting Started](Getting-Started.md) for publishing and settings-preserving replacement.
+
+For a release check, publish with the Portable profile and confirm dist contains only the EXE before first run. Run from another working directory and confirm the .settings.json is created beside the EXE. Copy the EXE under another filename and confirm the settings stem follows that filename. Verify the missing-runtime installation prompt on a clean Windows machine; the development machine already has .NET installed.

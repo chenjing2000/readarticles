@@ -14,43 +14,36 @@ public partial class MainWindow
 
     private void InitializeWindowSettings()
     {
-        Resources[SystemParameters.VerticalScrollBarWidthKey] = SystemParameters.VerticalScrollBarWidth / 2;
+        Resources[SystemParameters.VerticalScrollBarWidthKey] = Math.Round(Math.Round(SystemParameters.VerticalScrollBarWidth) / 2);
         var workArea = SystemParameters.WorkArea;
-        Width = workArea.Width * 0.7;
-        Height = workArea.Height * 0.7;
+        Width = Math.Round(Math.Round(workArea.Width) * 0.7);
+        Height = Math.Round(Math.Round(workArea.Height) * 0.7);
         MinWidth = Math.Min(1050, Width);
         MinHeight = Math.Min(620, Height);
-        Left = workArea.Left + (workArea.Width - Width) / 2;
-        Top = workArea.Top + (workArea.Height - Height) / 2;
+        Left = Math.Round(Math.Round(workArea.Left) + (Math.Round(workArea.Width) - Width) / 2);
+        Top = Math.Round(Math.Round(workArea.Top) + (Math.Round(workArea.Height) - Height) / 2);
 
         // Keep all three columns within the smaller startup window.
         double contentWidth = Math.Max(0, Width - 40);
         double panelScale = Math.Min(1, contentWidth / 906);
-        LeftColumn.MinWidth = 200 * panelScale;
-        CenterColumn.MinWidth = 410 * panelScale;
-        RightColumn.MinWidth = 280 * panelScale;
-        LeftColumn.Width = new GridLength(Finite(settings.LeftWidth, 310, LeftColumn.MinWidth, Math.Max(LeftColumn.MinWidth, contentWidth * 0.22)));
-        RightColumn.Width = new GridLength(Finite(settings.RightWidth, 390, RightColumn.MinWidth, Math.Max(RightColumn.MinWidth, contentWidth * 0.28)));
+        LeftColumn.MinWidth = Math.Round(200 * panelScale);
+        CenterColumn.MinWidth = Math.Round(410 * panelScale);
+        RightColumn.MinWidth = Math.Round(280 * panelScale);
+        LeftColumn.Width = new GridLength(Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth, Math.Max(LeftColumn.MinWidth, Math.Round(contentWidth * 0.22))));
+        RightColumn.Width = new GridLength(Math.Clamp(settings.RightWidth, RightColumn.MinWidth, Math.Max(RightColumn.MinWidth, Math.Round(contentWidth * 0.28))));
 
-        int fontPoints = 11;
-        if (double.IsFinite(settings.FontSize))
-        {
-            fontPoints = (int)Math.Clamp(Math.Round(settings.FontSize * 72 / 96), 11, 13);
-        }
-        ApplyReadingFont(fontPoints);
-        player.Volume = double.IsFinite(settings.Volume) ? Math.Clamp(settings.Volume, 0, 1) : 0.65;
+        ApplyReadingFont((int)settings.FontSize);
+        player.Volume = settings.Volume;
         pronunciationPlayer.Volume = player.Volume;
         ViewModel.Accent = settings.Accent;
-        if (settings.ForwardStep != 4.0 && settings.ForwardStep != 7.0 && settings.ForwardStep != 10.0) settings.ForwardStep = 4.0;
-        if (settings.BackwardStep != 5.0 && settings.BackwardStep != 8.0 && settings.BackwardStep != 15.0) settings.BackwardStep = 5.0;
         RefreshSettingsChecks();
     }
 
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
         if (!persistSettings) return;
-        settings.LeftWidth = LeftColumn.ActualWidth;
-        settings.RightWidth = RightColumn.ActualWidth;
+        settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
+        settings.RightWidth = Math.Round(RightColumn.ActualWidth);
     }
 
     private void SaveSettings(double volume)
@@ -66,8 +59,25 @@ public partial class MainWindow
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            System.Diagnostics.Trace.WriteLine(error.Message);
+            string message = "无法保存配置文件：" + error.Message;
+            if (IsLoaded) Dispatcher.BeginInvoke(() => ViewModel.Status = message);
+            else MessageBox.Show(message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+    }
+
+    private void SettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ViewModel.Accent) || e.PropertyName == nameof(ViewModel.LibraryRoot))
+            SaveSettings(player.Volume);
+    }
+
+    private void ColumnsResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
+        settings.RightWidth = Math.Round(RightColumn.ActualWidth);
+        LeftColumn.Width = new GridLength(settings.LeftWidth);
+        RightColumn.Width = new GridLength(settings.RightWidth);
+        SaveSettings(player.Volume);
     }
 
     private void AccentClicked(object sender, RoutedEventArgs e)
@@ -85,11 +95,15 @@ public partial class MainWindow
         SettingsButton.ContextMenu.IsOpen = true;
     }
 
-    private void FontClicked(object sender, RoutedEventArgs e) => ApplyReadingFont(int.Parse((string)((MenuItem)sender).Tag));
-
-    private void ApplyReadingFont(int points)
+    private void FontClicked(object sender, RoutedEventArgs e)
     {
-        settings.FontSize = points * 96.0 / 72;
+        ApplyReadingFont(int.Parse((string)((MenuItem)sender).Tag));
+        SaveSettings(player.Volume);
+    }
+
+    private void ApplyReadingFont(int size)
+    {
+        settings.FontSize = size;
         foreach (var reader in readers) reader.FontSize = settings.FontSize;
         VocabularyList.FontSize = settings.FontSize;
         RefreshSettingsChecks();
@@ -97,9 +111,9 @@ public partial class MainWindow
 
     private void RefreshSettingsChecks()
     {
-        Font11Option.IsChecked = Math.Abs(settings.FontSize - 11.0 * 96 / 72) < 0.01;
-        Font12Option.IsChecked = Math.Abs(settings.FontSize - 12.0 * 96 / 72) < 0.01;
-        Font13Option.IsChecked = Math.Abs(settings.FontSize - 13.0 * 96 / 72) < 0.01;
+        Font14Option.IsChecked = settings.FontSize == 14;
+        Font15Option.IsChecked = settings.FontSize == 15;
+        Font16Option.IsChecked = settings.FontSize == 16;
         AccentUkOption.IsChecked = ViewModel.Accent == "uk";
         AccentUsOption.IsChecked = ViewModel.Accent == "us";
         RefreshStepChecks(ForwardStepMenu, settings.ForwardStep);
@@ -113,6 +127,7 @@ public partial class MainWindow
         if (ReferenceEquals(item.Parent, ForwardStepMenu)) settings.ForwardStep = step;
         else settings.BackwardStep = step;
         RefreshSettingsChecks();
+        SaveSettings(player.Volume);
     }
 
     private static void RefreshStepChecks(MenuItem menu, double step)
@@ -121,5 +136,5 @@ public partial class MainWindow
             item.IsChecked = double.Parse((string)item.Tag, CultureInfo.InvariantCulture) == step;
     }
 
-    private static double Finite(double value, double fallback, double min, double max) => double.IsFinite(value) ? Math.Clamp(value, min, Math.Max(min, max)) : fallback;
+
 }

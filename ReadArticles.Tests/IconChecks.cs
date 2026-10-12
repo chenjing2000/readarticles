@@ -27,9 +27,9 @@ internal static class IconChecks
                 Program.Check(icon.Source is DrawingImage);
                 Program.Check(icon.ActualWidth == 14 && icon.ActualHeight == 14);
                 Program.Check(button.ActualWidth == 14 && button.ActualHeight == 14);
-                foreach (int points in new[] { 11, 12, 13 })
+                foreach (int points in new[] { 14, 15, 16 })
                 {
-                    reader.FontSize = points * 96.0 / 72;
+                    reader.FontSize = points;
                     WpfTestHelpers.Pump();
                     var rectangle = reader.Selection.End.GetCharacterRect(System.Windows.Documents.LogicalDirection.Backward);
                     Program.Check((button.PointToScreen(new Point(0, 0)) - reader.PointToScreen(rectangle.BottomRight)).Length < 2);
@@ -105,11 +105,17 @@ internal static class IconChecks
             try
             {
                 var area = SystemParameters.WorkArea;
-                Program.Check(Math.Abs(initial.Width - area.Width * 0.7) < 0.01 && Math.Abs(initial.Height - area.Height * 0.7) < 0.01);
-                Program.Check(Math.Abs(initial.Left + initial.Width / 2 - (area.Left + area.Width / 2)) < 0.01);
-                Program.Check(Math.Abs(initial.Top + initial.Height / 2 - (area.Top + area.Height / 2)) < 0.01);
+                Program.Check(Math.Abs(initial.Width - Math.Round(Math.Round(area.Width) * 0.7)) < 0.01 && Math.Abs(initial.Height - Math.Round(Math.Round(area.Height) * 0.7)) < 0.01);
+                Program.Check(initial.Left == Math.Round(Math.Round(area.Left) + (Math.Round(area.Width) - initial.Width) / 2));
+                Program.Check(initial.Top == Math.Round(Math.Round(area.Top) + (Math.Round(area.Height) - initial.Height) / 2));
+                foreach (var name in new[] { "LeftColumn", "CenterColumn", "RightColumn" })
+                {
+                    var column = (ColumnDefinition)initial.FindName(name);
+                    Program.Check(column.MinWidth == Math.Round(column.MinWidth));
+                    if (!column.Width.IsStar) Program.Check(column.Width.Value == Math.Round(column.Width.Value));
+                }
                 initial.Show(); WpfTestHelpers.Pump(); initial.UpdateLayout();
-                Program.Check(Math.Abs(initial.ActualWidth - area.Width * 0.7) < 1 && Math.Abs(initial.ActualHeight - area.Height * 0.7) < 1);
+                Program.Check(Math.Abs(initial.ActualWidth - Math.Round(Math.Round(area.Width) * 0.7)) < 1 && Math.Abs(initial.ActualHeight - Math.Round(Math.Round(area.Height) * 0.7)) < 1);
                 var lastColumn = (ColumnDefinition)initial.FindName("RightColumn");
                 Program.Check(lastColumn.Offset + lastColumn.ActualWidth <= initial.ActualWidth);
             }

@@ -12,7 +12,8 @@ public partial class MainWindow : Window
     public MainWindow(bool persistSettings = true)
     {
         this.persistSettings = persistSettings;
-        settings = persistSettings ? ReaderSettings.Load() : new ReaderSettings();
+        string? settingsWarning = null;
+        settings = persistSettings ? ReaderSettings.Load(out settingsWarning) : new ReaderSettings();
         ViewModel = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
 
         InitializeComponent();
@@ -24,10 +25,12 @@ public partial class MainWindow : Window
         ViewModel.VocabularyChanged += RefreshVocabularyHighlights;
         InitializePlayback();
         InitializeStatus();
+        ViewModel.PropertyChanged += SettingsChanged;
         Closing += WindowClosing;
         Closed += WindowClosed;
 
         RenderArticle();
+        if (settingsWarning != null) Dispatcher.BeginInvoke(() => ViewModel.Status = settingsWarning);
     }
 
     private void WindowClosed(object? sender, EventArgs e)

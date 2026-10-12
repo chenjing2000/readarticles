@@ -55,8 +55,10 @@ public sealed partial class MainViewModel
     });
     public void DeleteWord(VocabularyEntry entry) => Handle(() =>
     {
+        var article = Article;
+        if (article == null || !CanWriteVocabulary || !article.Vocabulary.Data.Words.Contains(entry)) return;
+        CommitWords(article.Vocabulary.Data.Words.Where(w => !ReferenceEquals(w, entry)).ToList());
         playback.StopWord(entry);
-        CommitWords(Article!.Vocabulary.Data.Words.Where(w => !ReferenceEquals(w, entry)).ToList());
     });
     public void ImportVocabulary(string path) => Handle(() =>
     {

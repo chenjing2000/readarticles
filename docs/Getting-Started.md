@@ -4,9 +4,9 @@
 
 Run ReadArticles on Windows with the .NET 10 Windows Desktop Runtime, version `10.0.11` or a later compatible patch. Building also requires a .NET SDK compatible with `global.json`, currently SDK `10.0.400` with `latestPatch` roll-forward. Both the application and its tests target `net10.0-windows`.
 
-The published application lives in `artifacts/app/`. Keep `ReadArticles.exe`, `ReadArticles.dll`, `ReadArticles.deps.json`, and `ReadArticles.runtimeconfig.json` together. The optional `reader-settings.json` is created beside them on normal exit.
+The published application lives in `dist/`. Distribute only `ReadArticles.exe`. It contains the application assemblies, UI assets, and runtime configuration, but not the .NET runtime. On first startup it creates `ReadArticles.settings.json` beside the executable.
 
-- Launch `artifacts/app/ReadArticles.exe` to restore the last selected library, if one has been saved.
+- Launch `dist/ReadArticles.exe` to restore the last selected library, if one has been saved.
 - For another library, use the folder-selection button or pass a library explicitly:
 
 ```powershell
@@ -23,7 +23,7 @@ Select the parent directory of marked book directories. Startup and folder selec
 4. Select a vocabulary entry to show move-up, move-down, and delete. These actions write the active companion JSON immediately.
 5. Use the highlight toggle to display or hide literal vocabulary matches. Highlighting begins off.
 6. Use the import button beside the highlight toggle to replace the active vocabulary with a selected structured JSON file after confirmation.
-7. Open the bottom-left settings circle for the shared body/vocabulary font size and sentence-playback accent.
+7. Open the bottom-left settings circle for the shared body/vocabulary font size (14, 15, or 16 DIP; default 15) and sentence-playback accent.
 
 Right-clicking anywhere in the vocabulary pane has no action or popup menu. Use the bottom buttons to move or delete the selected word.
 
@@ -48,13 +48,29 @@ See [Testing](Testing.md) for functional categories, fixture ownership, manual c
 
 ## Publish
 
-Close the running application before replacing its files. Publish into a staging directory:
+Close the release application before overwriting its EXE. Run from the repository root:
 
 ```powershell
-dotnet publish ReadArticles -c Release -p:DebugType=None -p:DebugSymbols=false -o artifacts/app-update
+dotnet publish ReadArticles -p:PublishProfile=Portable
 ```
 
-After successful verification, copy only the four runtime files named above from `app-update` to `app`. Preserve `app/reader-settings.json`. Do not copy test data or diagnostic screenshots into the release folder. This framework-dependent release needs the installed Windows Desktop Runtime.
+The checked-in profile publishes a Release, Windows x64, framework-dependent single file directly to `dist/ReadArticles.exe`. It disables trimming and separate debug symbols and does not bundle .NET. Embedded native dependencies may be extracted to the system temporary directory when needed; user settings stay beside the EXE.
+
+The equivalent explicit command is:
+
+```powershell
+dotnet publish ReadArticles -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false -o dist
+```
+
+Keep an existing `dist/ReadArticles.settings.json` when publishing or updating; do not delete the whole release directory. Do not distribute build folders or test data. Windows ARM64 requires a separately published `win-arm64` executable and matching runtime.
+
+## Configuration and runtime requirements
+
+The settings name follows the executable: renaming the EXE to `Reader.exe` makes its settings path `Reader.settings.json`. The application uses the EXE directory, not the current working directory. If the configuration is absent, it writes defaults during startup. Font, accent, seek-step, library selection, and completed column resizing save immediately; normal exit also saves column widths and volume. Existing unknown fields are ignored. Startup stays centered at rounded 70% dimensions of the work area, with no program-defined maximum width or height and no restored passage.
+
+A damaged JSON configuration is preserved as a timestamped `.bak` file and replaced with defaults, with a warning. Read/write failures are reported; the application uses in-memory settings and does not silently move the configuration elsewhere. Put the EXE in a writable folder.
+
+Install the Windows x64 .NET 10 **Windows Desktop Runtime**, 10.0.11 or a later compatible patch. The SDK is not required to run the release. If the required runtime is missing, the native .NET application host presents the installation prompt before WPF starts; the application cannot show its own WPF dialog at that stage. This missing-runtime prompt should be checked on a clean Windows machine.
 
 ## Troubleshooting
 
@@ -73,3 +89,5 @@ After successful verification, copy only the four runtime files named above from
 | Settings do not restore a passage or old window size | This is intentional: library-only startup and 70% centered window size are the current behavior |
 
 For content authoring, use [Image to Passage](skills/skills-python/image_to_passage/SKILL.md), [Passage Segmentation](skills/skills-python/passage_segment/SKILL.md), and [Vocabulary Preparation](Vocabulary-Preparation.md), then follow [Library Layout](Library-Layout.md).
+
+The Portable profile places temporary compiled output inside obj/publish-build instead of creating a separate release copy under bin. Only dist is the release directory; artifacts and old staging releases can be removed. Building or running tests can still create bin and obj caches. Do not delete dist or its settings while cleaning caches. LeftWidth and RightWidth are rounded in configuration, and FontSize is stored directly as an integer DIP value.

@@ -46,10 +46,10 @@ internal static class TreeNavigationChecks
                 Program.Check(date.IsExpanded && folder.IsExpanded);
                 var scroll = WpfTestHelpers.Descendants((ListBox)window.FindName("VocabularyList"))
                     .OfType<System.Windows.Controls.Primitives.ScrollBar>().First(s => s.Orientation == Orientation.Vertical);
-                Program.Check(Math.Abs(scroll.ActualWidth - System.Windows.SystemParameters.VerticalScrollBarWidth / 2) < 0.01);
+                Program.Check(Math.Abs(scroll.ActualWidth - Math.Round(Math.Round(System.Windows.SystemParameters.VerticalScrollBarWidth) / 2)) < 0.01);
                 Program.Check(Math.Abs(tree.FontSize - 11.0 * 96 / 72) < 0.001);
                 Program.Check(Math.Abs(((TextBlock)window.FindName("ArticleTitleText")).FontSize - 12.0 * 96 / 72) < 0.001);
-                Program.Check(Math.Abs(((ListBox)window.FindName("VocabularyList")).FontSize - 11.0 * 96 / 72) < 0.001);
+                Program.Check(Math.Abs(((ListBox)window.FindName("VocabularyList")).FontSize - 15) < 0.001);
             }
             finally { window.Close(); }
         });

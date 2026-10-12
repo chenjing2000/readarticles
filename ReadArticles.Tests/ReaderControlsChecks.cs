@@ -11,6 +11,58 @@ internal static class ReaderControlsChecks
 {
     internal static void Run()
     {
+        Program.Run("settings own value normalization on load and save", () =>
+        {
+            string path = ReaderSettings.PathName;
+            byte[]? before = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            try
+            {
+                JsonFiles.WriteAtomic(path, new { LeftWidth = 221.4, RightWidth = 281.8, FontSize = 99,
+                    Volume = 3, Accent = "invalid", ForwardStep = 1, BackwardStep = 1 });
+                var settings = ReaderSettings.Load(out var warning);
+                Program.Check(warning == null && settings.LeftWidth == 221 && settings.RightWidth == 282);
+                Program.Check(settings.FontSize == 16 && settings.Volume == 1 && settings.Accent == "uk");
+                Program.Check(settings.ForwardStep == 4 && settings.BackwardStep == 5);
+                settings.FontSize = double.NaN;
+                settings.Volume = double.NaN;
+                settings.Save();
+                settings = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && settings.FontSize == 15 && settings.Volume == 0.65);
+            }
+            finally { if (before == null) File.Delete(path); else File.WriteAllBytes(path, before); }
+        });
+        Program.Run("settings initialize beside the executable and changes save before close", () =>
+        {
+            string path = ReaderSettings.PathName;
+            byte[]? previous = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            ReadArticles.MainWindow? window = null;
+            try
+            {
+                File.Delete(path);
+                window = new ReadArticles.MainWindow { ShowActivated = false, Left = -10000, Top = -10000 };
+                window.Show();
+                Program.Check(File.Exists(path) && Path.GetFileName(path) == Path.GetFileNameWithoutExtension(Environment.ProcessPath) + ".settings.json");
+                var defaults = ReaderSettings.Load(out var warning);
+                Program.Check(warning == null && defaults.ForwardStep == 4 && defaults.BackwardStep == 5 && defaults.FontSize == 15);
+                var menu = ((Button)window.FindName("SettingsButton")).ContextMenu;
+                var progress = (MenuItem)menu.Items[2];
+                ClickStep((MenuItem)((MenuItem)progress.Items[0]).Items[1]);
+                window.ViewModel.Accent = "us";
+                Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
+                var saved = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && saved.ForwardStep == 7 && saved.Accent == "us" && saved.Library == TestData.LibraryRoot);
+                saved.LeftWidth = 221.4;
+                saved.RightWidth = 281.8;
+                saved.Save();
+                saved = ReaderSettings.Load(out warning);
+                Program.Check(saved.LeftWidth == 221 && saved.RightWidth == 282 && saved.FontSize == 15);
+            }
+            finally
+            {
+                window?.Close();
+                if (previous == null) File.Delete(path); else File.WriteAllBytes(path, previous);
+            }
+        });
         Program.Run("buttons show pale teal on keyboard focus including the settings circle", () =>
         {
             var window = CreateWindow();
@@ -309,11 +361,11 @@ internal static class ReaderControlsChecks
                 using (var submenuFile = File.Create(Path.GetFullPath("artifacts/settings-submenu.png"))) submenuEncoder.Save(submenuFile);
                 fonts.IsSubmenuOpen = false; button.ContextMenu.IsOpen = false;
                 window.Left = -10000; window.Top = -10000;
-                foreach (int points in new[] { 11, 12, 13 })
+                foreach (int points in new[] { 14, 15, 16 })
                 {
-                    var option = (MenuItem)((MenuItem)button.ContextMenu.Items[0]).Items[points - 11];
+                    var option = (MenuItem)((MenuItem)button.ContextMenu.Items[0]).Items[points - 14];
                     option.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); WpfTestHelpers.Pump(30);
-                    double expected = points * 96.0 / 72;
+                    double expected = points;
                     Program.Check(window.Readers.All(r => Math.Abs(r.FontSize - expected) < 0.001));
                     Program.Check(Math.Abs(((ListBox)window.FindName("VocabularyList")).FontSize - expected) < 0.001);
                     CheckIndentedParagraphs(window);

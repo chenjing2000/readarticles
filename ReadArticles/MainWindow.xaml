@@ -84,9 +84,9 @@
               <ContextMenu.Resources><Style TargetType="MenuItem" BasedOn="{StaticResource SettingsMenuItem}"/></ContextMenu.Resources>
               <ContextMenu.Template><ControlTemplate TargetType="ContextMenu"><Border Style="{StaticResource SettingsSurface}"><StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/></Border></ControlTemplate></ContextMenu.Template>
               <MenuItem Header="字号">
-                <MenuItem x:Name="Font11Option" Header="11" Tag="11" IsCheckable="True" Click="FontClicked"/>
-                <MenuItem x:Name="Font12Option" Header="12" Tag="12" IsCheckable="True" Click="FontClicked"/>
-                <MenuItem x:Name="Font13Option" Header="13" Tag="13" IsCheckable="True" Click="FontClicked"/>
+                <MenuItem x:Name="Font14Option" Header="14" Tag="14" IsCheckable="True" Click="FontClicked"/>
+                <MenuItem x:Name="Font15Option" Header="15" Tag="15" IsCheckable="True" Click="FontClicked"/>
+                <MenuItem x:Name="Font16Option" Header="16" Tag="16" IsCheckable="True" Click="FontClicked"/>
               </MenuItem>
               <MenuItem Header="读音">
                 <MenuItem x:Name="AccentUkOption" Header="英音" Tag="uk" IsCheckable="True" Click="AccentClicked"/>
@@ -141,7 +141,7 @@
         </TreeView.ItemContainerStyle>
       </TreeView>
     </DockPanel>
-    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="Transparent"/>
+    <GridSplitter DragCompleted="ColumnsResized" Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="Transparent"/>
     <Grid Grid.Column="2" Background="Transparent">
       <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <ScrollViewer x:Name="PassageScroll" Background="White" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="28,20,26,18">
@@ -161,7 +161,7 @@
         </Grid>
       </Border>
     </Grid>
-    <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Center" Background="Transparent"/>
+    <GridSplitter DragCompleted="ColumnsResized" Grid.Column="3" Width="5" HorizontalAlignment="Center" Background="Transparent"/>
     <DockPanel Grid.Column="4" Margin="7,0,0,0" PreviewMouseDown="IgnoreVocabularyRightClick" PreviewMouseUp="IgnoreVocabularyRightClick">
       <StackPanel DockPanel.Dock="Bottom" Height="48" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
         <StackPanel x:Name="VocabularyActions" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
@@ -172,7 +172,7 @@
         <Button x:Name="HighlightButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="2" ToolTip="显示正文词汇高亮" AutomationProperties.Name="{Binding ToolTip, RelativeSource={RelativeSource Self}}" Click="HighlightClicked"><Image x:Name="HighlightImage" Source="{x:Static icons:UiIcons.HighlightOn}" Width="24" Height="24"/></Button>
         <Button x:Name="ImportButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="1" ToolTip="导入词汇表" AutomationProperties.Name="导入词汇表" Click="ImportClicked"><Image Source="{x:Static icons:UiIcons.Import}" Width="26" Height="26"/></Button>
       </StackPanel>
-      <ListBox x:Name="VocabularyList" FontSize="11pt" ItemsSource="{Binding Words}" AlternationCount="2" BorderThickness="0" Padding="0"
+      <ListBox x:Name="VocabularyList" FontSize="15" ItemsSource="{Binding Words}" AlternationCount="2" BorderThickness="0" Padding="0"
                Background="White" HorizontalContentAlignment="Stretch" SelectionChanged="VocabularySelectionChanged"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False">
         <ListBox.ItemContainerStyle>

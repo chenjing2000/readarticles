@@ -107,6 +107,6 @@ Audio references are relative to the passage directory. Absolute paths, drive-qu
 
 ## 6. Files outside the library
 
-`artifacts/app/reader-settings.json` belongs beside the executable, not in a book. It stores application preferences and is created on normal exit. The executable, DLL, dependency manifest, and runtime configuration also belong together in `artifacts/app/`.
+`dist/ReadArticles.settings.json` belongs beside the executable, not in a book. It stores application preferences and is initialized on first startup. The single-file release contains all application assemblies; distribute only `dist/ReadArticles.exe`, without the .NET runtime. Keep the existing settings file during updates.
 
 Source images and the original Python ZIP are preparation/reference material. ReadArticles does not convert them when a library is opened.

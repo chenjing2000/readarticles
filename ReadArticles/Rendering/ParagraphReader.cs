@@ -43,7 +43,7 @@ public sealed class ParagraphReader : RichTextBox
         SelectionOpacity = 0.8;
         ContextMenu = null;
         FontFamily = new FontFamily("Georgia");
-        FontSize = 21;
+        FontSize = 15;
 
         source = segments.ToArray();
 
@@ -117,7 +117,7 @@ public sealed class ParagraphReader : RichTextBox
         try
         {
             visualRuns.Clear();
-            var paragraph = new Paragraph { Margin = new Thickness(0), LineHeight = FontSize * 1.7, TextIndent = FontSize * 2 };
+            var paragraph = new Paragraph { Margin = new Thickness(0), LineHeight = Math.Round(FontSize * 1.7), TextIndent = FontSize * 2 };
             Document = new FlowDocument(paragraph) { PagePadding = new Thickness(0) };
             var ranges = new List<SegmentTextRange>();
             for (int index = 0; index < source.Length; index++)
@@ -288,7 +288,7 @@ public sealed class ParagraphReader : RichTextBox
         base.OnPropertyChanged(e);
         if (e.Property == FontSizeProperty && Document?.Blocks.FirstBlock is Paragraph paragraph)
         {
-            paragraph.LineHeight = (double)e.NewValue * 1.7;
+            paragraph.LineHeight = Math.Round((double)e.NewValue * 1.7);
             paragraph.TextIndent = (double)e.NewValue * 2;
             if (selectionAdd?.IsShown == true)
                 Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(ShowSelectionAdd));

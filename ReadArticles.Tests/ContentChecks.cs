@@ -9,6 +9,19 @@ internal static class ContentChecks
 {
     internal static void Run()
     {
+        Program.Run("delete without an article or with a stale word leaves workspace unchanged", () =>
+        {
+            using var first = new WpfAudioPlayer();
+            using var second = new WpfAudioPlayer();
+            var model = new MainViewModel(new PlaybackController(first), new PlaybackController(second));
+            var stale = VocabularyRepository.NewEntry("stale word");
+            model.DeleteWord(stale);
+            Program.Check(model.Article == null && model.Status == "");
+            Program.Check(model.OpenArticle(TestData.ArticlePath));
+            string before = JsonFiles.Fingerprint(model.Article!.VocabularyPath)!;
+            model.DeleteWord(stale);
+            Program.Check(JsonFiles.Fingerprint(model.Article.VocabularyPath) == before);
+        });
         Program.Run("real magazine: 13 paragraphs, 62 stable SID and 120 complete words", () =>
         {
             var article = new ArticleRepository().Load(TestData.ArticlePath);

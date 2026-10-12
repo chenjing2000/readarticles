@@ -4,7 +4,7 @@ ReadArticles is a local C# / WPF application for English reading, vocabulary edi
 
 ## Run
 
-On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch), launch `artifacts/app/ReadArticles.exe`. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
+On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch), launch `dist/ReadArticles.exe`. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
 
 Startup loads only a collapsed library tree. It does not restore a passage or vocabulary. Routine successful actions are quiet; warnings and errors appear for six seconds, and the empty status row takes no space.
 
@@ -30,7 +30,7 @@ All maintained documentation is in English. The conversion skills prepare conten
 | --- | --- |
 | `ReadArticles/` | Published application's source and embedded UI resources |
 | `ReadArticles.Tests/` | Categorized checks of production services and controls, with fixed fixtures |
-| `artifacts/app/` | Runtime files and user settings; keep these together |
+| `dist/` | Runtime files and user settings; keep these together |
 | `docs/` | Current documentation and conversion skills |
 
 ## Build and test

@@ -14,6 +14,7 @@ public sealed partial class MainViewModel
         foreach (var book in workspace.Library!.Books) Books.Add(book);
         Words.Clear();
         CurrentUser = "User: —";
+        Changed(nameof(LibraryRoot));
         Changed(nameof(CurrentUser));
         Changed(nameof(ArticleTitle));
         ArticleChanged?.Invoke();
