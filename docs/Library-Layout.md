@@ -95,7 +95,7 @@ audio_vocabulary/<stem>_uk.mp3
 audio_vocabulary/<stem>_us.mp3
 ```
 
-The exact stem algorithm is defined in the vocabulary skill. Whole-article, sentence, and vocabulary playback share one active player. The stop button stops every kind of playback.
+The exact stem algorithm is defined in the vocabulary skill. Whole-article audio has its own player; sentence and vocabulary audio share a second player. Starting pronunciation pauses the article while preserving its position. Starting or resuming the article stops pronunciation. The bottom stop button stops only the article audio; closing the window or opening another article stops both players.
 
 ## 5. Excluded branches and safe paths
 

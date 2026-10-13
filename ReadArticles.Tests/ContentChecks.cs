@@ -65,6 +65,20 @@ internal static class ContentChecks
             ExpectInvalid(() => workspace.OpenArticle(invalid));
             Program.Check(ReferenceEquals(previous, workspace.Article));
         });
+        RunCopyTest("SID with trailing newline is rejected before workspace commit", (root, passage) =>
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(passage))!;
+            var segment = json["paragraphs"]![0]!["paragraph"]![0]!;
+            segment["sid"] = "s001\n";
+            segment["audio"]!["uk"] = "audio_segments/s001\n_uk.mp3";
+            segment["audio"]!["us"] = "audio_segments/s001\n_us.mp3";
+            File.WriteAllText(passage, json.ToJsonString());
+            var workspace = new ReaderWorkspace();
+            workspace.OpenArticle(TestData.ArticlePath);
+            var previous = workspace.Article;
+            ExpectInvalid(() => workspace.OpenArticle(passage));
+            Program.Check(ReferenceEquals(previous, workspace.Article));
+        });
         RunCopyTest("bad optional vocabulary preserves readable article and blocks overwrite", (root, passage) =>
         {
             File.WriteAllText(Path.Combine(root, "Test.vocabulary.json"), "broken");

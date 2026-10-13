@@ -11,6 +11,7 @@ All four applications use the following document responsibilities. Application-s
 | [Publishing](Publishing.md) | Portable profile, staged updates, and GitHub Release workflow |
 | [Release Notes](Release-Notes.md) | Distribution changes and runtime requirements |
 | [Health Check](Health-Check-2026-10-13.md) | Dated verification evidence and limitations |
+| [Code Review](Code-Review-2026-10-13.md) | Module cohesion, simplification decisions, format correction, and dated verification |
 
 ## Application-specific references
 

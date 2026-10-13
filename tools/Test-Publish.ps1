@@ -1,7 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 $exeName = 'ReadArticles.exe'
 $settingsName = 'ReadArticles.settings.json'
-$legacyDirectory = $null
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('publish-tests-' + [Guid]::NewGuid().ToString('N'))
 $scriptPath = Join-Path $PSScriptRoot 'Publish.ps1'
 $script:passed = 0
@@ -89,30 +88,6 @@ try {
         }
         finally { $lock.Dispose() }
         Check ((Get-Content -LiteralPath $release -Raw) -eq 'old-release') 'Locked release changed.'
-    }
-    if ($legacyDirectory) {
-        Run-Case 'legacy configuration is copied to the new location and retained as a backup' {
-            Remove-Item -LiteralPath $settings
-            $legacy = Join-Path $dist $legacyDirectory
-            New-Item -ItemType Directory -Path $legacy | Out-Null
-            $legacySettings = Join-Path $legacy $settingsName
-            [IO.File]::WriteAllText($legacySettings, 'legacy-settings')
-            [IO.File]::WriteAllText((Join-Path $legacy $exeName), 'legacy-release')
-            & (Join-Path $tools 'Publish.ps1')
-            Check ((Get-Content -LiteralPath $settings -Raw) -eq 'legacy-settings') 'Legacy settings were not migrated.'
-            Check ((Get-Content -LiteralPath $legacySettings -Raw) -eq 'legacy-settings') 'Legacy backup changed.'
-            Check (-not (Test-Path -LiteralPath (Join-Path $legacy $exeName))) 'Obsolete EXE remains.'
-        }
-        Run-Case 'conflicting old and new configurations stop the update' {
-            $legacy = Join-Path $dist $legacyDirectory
-            New-Item -ItemType Directory -Path $legacy | Out-Null
-            [IO.File]::WriteAllText((Join-Path $legacy $settingsName), 'different-settings')
-            $rejected = $false
-            try { & (Join-Path $tools 'Publish.ps1') } catch { $rejected = $true }
-            Check $rejected 'Conflicting configurations were accepted.'
-            Check ((Get-Content -LiteralPath $release -Raw) -eq 'old-release') 'Conflict replaced release.'
-            Check ((Get-Content -LiteralPath $settings -Raw) -eq 'user-settings') 'Conflict overwrote settings.'
-        }
     }
 }
 finally {

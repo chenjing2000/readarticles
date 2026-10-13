@@ -11,7 +11,30 @@ public sealed class ArticleRepository
         string absolute = Path.GetFullPath(path);
         string title = Path.GetFileNameWithoutExtension(absolute);
         using var json = JsonDocument.Parse(File.ReadAllText(absolute));
-        var root = json.RootElement;
+        var paragraphs = ReadParagraphs(json.RootElement);
+        string vocabularyPath = Path.ChangeExtension(absolute, ".vocabulary.json");
+        var warnings = new List<string>();
+        VocabularySnapshot vocabulary;
+        try { vocabulary = new VocabularyRepository().Load(vocabularyPath); }
+        catch (Exception error) when (error is JsonException or InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            warnings.Add("词汇表无法加载：" + error.Message);
+            vocabulary = new VocabularySnapshot(new VocabularyData(), null, false, error.Message);
+        }
+        var resources = new AudioResources();
+        int missing = 0;
+        foreach (var segment in paragraphs.SelectMany(p => p).Where(s => s.Audio is not null))
+            foreach (string accent in new[] { "uk", "us" })
+            {
+                var asset = resources.Segment(Path.GetDirectoryName(absolute)!, segment, accent);
+                if (!AudioResources.IsAvailable(asset)) missing++;
+            }
+        if (missing > 0) warnings.Add($"缺失 {missing} 个正文音频；正文仍可阅读。");
+        return new LoadedArticle(absolute, title, paragraphs, vocabularyPath, vocabulary, warnings);
+    }
+
+    private static List<Segment[]> ReadParagraphs(JsonElement root)
+    {
         if (root.ValueKind != JsonValueKind.Object || JsonFiles.Text(root, "filetype") != "passage")
             throw new InvalidDataException("filetype 必须为 passage。");
         if (!root.TryGetProperty("next_sid", out var next) || next.ValueKind != JsonValueKind.Number || !next.TryGetInt32(out int nextSid) || nextSid < 1 || nextSid > 1000)
@@ -25,7 +48,7 @@ public sealed class ArticleRepository
             foreach (var item in JsonFiles.Array(paragraph, "paragraph", true).EnumerateArray())
             {
                 string sid = JsonFiles.Text(item, "sid"), text = JsonFiles.Text(item, "text");
-                if (!Regex.IsMatch(sid, @"^s[0-9]{3}$") || int.Parse(sid[1..]) == 0 || !ids.Add(sid))
+                if (!Regex.IsMatch(sid, @"\As[0-9]{3}\z") || int.Parse(sid[1..]) == 0 || !ids.Add(sid))
                     throw new InvalidDataException($"非法或重复 SID：{sid}");
                 if (string.IsNullOrEmpty(text) || text != text.Trim()) throw new InvalidDataException($"{sid} 正文为空或含首尾空白。");
                 foreach (Match match in Regex.Matches(text, @"\[\[([0-9]+)\]\]"))
@@ -54,24 +77,6 @@ public sealed class ArticleRepository
                 throw new InvalidDataException($"{segment.Sid} 完整文章音频路径或正文结构无效。");
         }
         if (blank && !placeholders.Order().SequenceEqual(Enumerable.Range(1, placeholders.Count))) throw new InvalidDataException("占位符编号必须唯一、从 1 连续。");
-        string vocabularyPath = Path.ChangeExtension(absolute, ".vocabulary.json");
-        var warnings = new List<string>();
-        VocabularySnapshot vocabulary;
-        try { vocabulary = new VocabularyRepository().Load(vocabularyPath); }
-        catch (Exception error) when (error is JsonException or InvalidDataException or IOException or UnauthorizedAccessException)
-        {
-            warnings.Add("词汇表无法加载：" + error.Message);
-            vocabulary = new VocabularySnapshot(new VocabularyData(), null, false, error.Message);
-        }
-        var resources = new AudioResources();
-        int missing = 0;
-        foreach (var segment in all.Where(s => s.Audio is not null))
-            foreach (string accent in new[] { "uk", "us" })
-            {
-                var asset = resources.Segment(Path.GetDirectoryName(absolute)!, segment, accent);
-                if (!AudioResources.IsAvailable(asset)) missing++;
-            }
-        if (missing > 0) warnings.Add($"缺失 {missing} 个正文音频；正文仍可阅读。");
-        return new LoadedArticle(absolute, title, paragraphs, vocabularyPath, vocabulary, warnings);
+        return paragraphs;
     }
 }

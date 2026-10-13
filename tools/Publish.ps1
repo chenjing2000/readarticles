@@ -1,8 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 $projectPath = 'ReadArticles\ReadArticles.csproj'
 $exeName = 'ReadArticles.exe'
-$settingsName = 'ReadArticles.settings.json'
-$legacyDirectory = $null
 $workspace = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $publishDirectory = Join-Path $workspace 'dist'
 $stagingDirectory = Join-Path $publishDirectory ('.publish-' + [Guid]::NewGuid().ToString('N'))
@@ -22,29 +20,10 @@ try {
         throw 'Expected a single EXE; the existing release has been preserved.'
     }
 
-    $legacyExe = $null
-    $legacySettings = $null
-    $settings = Join-Path $publishDirectory $settingsName
-    if ($legacyDirectory) {
-        $legacyPath = Join-Path $publishDirectory $legacyDirectory
-        $legacyExe = Join-Path $legacyPath $exeName
-        $legacySettings = Join-Path $legacyPath $settingsName
-        if ((Test-Path -LiteralPath $legacySettings) -and (Test-Path -LiteralPath $settings) -and
-            (Get-FileHash -LiteralPath $legacySettings).Hash -ne (Get-FileHash -LiteralPath $settings).Hash) {
-            throw 'Old and new configurations differ. Resolve the conflict before publishing; neither file was changed.'
-        }
-    }
-
-    # Fail before configuration migration if a current or legacy executable is in use.
-    foreach ($exe in @($destination, $legacyExe)) {
-        if ($exe -and (Test-Path -LiteralPath $exe)) {
-            $handle = [IO.File]::Open($exe, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-            $handle.Dispose()
-        }
-    }
-    if ($legacySettings -and (Test-Path -LiteralPath $legacySettings) -and -not (Test-Path -LiteralPath $settings)) {
-        Copy-Item -LiteralPath $legacySettings -Destination $settings
-        Write-Host 'Copied legacy configuration to dist; the original is retained as a backup.'
+    # Fail before replacement if the current executable is in use.
+    if (Test-Path -LiteralPath $destination) {
+        $handle = [IO.File]::Open($destination, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        $handle.Dispose()
     }
 
     # Same-volume replacement leaves the previous EXE intact when replacement fails.
@@ -53,9 +32,6 @@ try {
     }
     else {
         [IO.File]::Move($output[0].FullName, $destination)
-    }
-    if ($legacyExe -and (Test-Path -LiteralPath $legacyExe)) {
-        Remove-Item -LiteralPath $legacyExe -Force
     }
     Write-Host "Published: $destination"
 }

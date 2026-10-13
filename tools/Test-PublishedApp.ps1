@@ -4,8 +4,6 @@ $ErrorActionPreference = 'Stop'
 $workspace = Split-Path -Parent $PSScriptRoot
 $exeName = 'ReadArticles.exe'
 $settingsName = 'Renamed App.settings.json'
-$createsSettingsAtStartup = $true
-$integrationProject = $null
 if (-not $ExePath) { $ExePath = Join-Path $workspace "dist\$exeName" }
 $ExePath = (Resolve-Path -LiteralPath $ExePath).Path
 $temporary = New-TestDirectory
@@ -27,11 +25,8 @@ try {
         } while (-not $script:publishedProcess.HasExited -and $script:publishedProcess.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
         if ($script:publishedProcess.HasExited -or $script:publishedProcess.MainWindowHandle -eq 0) { throw 'The application did not create its main window.' }
         $settings = Join-Path $appDirectory $settingsName
-        if ($createsSettingsAtStartup) {
-            while (-not (Test-Path -LiteralPath $settings) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
-            Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json | Out-Null
-        }
-        elseif (Test-Path -LiteralPath $settings) { throw 'Configuration was unexpectedly created at startup.' }
+        while (-not (Test-Path -LiteralPath $settings) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+        Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json | Out-Null
         if (@(Get-ChildItem -LiteralPath $workingDirectory -File).Count) { throw 'Application files followed the working directory.' }
         $script:publishedProcess.CloseMainWindow() | Out-Null
         if (-not $script:publishedProcess.WaitForExit(5000)) { throw 'The main window did not close cleanly.' }
@@ -61,11 +56,6 @@ try {
             }
         }
         finally { $missing.Dispose() }
-    }
-    if ($integrationProject) {
-        Invoke-TestCheck 'Application-specific published integration' {
-            Invoke-TestCommand 'dotnet' @('run', '-c', 'Release', '--project', $integrationProject, '--', '--published', $ExePath)
-        }
     }
     Complete-TestRun
 }

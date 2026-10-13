@@ -32,25 +32,17 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Local Python migration archive; not needed to build or run ReadArticles
-/reference/*.zip
-
-# Local media, source images, archives, and personal resource directories
+# Local audio/video and personal resource directories
 *.mp3
 *.wav
 *.m4a
 *.ogg
 *.mp4
 *.webm
-*.png
-*.jpg
-*.jpeg
-*.webp
-*.zip
 /reference/
 /resources/
 /library/
 /userdata/
 
-# Embedded UI assets are required to build and run the application.
-!/ReadArticles/ui/**
+# Images and archives outside these local directories remain visible to Git,
+# including embedded UI assets, documentation illustrations, and source fixtures.

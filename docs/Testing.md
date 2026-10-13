@@ -36,7 +36,7 @@ External data paths are passed as arguments; scripts do not hard-code a develope
 
 ### ReadArticles
 
-Core runs rendering, tree, and vocabulary-editing categories without external MP3s. UI adds icons and, when an article directory is supplied, the audio-dependent window checks. Full with -ArticleDirectory runs all 74 fixed regression cases and two current-source checks. Without the argument it runs the available categories and explicitly skips audio-dependent checks.
+Core runs rendering, tree, and vocabulary-editing categories without external MP3s. UI adds icons and, when an article directory is supplied, the audio-dependent window checks. Full with -ArticleDirectory runs all fixed regression cases and the current-source checks. Without the argument it runs the available categories and explicitly skips audio-dependent checks.
 
 ```powershell
 .\tools\Test.ps1 -Suite Full -ArticleDirectory '<local When America walks away directory>'

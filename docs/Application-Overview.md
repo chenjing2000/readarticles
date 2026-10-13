@@ -31,7 +31,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `ViewModels/VocabularyEntryViewModel.cs` | A word's display fields, available pronunciation actions, and move/delete commands |
 | `Models/` | Passage segments, SIDs, selection ranges, vocabulary entries, navigation nodes, and loaded snapshots |
 | `Services/LibraryRepository.cs` | Discover marked book directories and recursively build the directory tree without parsing content |
-| `Services/ArticleRepository.cs` | Parse and validate passages; load the matching vocabulary; report missing sentence audio |
+| `Services/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` coordinates the matching vocabulary, missing-audio warnings, and the loaded snapshot |
 | `Services/VocabularyRepository.cs` | Validate vocabulary, derive audio stems, and save with external-change detection |
 | `Services/UserRepository.cs` | Read the limited account-display data from the book's existing answer sheet |
 | `Services/ReaderWorkspace.cs` | Commit prepared library/article state and replace vocabulary after successful persistence |
