@@ -16,5 +16,5 @@ public sealed record LoadedArticle(string FilePath, string Title, IReadOnlyList<
             }
         }
     }
-    public bool IsBlank => Segments.All(s => s.Audio is null);
+    public bool IsBlank => Segments.All(s => !s.HasAudio);
 }

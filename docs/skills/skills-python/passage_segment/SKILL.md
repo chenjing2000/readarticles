@@ -1,6 +1,6 @@
 ---
 name: passage-segment
-description: Create a StudyBench Passage <title>.json from a supplied title and English passage body, with correct Paragraphs, Segments, SIDs, placeholders, and audio paths.
+description: Use when creating ReadArticles passage JSON from a supplied title and English body, including sentence segmentation, SIDs, and blank placeholders.
 ---
 
 # Passage Segment
@@ -19,8 +19,8 @@ This skill is CREATE-only. Output raw JSON only: no Markdown fence, commentary, 
 
 StudyBench has two Passage families:
 
-- **Article**: no `[[n]]` placeholders; every Segment has UK/US audio paths.
-- **ArticleBlank**: contains one or more valid `[[n]]` placeholders; Segment objects have no `audio` field.
+- **Article**: no `[[n]]` placeholders; sentence audio is derived from SID.
+- **ArticleBlank**: contains one or more valid `[[n]]` placeholders; sentence audio is disabled.
 
 There is no `tts_enabled` field.
 
@@ -44,19 +44,11 @@ Output structure:
       "paragraph": [
         {
           "sid": "s001",
-          "text": "First complete sentence.",
-          "audio": {
-            "uk": "audio_segments/s001_uk.mp3",
-            "us": "audio_segments/s001_us.mp3"
-          }
+          "text": "First complete sentence."
         },
         {
           "sid": "s002",
-          "text": "Second complete sentence.",
-          "audio": {
-            "uk": "audio_segments/s002_uk.mp3",
-            "us": "audio_segments/s002_us.mp3"
-          }
+          "text": "Second complete sentence."
         }
       ]
     }
@@ -64,7 +56,7 @@ Output structure:
 }
 ```
 
-For ArticleBlank, keep the same Paragraph/Segment structure and omit `audio` completely from every Segment.
+Both families use the same Paragraph/Segment structure and omit `audio` completely from every Segment. Legacy `audio` fields are ignored on input and omitted from this skill's output. ReadArticles does not save passage JSON; removal from existing passage files happens only when an external tool saves or regenerates them.
 
 ## 3. Core Rules
 
@@ -103,14 +95,10 @@ Do not infer the family from an Exercise type alone.
 For **Article**:
 
 - Segment text must contain no `[[` or `]]`;
-- every Segment must contain exactly:
-
-```json
-"audio": {
-  "uk": "audio_segments/<sid>_uk.mp3",
-  "us": "audio_segments/<sid>_us.mp3"
-}
-```
+- no Segment contains an `audio` field;
+- sentence recordings are resolved as `audio_sentences/<sid>_uk.mp3` or `.wav`, and `_us.mp3` or `.wav`, relative to the passage directory;
+- for each accent, prefer an existing MP3, otherwise WAV; decoding failure does not trigger WAV fallback;
+- no old directory, arbitrary JSON path, or audio index is used; no resource migration is performed.
 
 For **ArticleBlank**:
 
@@ -119,7 +107,7 @@ For **ArticleBlank**:
 - malformed forms such as `[[0]]`, `[[x]]`, `[[ 1 ]]`, unmatched `[[`, or unmatched `]]` are invalid;
 - no Segment may contain an `audio` field.
 
-This skill declares audio paths only; it does not generate audio, Vocabulary, Exercise, or cache files.
+This skill outputs passage content only; it does not declare audio paths or generate audio, Vocabulary, Exercise, or cache files. Family detection depends on valid body placeholders, never on the presence of legacy `audio` fields.
 
 ## 5. Final Validation
 
@@ -129,5 +117,5 @@ Before returning JSON, verify:
 - no `title` or `tts_enabled` field exists;
 - Paragraph and Segment boundaries preserve the source meaning and order;
 - SIDs are lowercase, unique, sequential in reading order, and `next_sid` is correct;
-- Article has no placeholders and every Segment uses `audio_segments/<sid>_uk.mp3` and `_us.mp3`;
+- Article has no placeholders, no Segment contains `audio`, and SID-based recordings use `audio_sentences/`;
 - ArticleBlank has continuous unique `[[1]]..[[N]]` placeholders and no Segment `audio` field.

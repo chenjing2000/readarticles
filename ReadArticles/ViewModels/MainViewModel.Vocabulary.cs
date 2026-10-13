@@ -73,6 +73,7 @@ public sealed partial class MainViewModel
     private void CommitVocabulary(VocabularyData vocabulary)
     {
         workspace.ReplaceVocabulary(vocabulary);
+        playback.RefreshVocabulary(Article!);
         RefreshWords();
         VocabularyChanged?.Invoke();
     }

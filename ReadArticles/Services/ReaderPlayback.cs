@@ -80,14 +80,16 @@ public sealed class ReaderPlayback
     public bool CanPlaySegment(LoadedArticle? article, string sid, string accent)
     {
         var segment = article?.Segments.FirstOrDefault(s => s.Sid == sid);
-        return segment?.Audio != null && AudioResources.IsAvailable(resources.Segment(article!.Directory, segment, accent));
+        return segment?.HasAudio == true && AudioResources.IsAvailable(resources.Segment(article!.Directory, segment, accent));
     }
 
     public void PlayWord(LoadedArticle? article, VocabularyEntry entry, string accent)
     {
         Handle(() =>
         {
-            string path = resources.Vocabulary(RequireArticle(article).Directory, entry, accent);
+            var current = RequireArticle(article);
+            if (!AudioResources.OwnsWordAudio(current, entry)) throw new InvalidOperationException("词条没有音频资格。");
+            string path = resources.Vocabulary(current.Directory, entry, accent);
             pronunciationPlayer.Play(new AudioItem(path), "word:" + accent + ":" + entry.Word);
         });
     }
@@ -96,7 +98,7 @@ public sealed class ReaderPlayback
     {
         try
         {
-            return AudioResources.IsAvailable(resources.Vocabulary(article.Directory, entry, accent));
+            return AudioResources.OwnsWordAudio(article, entry) && AudioResources.IsAvailable(resources.Vocabulary(article.Directory, entry, accent));
         }
         catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
         {
@@ -107,6 +109,14 @@ public sealed class ReaderPlayback
     public void StopWord(VocabularyEntry entry)
     {
         if (pronunciationPlayer.Owner == "word:uk:" + entry.Word || pronunciationPlayer.Owner == "word:us:" + entry.Word) pronunciationPlayer.Stop();
+    }
+
+    public void RefreshVocabulary(LoadedArticle article)
+    {
+        if (!pronunciationPlayer.Owner.StartsWith("word:", StringComparison.Ordinal)) return;
+        var entry = article.Vocabulary.Data.Words.FirstOrDefault(w =>
+            pronunciationPlayer.Owner == "word:uk:" + w.Word || pronunciationPlayer.Owner == "word:us:" + w.Word);
+        if (entry is null || !AudioResources.OwnsWordAudio(article, entry)) pronunciationPlayer.Stop();
     }
 
     public void StopPronunciation()

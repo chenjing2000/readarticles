@@ -11,10 +11,10 @@ internal static class AudioChecks
         Program.Run("resource paths reject traversal and absolute references", () =>
         {
             string resourceRoot = Directory.GetCurrentDirectory();
-            Program.Check(ResourcePaths.Resolve(resourceRoot, "audio_segments/s001_uk.mp3").StartsWith(resourceRoot));
+            Program.Check(ResourcePaths.Resolve(resourceRoot, "audio_sentences/s001_uk.mp3").StartsWith(resourceRoot));
             Reject("../escape.mp3");
             Reject("C:/outside.mp3");
-            Reject("audio_segments/file.mp3:stream");
+            Reject("audio_sentences/file.mp3:stream");
             void Reject(string relative)
             {
                 try { ResourcePaths.Resolve(resourceRoot, relative); }
@@ -38,13 +38,16 @@ internal static class AudioChecks
                 File.Copy(second, Path.Combine(dualRoot, "b.mp3"));
                 string passage = Path.Combine(dualRoot, "Dual.json");
                 File.Copy(TestData.ArticlePath, passage);
+                File.WriteAllText(Path.ChangeExtension(passage, ".vocabulary.json"), """{"filetype":"vocabulary","words":[{"word":"test","meanings":[]}]}""");
                 var articlePlayer = new FakePlayer();
                 var pronunciationPlayer = new FakePlayer();
                 var articleController = new PlaybackController(articlePlayer);
                 var pronunciationController = new PlaybackController(pronunciationPlayer);
                 var model = new MainViewModel(articleController, pronunciationController);
                 Program.Check(model.OpenArticle(passage));
-                var entry = new VocabularyEntry { Word = "test", Audio = new AudioPaths("b.mp3", "b.mp3") };
+                var entry = model.Article!.Vocabulary.Data.Words[0];
+                Directory.CreateDirectory(Path.Combine(dualRoot, "audio"));
+                File.Copy(second, Path.Combine(dualRoot, "audio", VocabularyRepository.AudioStem(entry.Word) + "_uk.mp3"));
                 string segmentPath = new AudioResources().Segment(dualRoot, model.Article!.Segments.First(), "uk");
                 Directory.CreateDirectory(Path.GetDirectoryName(segmentPath)!);
                 File.WriteAllBytes(segmentPath, new byte[] { 1 });
@@ -74,8 +77,8 @@ internal static class AudioChecks
                 Program.Check(pronunciationController.State == PlaybackState.Playing && articleController.State == PlaybackState.Stopped);
                 model.ToggleArticleAudio();
                 Program.Check(pronunciationController.State == PlaybackState.Stopped && model.Playback.IsArticlePlaying);
-                model.PlayWord(new VocabularyEntry { Word = "missing", Audio = new AudioPaths("missing.mp3", "missing.mp3") }, "uk");
-                Program.Check(model.Playback.IsArticlePlaying && model.Status.Contains("MP3"));
+                model.PlayWord(new VocabularyEntry { Word = "missing" }, "uk");
+                Program.Check(model.Playback.IsArticlePlaying && model.Status.Contains("音频资格"));
                 model.PlayWord(entry, "uk");
                 model.Stop();
                 Program.Check(articleController.State == PlaybackState.Stopped && pronunciationController.State == PlaybackState.Stopped);
@@ -243,7 +246,7 @@ internal static class AudioChecks
                 player.Fail(player.Played[^1].Request);
                 Program.Check(controller.State == PlaybackState.Stopped && controller.CurrentSid is null && warning is not null);
             });
-            Program.Run("reader rejected vocabulary audio path cancels previous playback target", () =>
+            Program.Run("reader stale vocabulary entry cancels previous playback target", () =>
             {
                 var player = new FakePlayer();
                 var controller = new PlaybackController(player);
@@ -256,27 +259,26 @@ internal static class AudioChecks
                 long stale = pronunciationPlayer.Played[^1].Request;
                 var invalid = new VocabularyEntry
                 {
-                    Word = "unsafe",
-                    Audio = new AudioPaths("../escape.mp3", "../escape.mp3")
+                    Word = "unsafe"
                 };
                 model.PlayWord(invalid, "uk");
                 Program.Check(pronunciation.State == PlaybackState.Stopped && pronunciation.Owner == "" && pronunciation.CurrentSid is null);
-                Program.Check(pronunciationPlayer.Played.Count == 1 && model.Status.Contains("escapes"));
+                Program.Check(pronunciationPlayer.Played.Count == 1 && model.Status.Contains("音频资格"));
                 pronunciationPlayer.Complete(stale);
                 pronunciationPlayer.Fail(stale);
                 Program.Check(pronunciation.State == PlaybackState.Stopped && pronunciationPlayer.Played.Count == 1);
             });
-            Program.Run("missing audio_segments never falls back to old audio directory", () =>
+            Program.Run("missing audio_sentences never falls back to old audio directory", () =>
             {
                 string directory = Path.Combine(root, "no-fallback");
                 string old = Path.Combine(directory, "audio");
                 Directory.CreateDirectory(old);
                 File.WriteAllBytes(Path.Combine(old, "s001_uk.mp3"), [1]);
                 var resources = new AudioResources();
-                var segment = new Segment("s001", "test", TestData.Paths("s001"));
+                var segment = new Segment("s001", "test", true);
                 string asset = resources.Segment(directory, segment, "uk");
                 Program.Check(!AudioResources.IsAvailable(asset));
-                Directory.CreateDirectory(Path.Combine(directory, "audio_segments"));
+                Directory.CreateDirectory(Path.Combine(directory, "audio_sentences"));
                 File.WriteAllBytes(asset, [1]);
                 Program.Check(AudioResources.IsAvailable(resources.Segment(directory, segment, "uk")));
             });
@@ -284,7 +286,7 @@ internal static class AudioChecks
         finally { Directory.Delete(root, true); }
     }
 
-    private sealed class FakePlayer : IAudioPlayer
+    internal sealed class FakePlayer : IAudioPlayer
     {
         public event Action<long>? Opened;
         public event Action<long>? Ended;

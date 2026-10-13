@@ -63,7 +63,7 @@ internal static class RenderingChecks
         });
         Program.Run("P16/P17 Blank is display-only with no audio events", () =>
         {
-            var reader = new ParagraphReader([new Segment("s005", "Character [[1]] matters.")], ["character"]);
+            var reader = new ParagraphReader([new Segment("s005", "Character [[1]] matters.", false)], ["character"]);
             Program.Check(new TextRange(reader.Document.ContentStart, reader.Document.ContentEnd).Text.Contains("____1____"));
             Program.Check(!((Paragraph)reader.Document.Blocks.FirstBlock!).Inlines.OfType<Span>().SelectMany(s => s.Inlines.Cast<Inline>()).OfType<InlineUIContainer>().Any());
             Program.Check(!reader.RequestSegmentPlayback(reader.Ranges[0].Start));

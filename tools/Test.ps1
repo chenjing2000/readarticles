@@ -20,11 +20,11 @@ try {
         Invoke-TestCommand 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/Test-Publish.ps1')
     }
     if ($Suite -eq 'Full' -and $ArticleDirectory) {
-        Invoke-TestCheck 'Complete article and real MP3 suite' { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release') }
+        Invoke-TestCheck 'Complete article and real MP3/WAV suite' { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release') }
         Invoke-TestCheck 'Current supplied article and vocabulary' { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', '--source-only') }
     }
     else {
-        foreach ($category in @('--rendering-only', '--tree-only', '--editing-only')) {
+        foreach ($category in @('--unified-audio-only', '--rendering-only', '--tree-only', '--editing-only')) {
             Invoke-TestCheck $category { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', $category) }
         }
         if ($Suite -ne 'Core') {

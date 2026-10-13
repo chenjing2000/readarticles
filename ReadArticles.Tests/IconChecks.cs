@@ -12,7 +12,7 @@ internal static class IconChecks
     {
         Program.Run("selection add uses a square vector icon and keeps add behavior", () =>
         {
-            var reader = new ReadArticles.Rendering.ParagraphReader([new Segment("s001", "selected word", TestData.Paths("s001"))], []);
+            var reader = new ReadArticles.Rendering.ParagraphReader([new Segment("s001", "selected word", true)], []);
             var host = new Window { Content = reader, Width = 360, Height = 150, Left = -10000, Top = -10000, ShowActivated = false };
             try
             {
@@ -55,7 +55,7 @@ internal static class IconChecks
         });
         Program.Run("plain plus follows window movement, scrolling and viewport clipping", () =>
         {
-            var reader = new ReadArticles.Rendering.ParagraphReader([new Segment("s001", "selected word " + string.Concat(Enumerable.Repeat("more words ", 100)), TestData.Paths("s001"))], [])
+            var reader = new ReadArticles.Rendering.ParagraphReader([new Segment("s001", "selected word " + string.Concat(Enumerable.Repeat("more words ", 100)), true)], [])
                 { Margin = new Thickness(150, 160, 20, 20) };
             var content = new Grid { Width = 1000, Height = 1400 }; content.Children.Add(reader);
             var scroll = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };

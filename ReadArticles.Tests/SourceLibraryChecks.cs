@@ -21,7 +21,7 @@ internal static class SourceLibraryChecks
             int segmentCount = paragraphs.EnumerateArray().Sum(p => p.GetProperty("paragraph").GetArrayLength());
             Program.Check(article.Paragraphs.Count == paragraphs.GetArrayLength() && article.Segments.Count() == segmentCount);
             Program.Check(article.Vocabulary.Data.Words.Count == vocabulary.RootElement.GetProperty("words").GetArrayLength());
-            Program.Check(Path.GetFileName(Path.GetDirectoryName(new AudioResources().Segment(article.Directory, article.Segments.First(), "uk"))) == "audio_segments");
+            Program.Check(Path.GetFileName(Path.GetDirectoryName(new AudioResources().Segment(article.Directory, article.Segments.First(), "uk"))) == "audio_sentences");
             CheckUnchanged(before);
         });
         Program.Run("current source library renders its current article and vocabulary without writes", () =>

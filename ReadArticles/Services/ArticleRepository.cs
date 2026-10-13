@@ -23,7 +23,7 @@ public sealed class ArticleRepository
         }
         var resources = new AudioResources();
         int missing = 0;
-        foreach (var segment in paragraphs.SelectMany(p => p).Where(s => s.Audio is not null))
+        foreach (var segment in paragraphs.SelectMany(p => p).Where(s => s.HasAudio))
             foreach (string accent in new[] { "uk", "us" })
             {
                 var asset = resources.Segment(Path.GetDirectoryName(absolute)!, segment, accent);
@@ -56,10 +56,7 @@ public sealed class ArticleRepository
                     if (!int.TryParse(match.Groups[1].Value, out int number)) throw new InvalidDataException("占位符编号超出有效范围。");
                     placeholders.Add(number);
                 }
-                AudioPaths? audio = null;
-                if (item.TryGetProperty("audio", out var rawAudio))
-                    audio = new AudioPaths(JsonFiles.Text(rawAudio, "uk"), JsonFiles.Text(rawAudio, "us"));
-                segments.Add(new Segment(sid, text, audio));
+                segments.Add(new Segment(sid, text));
             }
             paragraphs.Add(segments.ToArray());
         }
@@ -71,12 +68,12 @@ public sealed class ArticleRepository
             if (blank)
             {
                 string scrubbed = Regex.Replace(segment.Text, @"\[\[([0-9]+)\]\]", "");
-                if (segment.Audio is not null || scrubbed.Contains("[[") || scrubbed.Contains("]]")) throw new InvalidDataException("ArticleBlank 结构无效。");
+                if (scrubbed.Contains("[[") || scrubbed.Contains("]]")) throw new InvalidDataException("ArticleBlank 结构无效。");
             }
-            else if (segment.Text.Contains("[[") || segment.Text.Contains("]]") || segment.Audio?.Uk != $"audio_segments/{segment.Sid}_uk.mp3" || segment.Audio?.Us != $"audio_segments/{segment.Sid}_us.mp3")
-                throw new InvalidDataException($"{segment.Sid} 完整文章音频路径或正文结构无效。");
+            else if (segment.Text.Contains("[[") || segment.Text.Contains("]]"))
+                throw new InvalidDataException($"{segment.Sid} 完整文章正文结构无效。");
         }
         if (blank && !placeholders.Order().SequenceEqual(Enumerable.Range(1, placeholders.Count))) throw new InvalidDataException("占位符编号必须唯一、从 1 连续。");
-        return paragraphs;
+        return paragraphs.Select(p => p.Select(s => s with { HasAudio = !blank }).ToArray()).ToList();
     }
 }

@@ -14,7 +14,6 @@ public sealed class VocabularyEntry
     [JsonPropertyName("phonetic_uk")] public string PhoneticUk { get; init; } = "";
     [JsonPropertyName("phonetic_us")] public string PhoneticUs { get; init; } = "";
     [JsonPropertyName("meanings")] public List<Meaning> Meanings { get; init; } = new List<Meaning>();
-    [JsonPropertyName("audio")] public AudioPaths Audio { get; init; } = new AudioPaths("", "");
     [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; init; }
 }
 

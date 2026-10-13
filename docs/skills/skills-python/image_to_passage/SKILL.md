@@ -1,6 +1,6 @@
 ---
 name: image-to-passage
-description: Convert one or more English textbook/page images into ReadArticles <title>.json and, when supported exercises are present, <title>.exercise.json.
+description: Use when converting English textbook or page images into ReadArticles passage JSON and optional supported exercise JSON.
 ---
 
 # Image to Passage
@@ -76,17 +76,12 @@ The Passage JSON always begins with:
 
 Then follow `../passage_segment/SKILL.md` exactly:
 
-- no placeholders → Article with Segment audio paths;
-- placeholders → ArticleBlank with no Segment `audio` fields;
+- no placeholders → Article with SID-derived sentence audio;
+- placeholders → ArticleBlank with sentence playback disabled;
 - SID starts at `s001`, is Passage-wide unique, and `next_sid` is correct;
 - do not write `title` or `tts_enabled`.
 
-For Article, audio paths are:
-
-```text
-audio_segments/<sid>_uk.mp3
-audio_segments/<sid>_us.mp3
-```
+Neither family stores `audio` fields. Article recordings are resolved from SID under `audio_sentences/<sid>_uk.mp3` or `.wav`, and `_us.mp3` or `.wav`; prefer MP3 when present and use WAV only when MP3 is absent. Decoding errors do not retry WAV. Old directories and indexes are not read or migrated. Ignore legacy `audio` fields when processing existing content and omit them from regenerated JSON.
 
 ## 4. Exercise Extraction
 
@@ -166,7 +161,7 @@ Before returning/writing files, verify:
 - Passage and Exercise text are separated correctly and source order is preserved;
 - `<title>.json` satisfies `../passage_segment/SKILL.md`;
 - Passage has `filetype="passage"`, no `title`, and no `tts_enabled`;
-- Article uses exact `audio_segments/<sid>_*.mp3` paths; ArticleBlank has continuous `[[1]]..[[N]]` and no Segment contains `audio`;
+- no Segment contains `audio`; ArticleBlank has continuous `[[1]]..[[N]]`, while Article has no placeholders;
 - optional Exercise has `filetype="exercise"` and one supported `article_*` type;
 - all answer-unit numbers are unique positive integers;
 - all cloze-family item numbers match Passage placeholder numbers exactly;

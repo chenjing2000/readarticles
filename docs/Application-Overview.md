@@ -2,13 +2,13 @@
 
 ## Design goals
 
-ReadArticles is a local Windows reading and vocabulary application. It displays a directory tree, a rendered English passage, and an editable vocabulary list in three separate panes. Content remains in ordinary JSON and MP3 files so it can be prepared outside the application and inspected without a database.
+ReadArticles is a local Windows reading and vocabulary application. It displays a directory tree, a rendered English passage, and an editable vocabulary list in three separate panes. Content remains in ordinary JSON and MP3/WAV files so it can be prepared outside the application and inspected without a database.
 
 The design favors explicit responsibilities, concrete services, and small functions. It avoids a dependency-injection container, generic repository framework, event bus, and plugin architecture. A single audio-player interface is retained because it separates native media playback from deterministic playback tests.
 
 ## Framework and execution
 
-The application uses C# and WPF, targeting `net10.0-windows` with runtime version `10.0.11` or a later compatible patch. The build SDK is selected by `global.json`, currently `10.0.400`. WPF XAML defines the window, templates, and bindings. Native `RichTextBox`, `FlowDocument`, and `TextPointer` APIs implement passage rendering and selection. A WPF `Adorner` hosts the selection-add button in the same visual tree as the passage. WPF media playback supplies MP3 decoding and progress.
+The application uses C# and WPF, targeting `net10.0-windows` with runtime version `10.0.11` or a later compatible patch. The build SDK is selected by `global.json`, currently `10.0.400`. WPF XAML defines the window, templates, and bindings. Native `RichTextBox`, `FlowDocument`, and `TextPointer` APIs implement passage rendering and selection. A WPF `Adorner` hosts the selection-add button in the same visual tree as the passage. WPF media playback supplies MP3/WAV decoding and progress.
 
 JSON handling uses `System.Text.Json`; files remain the storage layer. The original Python application is a migration reference, not a runtime dependency or required repository file. The WPF reader does not use an embedded browser to render the passage.
 
@@ -36,7 +36,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `Services/UserRepository.cs` | Read the limited account-display data from the book's existing answer sheet |
 | `Services/ReaderWorkspace.cs` | Commit prepared library/article state and replace vocabulary after successful persistence |
 | `Services/VocabularyMatcher.cs` | Find non-overlapping literal vocabulary matches with explicit English-word boundaries |
-| `Services/AudioResources.cs` | Resolve sentence/word audio and select the first sibling MP3 for whole-article playback |
+| `Services/AudioResources.cs` | Resolve sentence/word audio and select the first sibling MP3, otherwise WAV, for whole-article playback |
 | `Services/ReaderPlayback.cs` | Select audio targets, enforce article-only controls/progress, cancel pronunciation, and report audio errors |
 | `Services/PlaybackController.cs` / `IAudioPlayer.cs` | Playback state, pause/resume, completion, progress access, and stale-event rejection; player boundary |
 | `Rendering/ParagraphReader.cs` | Build paragraph documents; maintain SID-to-text ranges, selections, styles, and playback requests |
@@ -69,9 +69,9 @@ Selection/import/move/delete -> MainViewModel -> ReaderWorkspace
                             -> refresh words -> update passage styles
 ```
 
-All successful vocabulary commits use one refresh/notification path. Import keeps incoming metadata; later edits retain the current vocabulary metadata. Recognized extension metadata at the vocabulary root, entry, meaning, and audio levels survives serialization.
+All successful vocabulary commits use one refresh/notification path. Import keeps incoming metadata; later edits retain the current vocabulary metadata. Recognized extension metadata at the vocabulary root, entry, and meaning levels survives serialization. Legacy `audio` fields are ignored on load and removed on save.
 
-The JSON `words` array determines list order. Moving swaps neighboring positions; the first and last items disable impossible moves. Delete removes the selected entry. The selection-add button creates a word with declared pronunciation paths, but does not generate definitions or MP3 files.
+The JSON `words` array determines list order. Moving swaps neighboring positions; the first and last items disable impossible moves. Delete removes the selected entry. The selection-add button creates a word whose pronunciation filenames are inferred from its stem, but does not generate definitions or audio files.
 
 Delete requires an active, writable vocabulary and an entry belonging to that vocabulary. Requests with no article or a stale entry do nothing. The matching pronunciation is stopped only after the deletion has been saved successfully.
 
@@ -84,7 +84,7 @@ UI request -> ReaderPlayback -> audio resource lookup -> PlaybackController -> I
 Media event -> request-token check -> ReaderPlayback state/progress -> UI update
 ```
 
-The bottom play/pause and stop actions own only the selected sibling MP3. Stop is enabled only while that file is playing or paused; it does not interrupt sentence or word playback. The sibling MP3 has a dedicated player and controller; sentence and word requests share a second independent player and controller. ReaderPlayback coordinates them: starting or resuming the sibling MP3 stops pronunciation, while starting pronunciation pauses the sibling MP3 without losing its position. Finishing pronunciation leaves the sibling MP3 paused. Only one target plays at a time. Old completion/failure callbacks cannot advance or stop a newer target. The bottom progress bar is shown and accepts seeking only for the sibling MP3 while playing or paused. Starting a sentence or word keeps the paused sibling MP3 progress and time label visible. Seeking and stopping affect only the sibling MP3, even while pronunciation is playing. When the sibling MP3 is stopped or has not been started, its progress bar stays hidden.
+The bottom play/pause and stop actions own only the selected sibling audio file. Stop is enabled only while that file is playing or paused; it does not interrupt sentence or word playback. The sibling audio file has a dedicated player and controller; sentence and word requests share a second independent player and controller. ReaderPlayback coordinates them: starting or resuming the sibling audio file stops pronunciation, while starting pronunciation pauses the sibling audio file without losing its position. Finishing pronunciation leaves the sibling audio file paused. Only one target plays at a time. Old completion/failure callbacks cannot advance or stop a newer target. The bottom progress bar is shown and accepts seeking only for the sibling audio file while playing or paused. Starting a sentence or word keeps the paused sibling audio file progress and time label visible. Seeking and stopping affect only the sibling audio file, even while pronunciation is playing. When the sibling audio file is stopped or has not been started, its progress bar stays hidden.
 
 ### Status and lifecycle
 
@@ -99,7 +99,7 @@ On close, timers stop, playback stops, and both media players are disposed. Norm
 - Each paragraph has a two-em first-line indent. All panes scroll independently and column splitters allow resizing.
 - The three bottom toolbars share their height and alignment. Playback controls remain present when disabled.
 - Highlighting starts off. The selection-add action is a 14 by 14 DIP native vector circle-plus; it follows selection scrolling and layout and hides outside the viewport or when selection is cleared.
-- Progress settings provide independent Forward (4/7/10 seconds) and Backward (5/8/15 seconds) selections, defaulting to their first options. Left uses the Backward value to move backward; Right uses the Forward value to move forward. Each option displays seconds explicitly. All Settings menus fit their text and share a light background; selected font, accent, and step options use #87c0ca instead of a checkmark. Space has priority across the window and popup menus and toggles only the sibling MP3 playback/pause.
+- Progress settings provide independent Forward (4/7/10 seconds) and Backward (5/8/15 seconds) selections, defaulting to their first options. Left uses the Backward value to move backward; Right uses the Forward value to move forward. Each option displays seconds explicitly. All Settings menus fit their text and share a light background; selected font, accent, and step options use #87c0ca instead of a checkmark. Space has priority across the window and popup menus and toggles only the sibling audio file playback/pause.
 - Font size, accent, progress steps, library, column widths, and player volume are retained as applicable. Window dimensions, active passage, and highlighting are not saved. Old settings containing these fields remain readable; the unused fields are ignored.
 
 ## Current boundaries
@@ -121,3 +121,7 @@ The Portable publish profile creates one framework-dependent Windows x64 executa
 ReaderSettings owns configuration defaults, recovery, and value normalization on load and save. It rounds stored column widths, bounds the font and volume, and validates accent and progress choices. MainWindow.Settings applies those values to controls and constrains column widths to the current viewport; it does not duplicate configuration validation.
 
 Program-computed window dimensions, column widths and limits, scrollbar width, and paragraph line heights are rounded before they feed subsequent size calculations. Saved LeftWidth and RightWidth are integers. Direct XAML pt font declarations for the title, tree, and settings menus remain unchanged. SVG geometry and text-selection positions are not rounded, preserving drawing and text alignment.
+
+Audio filenames are inferred without JSON paths: word files are `audio/<stem>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`; sentence files are `audio_sentences/<sid>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`. Derive stems by trimming, invariant lowercasing, replacing non-ASCII `a-z`/`0-9` characters with `_`, collapsing underscores, and trimming underscores. First entries reserve nonempty stems in `words` order regardless of recordings; later collisions and empty stems retain text with all audio disabled. Spelling uniqueness is unchanged. Blank articles are identified by valid body `[[n]]` placeholders and disable sentence audio.
+
+For each pronunciation target prefer MP3 by existence, otherwise WAV. Whole-article playback sorts sibling filenames as before, selecting the first MP3 or, only if none exists, the first WAV. Decoding failure never retries WAV or the next file. Old audio directories, naming rules, indexes, and JSON paths are not fallback sources; resources are not migrated. See [Library Layout](Library-Layout.md) for the full contract.

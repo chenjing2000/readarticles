@@ -39,10 +39,12 @@ public sealed class PlaybackController
         Stop();
         try
         {
-            if (!Path.IsPathFullyQualified(item.Path) || !string.Equals(Path.GetExtension(item.Path), ".mp3", StringComparison.OrdinalIgnoreCase) ||
+            string extension = Path.GetExtension(item.Path);
+            if (!Path.IsPathFullyQualified(item.Path) ||
+                !(string.Equals(extension, ".mp3", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".wav", StringComparison.OrdinalIgnoreCase)) ||
                 !File.Exists(item.Path) || new FileInfo(item.Path).Length == 0)
             {
-                Message?.Invoke("缺少或无效 MP3：" + item.Path);
+                Message?.Invoke("缺少或无效 MP3/WAV：" + item.Path);
                 return;
             }
         }

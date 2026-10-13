@@ -84,7 +84,7 @@ public sealed class ParagraphReader : RichTextBox
 
     public void SetHoveredSegment(string? sid)
     {
-        string? next = Ranges.FirstOrDefault(r => r.Segment.Sid == sid && r.Segment.Audio is not null)?.Segment.Sid;
+        string? next = Ranges.FirstOrDefault(r => r.Segment.Sid == sid && r.Segment.HasAudio)?.Segment.Sid;
         if (next == HoveredSid) return;
         HoveredSid = next;
         ApplyStyles();
@@ -239,7 +239,7 @@ public sealed class ParagraphReader : RichTextBox
     public bool RequestSegmentPlayback(TextPointer pointer)
     {
         var range = FindSegment(pointer);
-        if (range?.Segment.Audio is null) return false;
+        if (range?.Segment.HasAudio != true) return false;
         Selection.Select(pointer, pointer);
         HideSelectionAdd();
         SegmentPlaybackRequested?.Invoke(range.Segment.Sid);

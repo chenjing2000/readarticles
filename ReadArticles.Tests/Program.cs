@@ -15,6 +15,7 @@ internal static class Program
         switch (category)
         {
             case "all":
+                UnifiedAudioChecks.Run();
                 MatchingChecks.Run();
                 RenderingChecks.Run();
                 AudioChecks.Run();
@@ -29,7 +30,8 @@ internal static class Program
                 break;
             case "--rendering-only": MatchingChecks.Run(); RenderingChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
-            case "--content-only": ContentChecks.Run(); break;
+            case "--content-only": UnifiedAudioChecks.Run(); ContentChecks.Run(); break;
+            case "--unified-audio-only": UnifiedAudioChecks.Run(); break;
             case "--window-only": WindowChecks.Run(); ReaderWindowChecks.Run(); break;
             case "--editing-only": VocabularyEditingChecks.Run(); break;
             case "--icons-only": IconChecks.Run(); break;

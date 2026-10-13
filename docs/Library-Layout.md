@@ -15,10 +15,10 @@ Library/                              <- select this directory
         When America walks away.json
         When America walks away.vocabulary.json
         article.mp3
-        audio_segments/
+        audio_sentences/
           s001_uk.mp3
           s001_us.mp3
-        audio_vocabulary/
+        audio/
           be_stuck_in_uk.mp3
           be_stuck_in_us.mp3
     userdata/                         <- optional; excluded from navigation
@@ -26,7 +26,7 @@ Library/                              <- select this directory
         answer_sheet.json
 ```
 
-Date and article directories are conventions, not requirements. A passage may sit directly in the book directory or deeper within it. Separate article directories are useful because all passages sharing a directory also share its whole-article MP3 selection and relative audio locations.
+Date and article directories are conventions, not requirements. A passage may sit directly in the book directory or deeper within it. Separate article directories are useful because all passages sharing a directory also share its whole-article audio selection and relative audio locations.
 
 Opening a library reads directory names and discovers potential passage filenames. It does not parse passage or vocabulary JSON, open an article, or start audio. The tree starts collapsed. Expanding opens one level; collapsing a node recursively collapses its descendants.
 
@@ -38,9 +38,9 @@ Opening a library reads directory names and discovers potential passage filename
 | `book.json` | Required marker for each book | Book directory itself | Only its existence is checked; its contents are not parsed |
 | `<title>.json` | Required to read a passage | Anywhere inside a recognized book, outside excluded branches | Parsed only when selected; must have `filetype: "passage"` |
 | `<title>.vocabulary.json` | Optional | Same directory and same filename stem as the passage | Automatically loaded with the passage; missing file gives an empty, writable word list |
-| `audio_segments/` and its MP3 files | Optional physical files | Passage directory | Complete passages must declare these paths even when the files do not exist; missing files produce a warning without blocking reading |
-| `audio_vocabulary/` and its MP3 files | Optional physical files | Passage directory | Vocabulary entries must declare the correct paths; missing or empty files disable the corresponding pronunciation buttons |
-| One whole-article `.mp3` | Optional | Directly beside the passage JSON | Used only by the central bottom play/pause button |
+| `audio_sentences/` and its MP3/WAV files | Optional physical files | Passage directory | SID-derived names; no JSON paths; missing files warn without blocking reading; blank passages disable sentence audio |
+| `audio/` and its MP3/WAV files | Optional physical files | Passage directory | Names derived from word stem; missing or empty files disable pronunciation buttons; later stem collisions have no audio eligibility |
+| One whole-article `.mp3` or `.wav` | Optional | Directly beside the passage JSON | Used only by the central bottom play/pause button |
 | `userdata/xiaoxin/answer_sheet.json` | Optional | Relative to the book directory | Only `username` is read for the account label; authentication and exercise answering are not implemented |
 | `<title>.exercise.json` | Optional authoring companion | Beside the passage | Excluded from navigation and not read or displayed by the main-branch reader |
 | Images, PDFs, text, and other non-JSON source files | Optional stored material | Any convenient location | Not opened by the reader and not shown as passage leaves |
@@ -69,33 +69,35 @@ See the [passage skill](skills/skills-python/passage_segment/SKILL.md) and [voca
 
 ### Whole-article playback
 
-The central bottom play/pause button searches only the passage JSON's own directory for files whose extension is `.mp3`, case-insensitively. It sorts filenames using ordinal, case-insensitive comparison, with ordinal comparison as a tie-breaker, and plays the first file. A matching title is not required.
+The central bottom play/pause button searches only the passage JSON's own directory. Select the first MP3 by ordinal case-insensitive filename sorting with ordinal comparison as a tie-breaker; only if no MP3 exists, select the first WAV using the same sorting. Extensions are compared case-insensitively. A matching title is not required.
 
-For example, `a-reading.MP3` is selected before `z-reading.mp3`. Nested MP3 files are ignored. There is no fallback to `audio_segments/`, no concatenation, and no automatic move to the next sibling MP3. Accent selection does not change this file.
-
-If no sibling MP3 exists, an error is shown. Existing word or sentence playback is left running. If an MP3 exists but is empty or cannot be decoded, playback reports the failure; the reader does not search for the next file.
+MP3 priority applies across the directory: `z-reading.mp3` wins over `a-reading.wav`. Nested recordings are ignored. There is no sentence-directory fallback, concatenation, or automatic next-file playback. Accent selection does not change this file. If no sibling recording exists, show an error while leaving pronunciation running. If the selected file is empty or cannot decode, report failure without selecting another file or falling back from MP3 to WAV.
 
 ### Sentence playback
 
-Right-clicking passage text requests the sentence identified by its SID, using:
+Right-clicking passage text requests the sentence identified by its SID:
 
 ```text
-audio_segments/<sid>_uk.mp3
-audio_segments/<sid>_us.mp3
+audio_sentences/<sid>_uk.mp3 or .wav
+audio_sentences/<sid>_us.mp3 or .wav
 ```
 
-The selected British or American accent determines the path. The old `audio/` directory is not a fallback. Blank passages have no sentence audio declarations and do not offer sentence playback.
+The selected accent determines the suffix. Check MP3 existence first, WAV only if MP3 is absent; decoding failure does not retry WAV. No JSON path declaration is required. Valid body `[[n]]` placeholders identify blank passages, whose sentence playback remains disabled; absence of `audio` fields does not identify blanks.
 
 ### Vocabulary playback
 
-Each word has its own British and American pronunciation buttons. Paths must use:
+Word pronunciation uses derived filenames:
 
 ```text
-audio_vocabulary/<stem>_uk.mp3
-audio_vocabulary/<stem>_us.mp3
+audio/<stem>_uk.mp3 or .wav
+audio/<stem>_us.mp3 or .wav
 ```
 
-The exact stem algorithm is defined in the vocabulary skill. Whole-article audio has its own player; sentence and vocabulary audio share a second player. Starting pronunciation pauses the article while preserving its position. Starting or resuming the article stops pronunciation. The bottom stop button stops only the article audio; closing the window or opening another article stops both players.
+The exact ASCII-only stem algorithm is defined in [Vocabulary Preparation](Vocabulary-Preparation.md). Reserve each nonempty stem for the first entry in `words` order before checking files. Later collisions and empty stems retain their entries but disable all audio; missing first-owner recordings never pass ownership to a later entry. Existing spelling-duplicate validation remains unchanged. Reordering may change the owner. For each accent MP3 wins by existence, WAV only when MP3 is absent; decoding failure does not retry WAV.
+
+Neither vocabulary nor passage segments store `audio` path fields. Old `audio` fields are ignored during reading. Saving vocabulary removes its old fields; ReadArticles does not save or rewrite passage JSON, so passage fields are removed only by the external preparation skill when regenerating content. The upgrade does not read old `audio_vocabulary/`, `audio_segments/`, index files, or arbitrary paths; it does not migrate resources or try previous naming rules.
+
+Whole-article audio has its own player; sentence and vocabulary audio share a second player. Starting pronunciation pauses the article while preserving its position. Starting or resuming the article stops pronunciation. The bottom stop button stops only the article audio; closing the window or opening another article stops both players.
 
 ## 5. Excluded branches and safe paths
 
@@ -103,7 +105,7 @@ The scanner excludes hidden files/directories, names beginning with `.`, directo
 
 Other JSON files are treated as potential passages without inspecting their contents. Keep unrelated JSON outside scanned book branches.
 
-Audio references are relative to the passage directory. Absolute paths, drive-qualified references, colon-containing references, paths escaping that directory, and paths traversing reparse points are rejected. Use the exact forward-slash paths specified by the format; do not substitute `audio/`, absolute paths, or arbitrary audio filenames.
+Derived audio paths stay within the passage directory. Paths escaping that directory and paths traversing reparse points are rejected. Prepare recordings under the exact new directories and inferred filenames; JSON paths cannot redirect playback.
 
 ## 6. Files outside the library
 

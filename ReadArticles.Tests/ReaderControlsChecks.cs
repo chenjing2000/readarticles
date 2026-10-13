@@ -193,7 +193,8 @@ internal static class ReaderControlsChecks
                 string path = Path.Combine(root, "Reading.json");
                 File.Copy(TestData.ArticlePath, path);
                 var longest = new ArticleRepository().Load(TestData.ArticlePath).Segments.OrderByDescending(segment => segment.Text.Length).First();
-                File.Copy(Path.Combine(Path.GetDirectoryName(TestData.ArticlePath)!, longest.Audio!.Uk), Path.Combine(root, "Reading.mp3"));
+                string sourceAudio = new AudioResources().Segment(Path.GetDirectoryName(TestData.ArticlePath)!, longest, "uk");
+                File.Copy(sourceAudio, Path.Combine(root, "Reading" + Path.GetExtension(sourceAudio)));
                 window.Show();
                 LoadArticle(window);
                 Program.Check(window.ViewModel.OpenArticle(path));
@@ -440,7 +441,7 @@ internal static class ReaderControlsChecks
                 window.Close(); WpfTestHelpers.Pump();
             }
         });
-        Program.Run("bottom play and stop control only the first sibling MP3", () =>
+        Program.Run("bottom play and stop control only the first sibling recording", () =>
         {
             var window = CreateWindow();
             string root = Path.GetFullPath(Path.Combine("artifacts", "controls-tests", Guid.NewGuid().ToString("N")));
@@ -452,20 +453,26 @@ internal static class ReaderControlsChecks
                 var fixtureWord = window.ViewModel.Words[0].Entry;
                 string path = Path.Combine(root, "Short.json");
                 File.Copy(TestData.ArticlePath, path);
+                File.Copy(Path.ChangeExtension(TestData.ArticlePath, ".vocabulary.json"), Path.ChangeExtension(path, ".vocabulary.json"));
                 string audioRoot = Path.GetDirectoryName(TestData.ArticlePath)!;
-                string sourceMp3 = Path.Combine(audioRoot, "audio_segments", "s001_uk.mp3");
+                var segment = new ArticleRepository().Load(TestData.ArticlePath).Segments.First();
+                string sourceAudio = new AudioResources().Segment(audioRoot, segment, "uk");
+                string extension = Path.GetExtension(sourceAudio);
+                string firstArticle = Path.Combine(root, "a-first" + extension.ToUpperInvariant());
                 // Create the later name first so enumeration order cannot choose the file.
-                File.Copy(sourceMp3, Path.Combine(root, "Z-last.mp3"));
-                File.Copy(sourceMp3, Path.Combine(root, "a-first.MP3"));
-                Directory.CreateDirectory(Path.Combine(root, "audio_segments"));
-                File.Copy(sourceMp3, Path.Combine(root, "audio_segments", "s001_uk.mp3"));
-                string wordPath = Path.Combine(root, fixtureWord.Audio.Uk);
+                File.Copy(sourceAudio, Path.Combine(root, "Z-last" + extension));
+                File.Copy(sourceAudio, firstArticle);
+                Directory.CreateDirectory(Path.Combine(root, "audio_sentences"));
+                File.Copy(sourceAudio, Path.Combine(root, "audio_sentences", "s001_uk" + extension));
+                string wordSource = new AudioResources().Vocabulary(audioRoot, fixtureWord, "uk");
+                string wordPath = Path.Combine(root, "audio", VocabularyRepository.AudioStem(fixtureWord.Word) + "_uk" + Path.GetExtension(wordSource));
                 Directory.CreateDirectory(Path.GetDirectoryName(wordPath)!);
-                File.Copy(Path.Combine(audioRoot, fixtureWord.Audio.Uk), wordPath);
+                File.Copy(wordSource, wordPath);
                 string nested = Path.Combine(root, "nested"); Directory.CreateDirectory(nested);
-                File.Copy(sourceMp3, Path.Combine(nested, "00-ignored.mp3"));
-                File.WriteAllText(Path.Combine(root, "00-ignored.wav"), "ignored");
+                File.Copy(sourceAudio, Path.Combine(nested, "00-ignored" + extension));
+                File.WriteAllText(Path.Combine(root, extension == ".mp3" ? "00-ignored.wav" : "00-ignored.ogg"), "ignored");
                 if (!window.ViewModel.OpenArticle(path)) throw new Exception(window.ViewModel.Status);
+                fixtureWord = window.ViewModel.Words[0].Entry;
                 var playButton = (Button)window.FindName("ReadAllButton");
                 var slider = (Slider)window.FindName("PlaybackProgress");
                 var player = (WpfAudioPlayer)typeof(ReadArticles.MainWindow).GetField("player", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(window)!;
@@ -483,7 +490,7 @@ internal static class ReaderControlsChecks
                 Program.Check(time.Text.EndsWith("/" + player.Duration.ToString(@"mm\:ss")));
                 Program.Check(Grid.GetColumn(slider) < Grid.GetColumn(time) && Grid.GetColumn(time) < Grid.GetColumn(playButton));
                 var media = (System.Windows.Media.MediaPlayer)typeof(WpfAudioPlayer).GetField("media", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(player)!;
-                Program.Check(media.Source.LocalPath == Path.Combine(root, "a-first.MP3"));
+                Program.Check(media.Source.LocalPath == firstArticle);
                 slider.Value = 1;
                 window.ViewModel.PlaySegment("s001");
                 WpfTestHelpers.Wait(() => pronunciationPlayer.IsOpen);
@@ -527,7 +534,7 @@ internal static class ReaderControlsChecks
                 window.ViewModel.Accent = "us";
                 Program.Check(window.ViewModel.PlaybackState == PlaybackState.Paused);
                 playButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                Program.Check(window.ViewModel.PlaybackState == PlaybackState.Playing && media.Source.LocalPath == Path.Combine(root, "a-first.MP3"));
+                Program.Check(window.ViewModel.PlaybackState == PlaybackState.Playing && media.Source.LocalPath == firstArticle);
                 ((Button)window.FindName("StopButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Program.Check(window.ViewModel.PlaybackState == PlaybackState.Stopped && slider.Visibility == Visibility.Collapsed);
                 playButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

@@ -1,6 +1,6 @@
 ---
 name: vocabulary-enrichment
-description: Enrich and normalize a StudyBench <title>.vocabulary.json, optionally using its matching <title>.json for context, phrase extraction, and passage-order sorting.
+description: Use when enriching or normalizing ReadArticles vocabulary JSON, optionally with a matching passage for context, phrase extraction, and ordering.
 ---
 
 # Vocabulary Enrichment
@@ -43,11 +43,7 @@ Each word or phrase uses:
   "word": "example",
   "phonetic_uk": "...",
   "phonetic_us": "...",
-  "meanings": [{"pos": "n.", "meaning": "例子；实例"}],
-  "audio": {
-    "uk": "audio_vocabulary/example_uk.mp3",
-    "us": "audio_vocabulary/example_us.mp3"
-  }
+  "meanings": [{"pos": "n.", "meaning": "例子；实例"}]
 }
 ```
 
@@ -58,16 +54,15 @@ An existing phrase is an entry whose trimmed `word` contains at least two whites
 | Entry | Allowed changes |
 |---|---|
 | Existing single word | Update `meanings`; change `word` only when lexical normalization requires it |
-| Existing phrase | Canonicalize `word`, update meanings/audio, and fix phrase fields when needed |
+| Existing phrase | Canonicalize `word`, update meanings, and fix phrase fields when needed |
 | New phrase | Create the complete phrase entry |
 
-If an existing single-word `word` is unchanged, modify only `meanings`. If normalization changes `word`, also:
+Remove legacy `audio` fields from all output entries. Apart from this removal, if an existing single-word `word` is unchanged, modify only `meanings`. If normalization changes `word`, also:
 
 - clear `phonetic_uk` and `phonetic_us` to `""`;
-- regenerate `audio.uk` / `audio.us` from the canonical `word`;
 - never reuse or invent IPA from the old inflected form.
 
-For an existing phrase, preserve phonetics when `word` is unchanged; if canonicalization changes `word`, clear both phonetics and regenerate audio paths.
+For an existing phrase, preserve phonetics when `word` is unchanged; if canonicalization changes `word`, clear both phonetics.
 
 Single-word POS labels may include `n.`, `v.`, `adj.`, `adv.`, `prep.`, `conj.`, `pron.`, `det.`, `interj.`, `num.`. Phrase meanings use exactly `"pos": "phrase"`.
 
@@ -126,7 +121,7 @@ If several entries normalize to the same lexical item:
 1. keep an existing entry already in canonical form if one exists; otherwise keep the earliest original entry;
 2. merge only useful non-duplicate meanings;
 3. keep the context meaning first when identifiable;
-4. do not overwrite canonical phonetics/audio with data from an inflected form;
+4. do not overwrite canonical phonetics with data from an inflected form;
 5. inherit the earliest relevant Passage occurrence for ordering.
 
 Compare lexical identity case-insensitively.
@@ -152,35 +147,22 @@ Do not replace phrases with synonyms or unnecessarily simplify them. For example
 
 Before adding a phrase, compare its canonical `word` case-insensitively with existing entries and merge/update rather than duplicate. New phrase phonetics are `""`; phrase meanings use `"pos": "phrase"`.
 
-## 6. Audio Paths, Deduplication, and Ordering
+## 6. Audio Naming, Collision Eligibility, and Ordering
 
-All vocabulary audio paths use `audio_vocabulary/`.
+Do not write `audio` path fields. Legacy `audio` fields are ignored on input and removed from output. ReadArticles derives filenames from `word`; it does not search old directories or indexes and does not migrate or rename existing resources.
 
-For every new or renamed entry, derive the filename stem from canonical `word` exactly as StudyBench does:
-
-1. trim outer whitespace;
-2. lowercase;
-3. replace one or more whitespace characters with `_`;
-4. replace each Windows-invalid character `< > : " / \\ | ? *` with `_`;
-5. collapse consecutive `_`;
-6. trim leading/trailing `_`.
-
-Do not replace other punctuation merely because it is punctuation.
+Derive each stem by trimming outer whitespace, lowercasing with invariant-culture rules, replacing every character outside ASCII `a-z` and `0-9` with `_`, collapsing consecutive `_`, then trimming leading/trailing `_`.
 
 ```text
-be responsible for -> be_responsible_for
-A/B test            -> a_b_test
-state-of-the-art    -> state-of-the-art
+One's Own        -> one_s_own
+state-of-the-art -> state_of_the_art
+ A / B           -> a_b
+café             -> caf
 ```
 
-Use:
+Word recordings belong beside the passage in `audio/<stem>_uk.mp3` or `.wav`, and `audio/<stem>_us.mp3` or `.wav`. For each accent, MP3 wins when present; WAV is selected only when MP3 is absent. An empty or undecodable MP3 reports failure without a WAV retry.
 
-```text
-audio_vocabulary/<stem>_uk.mp3
-audio_vocabulary/<stem>_us.mp3
-```
-
-Ensure final `word` values are unique case-insensitively and no two entries produce the same StudyBench audio stem.
+Lexical identities remain unique under the existing spelling rules. Distinct entries with the same stem must remain in the vocabulary: do not merge or delete them merely because their filenames collide, and do not add filename suffixes. In the final `words` order, the first entry immediately reserves its nonempty stem regardless of file existence or generation success. Later collisions retain all text but have no audio eligibility. Empty stems retain their entries with all audio disabled. Establish ownership after any passage-order sorting; reordering may change ownership. This skill does not generate audio.
 
 ### With a source Passage
 
@@ -205,12 +187,12 @@ Verify that:
 - verbs, plurals, person placeholders, and fixed phrases follow the rules above;
 - phrase-level canonical form takes priority over mechanical token normalization;
 - normalization-created duplicates were merged safely;
-- unchanged existing single words changed only in `meanings`;
-- whenever `word` changes, phonetics are cleared and canonical audio paths are regenerated;
+- unchanged existing single words changed only in `meanings`, apart from removing legacy `audio`;
+- whenever `word` changes, phonetics are cleared;
 - current-context meanings remain first when identifiable;
 - new phrases are conservative, Passage-supported, canonicalized, and use `pos="phrase"`;
 - with a Passage, ordering follows earliest original Passage occurrence and unlocated entries remain at the end in original relative order;
 - without a Passage, surviving entries retain their original relative order;
-- audio paths use `audio_vocabulary/<normalized_stem>_uk.mp3` and `_us.mp3`;
+- no `audio` fields remain; distinct stem collisions and empty stems retain their text, with audio eligibility determined by final list order;
 - no audio file or extra analysis/user-state field was generated;
 - response contains raw JSON only.

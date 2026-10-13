@@ -2,13 +2,13 @@
 
 ## Purpose and scope
 
-Produce a complete ReadArticles vocabulary file from either an existing structured vocabulary document or a plain list of words/phrases. Improve useful meanings, normalize lexical forms where justified, remove duplicates, and generate compatible audio-path declarations.
+Produce a complete ReadArticles vocabulary file from either an existing structured vocabulary document or a plain list of words/phrases. Improve useful meanings, normalize lexical forms where justified, remove duplicates, and use the current derived audio naming rules without storing paths.
 
 Use the supplied [Vocabulary Enrichment skill](skills/skills-python/vocabulary_enrichment/SKILL.md) for structured input. This guide supplies the plain-list preparation step and the reader-specific compatibility checks. It does not modify the source passage, generate speech files, look for arbitrary files without a supplied context, or install anything in the application.
 
 ## Inputs
 
-**Structured input:** accept `<title>.vocabulary.json`, a standalone `vocabulary.json`, or pasted vocabulary JSON. Preserve the original entries and relevant extension metadata. Repair missing required fields and incompatible paths before emitting a reader-compatible result; do not discard a document merely because it is incomplete.
+**Structured input:** accept `<title>.vocabulary.json`, a standalone `vocabulary.json`, or pasted vocabulary JSON. Preserve the original entries and relevant extension metadata. Remove legacy `audio` fields and repair missing required fields before emitting a reader-compatible result; do not discard a document merely because it is incomplete.
 
 **Unstructured input:** accept a text document or pasted word/phrase list. Prefer one entry per line. Remove explicit bullet markers and list numbering, not meaningful punctuation. Preserve each multi-word expression as a unit. For a declared comma/tab-separated format, use that delimiter; do not blindly split phrases at spaces, commas, slashes, or apostrophes. A JSON array of strings is also a plain-list input rather than the final application schema. Ask only if the source does not establish entry boundaries.
 
@@ -34,11 +34,7 @@ When pairing with a passage, use its exact filename stem: `Example.json` pairs w
       "phonetic_us": "",
       "meanings": [
         {"pos": "n.", "meaning": "an instance used to explain an idea"}
-      ],
-      "audio": {
-        "uk": "audio_vocabulary/example_uk.mp3",
-        "us": "audio_vocabulary/example_us.mp3"
-      }
+      ]
     },
     {
       "word": "carry out",
@@ -46,11 +42,7 @@ When pairing with a passage, use its exact filename stem: `Example.json` pairs w
       "phonetic_us": "",
       "meanings": [
         {"pos": "phrase", "meaning": "perform or complete a task"}
-      ],
-      "audio": {
-        "uk": "audio_vocabulary/carry_out_uk.mp3",
-        "us": "audio_vocabulary/carry_out_us.mp3"
-      }
+      ]
     }
   ]
 }
@@ -65,9 +57,9 @@ The English glosses demonstrate the structure; actual glosses use the chosen tar
 | `word` | Non-empty string; normalized lexical identities are unique case-insensitively |
 | `phonetic_uk`, `phonetic_us` | Strings in generated files; use `""` when pronunciation is unavailable or not verified, never `null`. The reader also tolerates omitted phonetic keys |
 | `meanings` | Array of objects with string `pos` and `meaning`; `[]` is technically readable, but supply useful meanings when enrichment can be supported |
-| `audio` | Object with required `uk` and `us` paths derived exactly from `word`, even if physical MP3 files do not exist |
+| Legacy `audio` | Ignored while reading; removed when saving or regenerating JSON; never emitted in new files |
 
-Never emit null word entries, null meanings, or null audio objects. Do not introduce a separate `phrases` array, `wid`, examples, English-definition fields, user answers, or analysis metadata. The `meaning` string holds the gloss in the chosen language. Preserve existing unrelated extension metadata rather than deleting it during enrichment; do not invent new metadata fields.
+Never emit null word entries or null meanings. Do not introduce a separate `phrases` array, `wid`, examples, English-definition fields, user answers, or analysis metadata. The `meaning` string holds the gloss in the chosen language. Preserve existing unrelated extension metadata rather than deleting it during enrichment; do not invent new metadata fields.
 
 Use conventional single-word POS labels such as `n.`, `v.`, `adj.`, `adv.`, `prep.`, `conj.`, `pron.`, `det.`, `interj.`, or `num.`. Use `phrase` for phrase meanings. These labels are authoring conventions; the reader itself accepts string labels.
 
@@ -88,7 +80,7 @@ Use conventional phrase placeholders only where they express a learnable pattern
 
 For a passage-supported entry, put the contextual meaning first when practical, then add only useful common senses. Keep existing correct, useful meanings. Correct wrong POS/senses, missing context meanings, and seriously unnatural translations; do not expand into rare or highly technical senses unless context calls for them. Without a passage, do not invent a passage-specific sense.
 
-If the input is already structured and an existing single-word spelling stays unchanged, normally change only its meanings. Preserve verified phonetics and compatible audio paths. Repair missing or invalid schema fields when necessary for readability. If a word or phrase is renamed, clear both phonetic fields and regenerate audio paths; pronunciation of an inflected form is not pronunciation evidence for its lemma.
+Always remove legacy `audio` fields from output. Apart from this removal, if the input is already structured and an existing single-word spelling stays unchanged, normally change only its meanings. Preserve verified phonetics. Repair missing or invalid schema fields when necessary for readability. If a word or phrase is renamed, clear both phonetic fields; pronunciation of an inflected form is not pronunciation evidence for its lemma.
 
 For new entries, leave phonetics empty unless trustworthy pronunciation information is available. Do not guess IPA. Missing or uncertain meanings must not be fabricated; retain a readable partial entry and report unresolved enrichment outside the JSON if clarification is needed.
 
@@ -100,28 +92,27 @@ With passage context, add only useful multi-word units such as phrasal verbs, fi
 
 Canonicalize the expression as a unit: `resulted in` -> `result in`; `was responsible for` -> `be responsible for`; `tried my best to` -> `try one's best to`. Do not replace lexical identities with synonyms. New phrase phonetics are empty and meanings use `pos: "phrase"`.
 
-## Audio stem algorithm
+## Audio stem algorithm and eligibility
 
 For every entry, derive the stem exactly as the reader does:
 
 1. Trim outer whitespace and lowercase using invariant-culture rules.
-2. Replace every run of whitespace with `_`.
-3. Replace Windows-invalid characters `<`, `>`, `:`, `"`, `/`, `\`, `|`, `?`, and `*` with `_`.
-4. Collapse consecutive underscores and trim leading/trailing underscores.
-5. Reject an empty stem and resolve collisions before writing the output.
-
-Keep other punctuation, including apostrophes and hyphens:
+2. Replace each character outside ASCII `a-z` and `0-9` with `_`.
+3. Collapse consecutive underscores and trim leading/trailing underscores.
 
 ```text
 be responsible for -> be_responsible_for
-A/B test            -> a_b_test
-state-of-the-art    -> state-of-the-art
-one's own           -> one's_own
+ A / B              -> a_b
+state-of-the-art    -> state_of_the_art
+One's Own           -> one_s_own
+café                -> caf
 ```
 
-Then declare `audio_vocabulary/<stem>_uk.mp3` and `audio_vocabulary/<stem>_us.mp3`. Distinct words must not produce the same stem. Do not invent arbitrary suffixes to hide collisions: ask for a deliberate lexical decision if the entries cannot be merged safely.
+Word recordings use `audio/<stem>_uk.mp3` or `.wav` and `audio/<stem>_us.mp3` or `.wav`, relative to the passage directory. Prefer an existing MP3 for each accent, otherwise WAV; an empty or undecodable MP3 fails without a WAV retry. These paths are inferred, never stored in JSON.
 
-Paths are declarations only. Do not create dummy audio, claim pronunciation is playable, delete old files, or rename existing MP3 files. A renamed entry needs separately prepared audio under its new names.
+Distinct words with the same stem remain in the final list. Reserve each nonempty stem immediately for its first entry in the final `words` array, irrespective of file existence or generation success. All later collisions retain their text but lose all audio eligibility; no suffixes or fallback ownership. Empty stems retain their entries with audio disabled. Spelling-duplicate validation is unchanged. Establish ownership after ordering, because moving entries changes the first owner.
+
+Do not create dummy audio, claim pronunciation is playable, delete old files, or rename existing recordings. Old directories (`audio_vocabulary/`, `audio_segments/`), old names, and audio indexes are not fallback sources and are not migrated. Sentence recordings use SID under `audio_sentences/`; see [Library Layout](Library-Layout.md).
 
 ## Ordering and literal matching
 
@@ -135,7 +126,7 @@ ReadArticles highlights literal case-insensitive forms, not lemmas or inflection
 
 - Parse the complete JSON and check all required types, exact `filetype`, non-null fields, and preserved metadata.
 - Confirm contextual meaning/POS decisions and conservative normalization; preserve fixed phrases and supported input entries.
-- Confirm case-insensitive lexical uniqueness and stem uniqueness, plus exact UK/US paths for every word.
+- Confirm case-insensitive lexical uniqueness, absence of `audio` fields, and first-entry audio ownership for each nonempty stem; preserve distinct colliding entries and entries with empty stems.
 - Confirm verified phonetics were preserved only for unchanged forms and cleared for renamed forms.
 - Confirm ordering follows the supplied context or original input order, as appropriate.
 - Confirm the source passage and physical audio remain unchanged. Do not generate exercises or user state.

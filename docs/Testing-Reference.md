@@ -23,7 +23,7 @@ The main branch has no exercise module or exercise test category. No test restor
 | `--window-only` | Loaded-control hit-testing, selection action, three-pane rendering, independent scrolling, and status lifecycle |
 | `--tree-only` | One-level expansion and recursive collapse |
 | `--audio-only` | Single-file playback, two-player coordination, stale callbacks, invalid resources, and real MP3 decoding |
-| `--controls-only` | Library-only startup, configuration initialization and value normalization, immediate settings saves, keyboard shortcuts, progress/time, and sibling MP3 controls |
+| `--controls-only` | Library-only startup, configuration initialization and value normalization, immediate settings saves, keyboard shortcuts, progress/time, and sibling article-audio controls |
 | `--icons-only` | Embedded icons, circle-plus movement, footer alignment, startup size, and highlighting |
 | `--editing-only` | Vocabulary move/delete UI and corresponding persisted order |
 | `--source-only` | Optional read-only integration against a local Economist article; excluded from default checks |
@@ -44,9 +44,11 @@ Automated checks cover state, controls, layout, and event routing. Native dialog
 
 1. Open a copied library. Confirm startup is collapsed with empty passage/vocabulary panes and visible disabled footer controls. Expand and select a passage.
 2. Select text, scroll both ways, and move the window. Confirm the circle-plus follows the selection, does not cover text, and disappears when the selection clears.
-3. Play the sibling MP3, then word or sentence audio. Confirm pronunciation pauses the article and preserves its position. Resume the article and confirm pronunciation stops. Stop and seek must affect only the article file.
+3. Play the sibling article recording (MP3, or WAV when MP3 is absent), then word or sentence audio. Confirm pronunciation pauses the article and preserves its position. Resume the article and confirm pronunciation stops. Stop and seek must affect only the article file.
 4. Change Forward/Backward settings. Check Left, Right, and Space with the physical keyboard from each pane and settings popup; inspect progress and the time label.
 5. Move, delete, and import vocabulary in a copied library. Reopen and confirm persisted order and contents. Try externally editing the companion before saving; the app must warn rather than overwrite that change.
+
+Check the unified audio contract in copied data: WAV-only word/sentence/article targets play; adding the corresponding MP3 makes it win even when corrupt (report failure without WAV retry). Confirm old directories and JSON path fields cannot redirect lookup, saving vocabulary removes legacy audio fields, and later stem collisions and empty stems preserve text but disable all audio. Check that an ordinary article without audio fields still offers sentence playback, while valid [[n]] blank articles do not.
 
 Do not manually edit checked-in fixtures. Screenshots support inspection but do not themselves prove a test passed.
 

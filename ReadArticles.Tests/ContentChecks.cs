@@ -35,7 +35,7 @@ internal static class ContentChecks
             Program.Check(library.Books.Count == 1 && library.Books[0].Name == "The Economist");
             Program.Check(TestData.Leaves(library.Books).Count() == 2 && TestData.Leaves(library.Books).Any(n => n.PassagePath == TestData.ArticlePath));
         });
-        Program.Run("segment audio uses audio_segments with exact SID/accent", () =>
+        Program.Run("segment audio uses audio_sentences with exact SID/accent", () =>
         {
             var article = new ArticleRepository().Load(TestData.ArticlePath);
             var resources = new AudioResources();
@@ -45,8 +45,8 @@ internal static class ContentChecks
                 {
                     var asset = resources.Segment(article.Directory, segment, accent);
                     if (!AudioResources.IsAvailable(asset)) { missing.Add($"{segment.Sid}_{accent}"); continue; }
-                    Program.Check(Path.GetFileName(Path.GetDirectoryName(asset)) == "audio_segments");
-                    Program.Check(Path.GetFileName(asset) == $"{segment.Sid}_{accent}.mp3");
+                    Program.Check(Path.GetFileName(Path.GetDirectoryName(asset)) == "audio_sentences");
+                    Program.Check(Path.GetFileNameWithoutExtension(asset) == $"{segment.Sid}_{accent}");
                 }
             Program.Check(missing.SequenceEqual(new[] { "s011_uk", "s011_us" }));
             Program.Check(article.Warnings.Any(w => w.Contains("缺失 2")));
@@ -70,8 +70,6 @@ internal static class ContentChecks
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(passage))!;
             var segment = json["paragraphs"]![0]!["paragraph"]![0]!;
             segment["sid"] = "s001\n";
-            segment["audio"]!["uk"] = "audio_segments/s001\n_uk.mp3";
-            segment["audio"]!["us"] = "audio_segments/s001\n_us.mp3";
             File.WriteAllText(passage, json.ToJsonString());
             var workspace = new ReaderWorkspace();
             workspace.OpenArticle(TestData.ArticlePath);
@@ -89,7 +87,7 @@ internal static class ContentChecks
         RunCopyTest("null vocabulary item degrades companion without hiding passage", (root, passage) =>
         {
             string path = Path.Combine(root, "Test.vocabulary.json");
-            foreach (string invalid in new[] { "{\"filetype\":\"vocabulary\",\"words\":[null]}", "{\"filetype\":\"vocabulary\",\"words\":[{\"word\":\"test\",\"meanings\":[null]}]}", "{\"filetype\":\"vocabulary\",\"words\":[{\"word\":\"test\",\"meanings\":[],\"audio\":null}]}" })
+            foreach (string invalid in new[] { "{\"filetype\":\"vocabulary\",\"words\":[null]}", "{\"filetype\":\"vocabulary\",\"words\":[{\"word\":\"test\",\"meanings\":[null]}]}" })
             {
                 File.WriteAllText(path, invalid);
                 var article = new ArticleRepository().Load(passage);
@@ -114,13 +112,13 @@ internal static class ContentChecks
             string path = Path.Combine(root, "metadata.json");
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.ChangeExtension(TestData.ArticlePath, ".vocabulary.json")))!;
             json["words"]![0]!["meanings"]![0]!["source"] = "kept";
-            json["words"]![0]!["audio"]!["provider"] = "kept";
+            json["words"]![0]!["audio"] = new System.Text.Json.Nodes.JsonObject { ["provider"] = "discarded" };
             File.WriteAllText(path, json.ToJsonString());
             var repository = new VocabularyRepository();
             var snapshot = repository.Load(path);
             repository.Save(path, snapshot.Data, snapshot.Fingerprint);
             var result = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
-            Program.Check((string?)result["words"]![0]!["meanings"]![0]!["source"] == "kept" && (string?)result["words"]![0]!["audio"]!["provider"] == "kept");
+            Program.Check((string?)result["words"]![0]!["meanings"]![0]!["source"] == "kept" && result["words"]![0]!["audio"] == null);
         });
         RunCopyTest("vocabulary copy-only roundtrip and external edit detection", (root, passage) =>
         {
@@ -131,7 +129,7 @@ internal static class ContentChecks
             var added = VocabularyRepository.NewEntry("  testing   phrase  ");
             var data = new VocabularyData { Words = [.. snapshot.Data.Words, added], Extra = snapshot.Data.Extra };
             var fingerprint = repository.Save(path, data, snapshot.Fingerprint);
-            Program.Check(repository.Load(path).Data.Words[^1].Audio.Uk == "audio_vocabulary/testing_phrase_uk.mp3");
+            Program.Check(repository.Load(path).Data.Words[^1].Word == "testing phrase" && !File.ReadAllText(path).Contains("\"audio\"" ));
             File.AppendAllText(path, " ");
             ExpectInvalid(() => repository.Save(path, data, fingerprint));
         });
