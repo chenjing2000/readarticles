@@ -51,3 +51,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish.ps1
 ```
 
 See [Publishing](Publishing.md) and [Testing](Testing.md). The GitHub Release workflow validates publication and builds the EXE; it does not certify the missing local-media checks.
+## Unified testing and acceptance verification
+
+Full: 74 fixed regression checks and 2 current-source checks passed using the supplied article recordings. This supersedes the earlier 12 failures caused by unavailable MP3 fixtures. The fixed 120-word fixture and the current 121-word vocabulary were verified separately; legacy audio paths were normalized only in temporary copies.
+
+Published EXE acceptance passed: isolated EXE-only folder with spaces, renamed executable, a different working directory, correct configuration placement, clean shutdown, and native missing-.NET installation instructions under an isolated runtime root. Installed runtimes and original media were not modified. This verifies automated behavior; human listening and a fresh-machine graphical runtime prompt were not performed.
+
+The orchestration regression passed success, failure rejection, and optional-data handling checks. PowerShell source was verified as English ASCII with no syntax errors. Use [Testing](Testing.md) for the shared entry points; stage counts and individual case counts are reported separately.

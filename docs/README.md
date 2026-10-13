@@ -1,25 +1,25 @@
-# ReadArticles Documentation
+# ReadArticles documentation
 
-These documents describe the current main-branch C# / WPF reader. This branch has no exercise display or answer storage. Exercise companions produced by the authoring skills can remain beside passages and are ignored by the reader.
+All four applications use the following document responsibilities. Application-specific formats and architecture remain separate reference pages.
 
-| Document | Purpose |
+| Document | Responsibility |
 | --- | --- |
-| [Library Layout](Library-Layout.md) | Required and optional files, names, placement, discovery, and audio lookup |
-| [Application Overview](Application-Overview.md) | Design goals, framework, module responsibilities, lifecycle, and limitations |
-| [Getting Started](Getting-Started.md) | Launch, controls, build, publishing, and troubleshooting |
-| [Testing](Testing.md) | Functional categories, fixture ownership, and manual acceptance |
-| [Vocabulary Preparation](Vocabulary-Preparation.md) | Structured input, plain word lists, and reader compatibility checks |
-| [Image to Passage Skill](skills/skills-python/image_to_passage/SKILL.md) | Convert page images into passage JSON and optional exercise companions |
-| [Passage Segmentation Skill](skills/skills-python/passage_segment/SKILL.md) | Organize complete or blank passages into paragraphs and stable sentence IDs |
-| [Vocabulary Enrichment Skill](skills/skills-python/vocabulary_enrichment/SKILL.md) | Enrich structured vocabulary with contextual meanings and audio declarations |
+| [Getting Started](Getting-Started.md) | Runtime requirements, launch, and first use |
+| [Application Overview](Application-Overview.md) | Purpose, modules, and application-specific architecture |
+| [Configuration](Configuration.md) | Settings location, ownership, preservation, and recovery |
+| [Testing](Testing.md) | Core/UI/Full entry points, media preparation, and published acceptance |
+| [Publishing](Publishing.md) | Portable profile, staged updates, and GitHub Release workflow |
+| [Release Notes](Release-Notes.md) | Distribution changes and runtime requirements |
+| [Health Check](Health-Check-2026-10-13.md) | Dated verification evidence and limitations |
 
-The three supplied skills are retained without changes. Some historical StudyBench wording and exercise instructions remain intentionally. They prepare content externally; they do not install OCR, dictionaries, speech generation, or an exercise interface in this reader. Vocabulary Preparation provides the plain-list input step without expanding or replacing the supplied enrichment skill.
+## Application-specific references
 
-## Content preparation sequence
+- [User Guide](User-Guide.md)
 
-1. Use Image to Passage for images and Passage Segmentation for text organization. Keep exercises out of the passage body.
-2. Prepare `<title>.vocabulary.json` from structured JSON or a plain list, using the enrichment skill and compatibility guide.
-3. Place the passage and its matching vocabulary inside a marked book directory. Add physical MP3 files if available.
-4. Open the parent library directory, expand the tree, and select the passage. See Library Layout for exact filenames and audio paths.
+- [Library layout](Library-Layout.md)
+- [Vocabulary preparation](Vocabulary-Preparation.md)
+- [Detailed regression categories](Testing-Reference.md)
 
-Declared audio paths do not generate MP3 files. Documentation is written in English; the vocabulary workflow can produce glosses in the requested language.
+## Maintenance rules
+
+Keep executable commands in Testing and Publishing; link them from usage guides. Keep settings rules in Configuration. Record dated results in Health Check rather than implying that an old result verifies later changes. Domain references describe file formats and behavior, not another publishing pipeline. Historical audits and plans remain historical and are not the current workflow entry point.

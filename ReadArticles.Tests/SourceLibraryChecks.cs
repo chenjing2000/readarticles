@@ -6,7 +6,8 @@ using ReadArticles.Services;
 // Explicit local integration checks: user-edited data is not a fixed fixture.
 internal static class SourceLibraryChecks
 {
-    private const string ArticlePath = @"C:\MyDocs\magazines\The Economist\2026-09-26\When America walks away\When America walks away.json";
+    private static string ArticlePath => Environment.GetEnvironmentVariable("READARTICLES_TEST_ARTICLE")
+        ?? throw new InvalidOperationException("Supply -ArticleDirectory through tools/Test.ps1 to run source checks.");
 
     internal static void Run()
     {
@@ -31,7 +32,7 @@ internal static class SourceLibraryChecks
             try
             {
                 window.Show();
-                Program.Check(window.ViewModel.OpenLibrary(@"C:\MyDocs\magazines"));
+                Program.Check(window.ViewModel.OpenLibrary(Path.GetDirectoryName(Path.GetDirectoryName(ArticlePath)!)!));
                 Program.Check(window.SelectPassage(ArticlePath));
                 WpfTestHelpers.Pump();
                 Program.Check(window.Readers.Count == article.Paragraphs.Count);

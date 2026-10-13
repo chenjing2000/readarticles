@@ -25,3 +25,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Publish.ps1
 The test substitutes only the external dotnet build and exercises the actual script against temporary files, including failed builds, unexpected DLLs, locked EXEs, and configuration preservation. Validate the real EXE separately; see [health check](Health-Check-2026-10-13.md).
 
 For GitHub distribution, push a unique portable-* tag pointing at a reviewed and tested commit. .github/workflows/release.yml runs the same safeguards and publishing script on Windows, then creates a Release with the generated EXE and docs/Release-Notes.md. Ordinary commits do not trigger a Release. Update the release notes before publishing a new tag. EXEs are Release assets; dist, user settings, libraries, and media remain outside Git.
+
+## Unified release verification
+
+Run `tools/Test.ps1 -Suite Core` before publishing and `tools/Test-PublishedApp.ps1` afterward. The GitHub tag workflow now performs both steps before creating the Release. Local real-content Full checks are documented in [Testing](Testing.md).

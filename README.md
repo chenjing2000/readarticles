@@ -47,3 +47,8 @@ See the testing guide for independent categories and optional machine-specific s
 ## Unified publishing
 
 Run `.\tools\Publish.ps1` from this repository root. All four applications use Portable.pubxml, staged validation, and a single EXE under dist. See [Publishing](docs/Publishing.md), [health check](docs/Health-Check-2026-10-13.md), and [Release notes](docs/Release-Notes.md).
+
+
+## Unified testing and acceptance
+
+Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. After publishing, run `.\tools\Test-PublishedApp.ps1`. External audio/article/dictionary paths are optional explicit arguments; missing optional integration data is reported as skipped. See the [documentation index](docs/README.md) and [test guide](docs/Testing.md). PowerShell source is English-only.
