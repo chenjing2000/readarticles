@@ -43,3 +43,7 @@ dotnet run --project ReadArticles.Tests -c Release
 ```
 
 See the testing guide for independent categories and optional machine-specific source checks. The current main branch does not implement account registration/login or exercise answering. The supplied authoring skills may still produce exercise companions; the reader excludes those files from navigation and does not render them.
+
+## Unified publishing
+
+Run `.\tools\Publish.ps1` from this repository root. All four applications use Portable.pubxml, staged validation, and a single EXE under dist. See [Publishing](docs/Publishing.md), [health check](docs/Health-Check-2026-10-13.md), and [Release notes](docs/Release-Notes.md).

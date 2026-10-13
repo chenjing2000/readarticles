@@ -51,16 +51,12 @@ See [Testing](Testing.md) for functional categories, fixture ownership, manual c
 Close the release application before overwriting its EXE. Run from the repository root:
 
 ```powershell
-dotnet publish ReadArticles -p:PublishProfile=Portable
+.\tools\Publish.ps1
 ```
 
 The checked-in profile publishes a Release, Windows x64, framework-dependent single file directly to `dist/ReadArticles.exe`. It disables trimming and separate debug symbols and does not bundle .NET. Embedded native dependencies may be extracted to the system temporary directory when needed; user settings stay beside the EXE.
 
-The equivalent explicit command is:
-
-```powershell
-dotnet publish ReadArticles -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false -o dist
-```
+Use the script for staged validation and settings-preserving replacement. See [Publishing](Publishing.md) for the common profile, safeguard tests, and GitHub Releases.
 
 Keep an existing `dist/ReadArticles.settings.json` when publishing or updating; do not delete the whole release directory. Do not distribute build folders or test data. Windows ARM64 requires a separately published `win-arm64` executable and matching runtime.
 
