@@ -63,7 +63,7 @@ A standalone file named `vocabulary.json` can be selected through the vocabulary
 
 Import replaces the active article's word list and saves the result to its matching companion file; it is not a merge operation. Moving or deleting words also saves that companion. If the file has changed externally since loading, the save is rejected: reopen the article before editing again. Malformed vocabulary does not block passage reading, but overwriting that malformed companion is disabled until it is repaired and reopened.
 
-See the [passage skill](skills/skills-python/passage_segment/SKILL.md) and [vocabulary skill](Vocabulary-Preparation.md) for the exact JSON structures.
+See the [passage skill](skills/passage_segment/SKILL.md) and [vocabulary skill](Vocabulary-Preparation.md) for the exact JSON structures.
 
 ## 4. Three independent audio lookups
 

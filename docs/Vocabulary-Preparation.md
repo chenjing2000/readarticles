@@ -4,7 +4,7 @@
 
 Produce a complete ReadArticles vocabulary file from either an existing structured vocabulary document or a plain list of words/phrases. Improve useful meanings, normalize lexical forms where justified, remove duplicates, and use the current derived audio naming rules without storing paths.
 
-Use the supplied [Vocabulary Enrichment skill](skills/skills-python/vocabulary_enrichment/SKILL.md) for structured input. This guide supplies the plain-list preparation step and the reader-specific compatibility checks. It does not modify the source passage, generate speech files, look for arbitrary files without a supplied context, or install anything in the application.
+Use the supplied [Vocabulary Enrichment skill](skills/vocabulary_enrichment/SKILL.md) for structured input. This guide supplies the plain-list preparation step and the reader-specific compatibility checks. It does not modify the source passage, generate speech files, look for arbitrary files without a supplied context, or install anything in the application.
 
 ## Inputs
 

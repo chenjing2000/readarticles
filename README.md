@@ -16,8 +16,8 @@ Start with the [documentation index](docs/README.md):
 
 - [Library layout and file requirements](docs/Library-Layout.md)
 - [Design goals, framework, and modules](docs/Application-Overview.md)
-- [Image-to-passage conversion skill](docs/skills/skills-python/image_to_passage/SKILL.md)
-- [Passage organization and segmentation skill](docs/skills/skills-python/passage_segment/SKILL.md)
+- [Image-to-passage conversion skill](docs/skills/image_to_passage/SKILL.md)
+- [Passage organization and segmentation skill](docs/skills/passage_segment/SKILL.md)
 - [Vocabulary preparation from structured or plain input](docs/Vocabulary-Preparation.md)
 - [Running, publishing, and troubleshooting](docs/Getting-Started.md)
 - [Regression categories and manual acceptance](docs/Testing.md)

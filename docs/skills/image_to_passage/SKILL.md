@@ -1,20 +1,22 @@
 ---
 name: image-to-passage
-description: Use when converting English textbook or page images into ReadArticles passage JSON and optional supported exercise JSON.
+description: Use when converting English textbook or page images into ReadArticles passage JSON and optional external exercise-authoring JSON.
 ---
 
 # Image to Passage
 
 ## 1. Purpose
 
-Convert English reading images into current ReadArticles files:
+Convert English reading images into reader-compatible passage content and optional external authoring companions:
 
 - required `<title>.json` with `filetype: "passage"`;
-- optional `<title>.exercise.json` with `filetype: "exercise"`.
+- optional `<title>.exercise.json` with `filetype: "exercise"`, for external authoring only.
+
+The current ReadArticles reader skips `.exercise.json` files during navigation and does not load, display, answer, or grade them. The conventions below describe optional preparation output, not implemented exercise support.
 
 Use the images as the source of truth. Preserve article and question text faithfully. Do not mix Exercise text into the Passage body.
 
-Output valid raw JSON files only; do not wrap JSON in Markdown or add commentary inside the files.
+On successful conversion, output valid raw JSON files only; do not wrap JSON in Markdown or add commentary inside the files. If the passage cannot fit the supported format, report the limitation without producing invalid or truncated JSON.
 
 ## 2. Input and Filenames
 
@@ -85,9 +87,9 @@ Neither family stores `audio` fields. Article recordings are resolved from SID u
 
 ## 4. Exercise Extraction
 
-Inspect the same images for an Exercise belonging to the Passage. If none of the supported types is present, create only `<title>.json`.
+Inspect the same images for an Exercise belonging to the Passage. If none of the authoring types below is present, create only `<title>.json`.
 
-ReadArticles supports exactly:
+For an optional external exercise companion, use one of these authoring types:
 
 | `type` | Use | Main payload |
 |---|---|---|
@@ -97,7 +99,7 @@ ReadArticles supports exactly:
 | `article_cloze_words` | Passage blanks answered by typed word/phrase | `items` with `cue` |
 | `article_cloze_sentences` | Passage blanks using one shared sentence pool | top-level `options` + `items` |
 
-Do not emit legacy or unsupported Exercise types. Do not merge unrelated Exercise families into one file.
+Do not emit legacy or other Exercise types outside these authoring conventions. Do not merge unrelated Exercise families into one file.
 
 Every Exercise file starts with:
 
@@ -108,7 +110,7 @@ Every Exercise file starts with:
 }
 ```
 
-Use the actual supported `type` and required payload.
+Use the matching authoring `type` and required payload.
 
 ### Common answer-unit rules
 
@@ -162,7 +164,7 @@ Before returning/writing files, verify:
 - `<title>.json` satisfies `../passage_segment/SKILL.md`;
 - Passage has `filetype="passage"`, no `title`, and no `tts_enabled`;
 - no Segment contains `audio`; ArticleBlank has continuous `[[1]]..[[N]]`, while Article has no placeholders;
-- optional Exercise has `filetype="exercise"` and one supported `article_*` type;
+- optional Exercise has `filetype="exercise"` and one of the listed authoring `article_*` types;
 - all answer-unit numbers are unique positive integers;
 - all cloze-family item numbers match Passage placeholder numbers exactly;
 - no Exercise object contains user-answer state;

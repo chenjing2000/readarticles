@@ -21,6 +21,13 @@ All four applications use the following document responsibilities. Application-s
 - [Vocabulary preparation](Vocabulary-Preparation.md)
 - [Detailed regression categories](Testing-Reference.md)
 
+## Skills
+
+- [Image to passage](skills/image_to_passage/SKILL.md)
+- [Passage segmentation](skills/passage_segment/SKILL.md)
+- [Vocabulary enrichment](skills/vocabulary_enrichment/SKILL.md)
+- [Project code review and cleanup](skills/project-code-review/SKILL.md)
+
 ## Maintenance rules
 
 Keep executable commands in Testing and Publishing; link them from usage guides. Keep settings rules in Configuration. Record dated results in Health Check rather than implying that an old result verifies later changes. Domain references describe file formats and behavior, not another publishing pipeline. Historical audits and plans remain historical and are not the current workflow entry point.

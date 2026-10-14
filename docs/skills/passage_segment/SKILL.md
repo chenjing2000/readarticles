@@ -7,7 +7,7 @@ description: Use when creating ReadArticles passage JSON from a supplied title a
 
 ## 1. Purpose
 
-Create one complete StudyBench Passage file named:
+Create one complete ReadArticles passage file named:
 
 ```text
 <title>.json
@@ -15,9 +15,9 @@ Create one complete StudyBench Passage file named:
 
 The filename stem is the authoritative Article title. Do not store `title` in the JSON.
 
-This skill is CREATE-only. Output raw JSON only: no Markdown fence, commentary, patch, or reasoning fields.
+This skill is CREATE-only. On successful conversion, output raw JSON only: no Markdown fence, commentary, patch, or reasoning fields. If the source cannot fit the supported format, do not produce a passage file; explain the format limit instead.
 
-StudyBench has two Passage families:
+ReadArticles has two passage families:
 
 - **Article**: no `[[n]]` placeholders; sentence audio is derived from SID.
 - **ArticleBlank**: contains one or more valid `[[n]]` placeholders; sentence audio is disabled.
@@ -79,9 +79,9 @@ A Paragraph boundary always ends its final Segment.
 ### SIDs
 
 - Use lowercase `s001`, `s002`, ... in reading order across the entire Passage.
-- Start at `s001`; never emit `s000`.
+- Start at `s001`; never emit `s000`. The supported range is `s001` through `s999` (at most 999 segments). If the source exceeds this limit, report the limitation instead of truncating it or emitting invalid IDs.
 - SIDs are Passage-wide unique.
-- `next_sid` is one greater than the largest emitted SID number.
+- `next_sid` is one greater than the largest emitted SID number, at most `1000`.
 
 ## 4. Article and ArticleBlank Rules
 
