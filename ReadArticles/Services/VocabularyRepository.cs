@@ -3,6 +3,8 @@ using ReadArticles.Infrastructure;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Text;
+using System.Threading;
 namespace ReadArticles.Services;
 public sealed class VocabularyRepository
 {
@@ -31,18 +33,28 @@ public sealed class VocabularyRepository
 
     public string Save(string path, VocabularyData data, string? expectedFingerprint)
     {
-        Validate(data);
-        foreach (var entry in data.Words) entry.Extra?.Remove("audio");
-        // Deny ordinary in-place writers while preparing the replacement. Release the
-        // read handle immediately before rename, which Windows requires for overwrite.
-        using var guard = File.Exists(path) ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete) : null;
-        void CheckCurrent()
+        string absolute = Path.GetFullPath(path);
+        // Serialize this application's writers before checking the expected file version.
+        string lockName = @"Local\ReadArticles.Vocabulary." + JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(absolute.ToUpperInvariant()));
+        using var mutex = new Mutex(false, lockName);
+        try { mutex.WaitOne(); }
+        catch (AbandonedMutexException) { } // Ownership is acquired; recheck the file after the previous writer exited.
+        try
         {
-            string? actual = File.Exists(path) ? JsonFiles.Fingerprint(path) : null;
-            if (actual != expectedFingerprint) throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再编辑。");
+            Validate(data);
+            foreach (var entry in data.Words) entry.Extra?.Remove("audio");
+            // Deny ordinary in-place writers while preparing the replacement. Release the
+            // read handle immediately before rename, which Windows requires for overwrite.
+            using var guard = File.Exists(absolute) ? new FileStream(absolute, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete) : null;
+            void CheckCurrent()
+            {
+                string? actual = File.Exists(absolute) ? JsonFiles.Fingerprint(absolute) : null;
+                if (actual != expectedFingerprint) throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再编辑。");
+            }
+            CheckCurrent();
+            return JsonFiles.WriteAtomic(absolute, data, () => { CheckCurrent(); guard?.Dispose(); });
         }
-        CheckCurrent();
-        return JsonFiles.WriteAtomic(path, data, () => { CheckCurrent(); guard?.Dispose(); });
+        finally { mutex.ReleaseMutex(); }
     }
 
     public static VocabularyEntry NewEntry(string text)

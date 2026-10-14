@@ -71,6 +71,8 @@ Selection/import/move/delete -> MainViewModel -> ReaderWorkspace
 
 All successful vocabulary commits use one refresh/notification path. Import keeps incoming metadata; later edits retain the current vocabulary metadata. Recognized extension metadata at the vocabulary root, entry, and meaning levels survives serialization. Legacy `audio` fields are ignored on load and removed on save.
 
+Vocabulary saves serialize this application's writers with a named mutex derived from the absolute, case-normalized path within the current Windows session. Each writer rechecks the expected fingerprint after acquiring ownership and before replacing the file; a stale writer is rejected. This does not lock unrelated external editors or coordinate different path aliases through links or network mappings.
+
 The JSON `words` array determines list order. Moving swaps neighboring positions; the first and last items disable impossible moves. Delete removes the selected entry. The selection-add button creates a word whose pronunciation filenames are inferred from its stem, but does not generate definitions or audio files.
 
 Delete requires an active, writable vocabulary and an entry belonging to that vocabulary. Requests with no article or a stale entry do nothing. The matching pronunciation is stopped only after the deletion has been saved successfully.

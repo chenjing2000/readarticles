@@ -9,6 +9,36 @@ internal static class ContentChecks
 {
     internal static void Run()
     {
+        RunCopyTest("concurrent vocabulary saves reject stale writers instead of losing edits", (root, passage) =>
+        {
+            foreach (bool existing in new[] { false, true })
+            {
+                string path = Path.Combine(root, existing ? "existing.json" : "new.json");
+                var repository = new VocabularyRepository();
+                string? fingerprint = existing ? repository.Save(path, new VocabularyData(), null) : null;
+                using var start = new Barrier(8);
+                var tasks = Enumerable.Range(0, 8).Select(writer => Task.Factory.StartNew(() =>
+                {
+                    var data = new VocabularyData
+                    {
+                        Words = Enumerable.Range(0, 500).Select(index => new VocabularyEntry
+                        {
+                            Word = $"writer {writer} word {index}",
+                            Meanings = [new Meaning("n.", new string('x', 2000))]
+                        }).ToList()
+                    };
+                    start.SignalAndWait();
+                    string target = writer % 2 == 0 ? path.ToUpperInvariant() : Path.GetRelativePath(Environment.CurrentDirectory, path);
+                    try { repository.Save(target, data, fingerprint); return true; }
+                    catch (InvalidOperationException) { return false; }
+                }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)).ToArray();
+                Task.WaitAll(tasks);
+                int committed = tasks.Count(task => task.Result);
+                if (committed != 1) throw new Exception($"Expected one committed writer; got {committed} (existing={existing}).");
+                Program.Check(repository.Load(path).Data.Words.Count == 500);
+                Program.Check(!Directory.EnumerateFiles(root, "*.tmp").Any());
+            }
+        });
         Program.Run("delete without an article or with a stale word leaves workspace unchanged", () =>
         {
             using var first = new WpfAudioPlayer();
