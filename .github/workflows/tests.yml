@@ -25,4 +25,4 @@ jobs:
         run: dotnet build ReadArticles -c Release
       - name: Run UI regression suite
         shell: powershell
-        run: .\tools\Test.ps1 -Suite UI
+        run: .\tools\Test.ps1 -Suite Full
