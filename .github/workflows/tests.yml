@@ -1,10 +1,12 @@
 name: Windows tests
 
 on:
-  push:
-    branches: ["**"]
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: windows-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   full-tests:
@@ -19,4 +21,4 @@ jobs:
           dotnet-version: 10.0.x
       - name: Run full regression suite
         shell: powershell
-        run: .\\tools\\Test.ps1 -Suite Full
+        run: .\tools\Test.ps1 -Suite Full
