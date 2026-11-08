@@ -1,4 +1,4 @@
-function New-TestWaveFile([string]$Path, [int]$DurationMilliseconds = 700) {
+function New-TestWaveFile([string]$Path, [int]$DurationMilliseconds) {
     $sampleRate = 22050
     $sampleCount = [int][Math]::Ceiling($sampleRate * $DurationMilliseconds / 1000.0)
     $dataLength = $sampleCount * 2
@@ -42,8 +42,10 @@ function New-TestAudioPool([string]$AudioRoot, [string]$ArticlePath) {
         throw "Main test vocabulary is missing: $vocabularyPath"
     }
     $vocabulary = Get-Content -LiteralPath $vocabularyPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $template = Join-Path $AudioRoot 'template.wav'
-    New-TestWaveFile $template
+    $sentenceTemplate = Join-Path $AudioRoot 'sentence-template.wav'
+    $wordTemplate = Join-Path $AudioRoot 'word-template.wav'
+    New-TestWaveFile $sentenceTemplate 5000
+    New-TestWaveFile $wordTemplate 2000
     $stems = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($paragraph in $article.paragraphs) {
         foreach ($segment in $paragraph.paragraph) {
@@ -51,7 +53,7 @@ function New-TestAudioPool([string]$AudioRoot, [string]$ArticlePath) {
             foreach ($accent in @('uk', 'us')) {
                 $destination = Join-Path $AudioRoot "audio_sentences/$($segment.sid)_$accent.wav"
                 New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
-                Copy-Item -LiteralPath $template -Destination $destination
+                Copy-Item -LiteralPath $sentenceTemplate -Destination $destination
             }
         }
     }
@@ -61,11 +63,16 @@ function New-TestAudioPool([string]$AudioRoot, [string]$ArticlePath) {
         foreach ($accent in @('uk', 'us')) {
             $destination = Join-Path $AudioRoot "audio/$($stem)_$accent.wav"
             New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
-            Copy-Item -LiteralPath $template -Destination $destination
+            Copy-Item -LiteralPath $wordTemplate -Destination $destination
         }
     }
-    Remove-Item -LiteralPath $template -Force
-    Write-Host "Generated shared WAV pool: $($stems.Count * 2) vocabulary files; s011 sentence audio intentionally absent."
+    Remove-Item -LiteralPath $sentenceTemplate, $wordTemplate -Force
+    $sentenceFiles = @(Get-ChildItem -LiteralPath (Join-Path $AudioRoot 'audio_sentences') -File -Filter '*.wav')
+    $wordFiles = @(Get-ChildItem -LiteralPath (Join-Path $AudioRoot 'audio') -File -Filter '*.wav')
+    if ($sentenceFiles.Count -ne 122 -or $wordFiles.Count -ne 240) {
+        throw "Unexpected generated audio pool: $($sentenceFiles.Count) sentence WAV files, $($wordFiles.Count) vocabulary WAV files. Expected 122 and 240."
+    }
+    Write-Host "Generated shared WAV pool: $($sentenceFiles.Count) sentence files (5 s), $($wordFiles.Count) vocabulary files (2 s); s011 intentionally absent."
 }
 
 function Copy-TestAudioFolder([string]$SourceRoot, [string]$TargetRoot, [string]$FolderName) {
