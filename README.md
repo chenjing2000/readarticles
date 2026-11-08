@@ -6,49 +6,30 @@ ReadArticles is a local C# / WPF application for English reading, vocabulary edi
 
 On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch), launch `dist/ReadArticles.exe`. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
 
-Startup loads only a collapsed library tree. It does not restore a passage or vocabulary. Routine successful actions are quiet; warnings and errors appear for six seconds, and the empty status row takes no space.
-
-The bottom play/pause, stop, and progress controls own only the first sorted MP3 directly beside the passage JSON, or the first sorted WAV if no MP3 exists. Sentence audio uses `audio_sentences/`; word audio uses `audio/`. Both use derived filenames, with MP3 preferred by existence and WAV used only when MP3 is absent; decoding failure does not retry WAV. JSON audio path fields are ignored on load. Vocabulary saves remove its old fields; passage JSON is not saved by the application, so external preparation tools remove its fields when regenerating content. No old-directory, naming, or index fallback or resource migration is provided. These pronunciations share a second player: starting pronunciation pauses the article, and starting or resuming the article stops pronunciation. Vocabulary editing writes the active companion JSON, so use working copies for experiments.
-
 ## Documentation
 
-Start with the [documentation index](docs/README.md):
-
-- [Library layout and file requirements](docs/Library-Layout.md)
-- [Design goals, framework, and modules](docs/Application-Overview.md)
-- [Image-to-passage conversion skill](docs/skills/image_to_passage/SKILL.md)
-- [Passage organization and segmentation skill](docs/skills/passage_segment/SKILL.md)
-- [Vocabulary preparation from structured or plain input](docs/Vocabulary-Preparation.md)
-- [Running, publishing, and troubleshooting](docs/Getting-Started.md)
-- [Regression categories and manual acceptance](docs/Testing.md)
-
-All maintained documentation is in English. The conversion skills prepare content externally; they are not built-in OCR, enrichment, or speech-generation features.
+Start with the [documentation index](docs/README.md). See [Testing](docs/Testing.md) for the unified test workflow.
 
 ## Repository structure
 
 | Path | Purpose |
 | --- | --- |
 | `ReadArticles/` | Published application's source and embedded UI resources |
-| `ReadArticles.Tests/` | Categorized checks of production services and controls, with fixed fixtures |
-| `dist/` | Runtime files and user settings; keep these together |
-| `docs/` | Current documentation and conversion skills |
+| `ReadArticles.Tests/` | Categorized regression checks |
+| `tests/TestData/` | Single source of fixed test article and vocabulary JSON |
+| `tools/` | Build, publishing, and test automation |
+| `artifacts/` | Local test reports, logs, and screenshots; not committed |
+| `dist/` | Published runtime files; not committed |
 
 ## Build and test
 
-Run from the repository root with an SDK compatible with `global.json`:
+Run from the repository root on Windows with the .NET 10 SDK:
 
 ```powershell
 dotnet build ReadArticles -c Release
-dotnet run --project ReadArticles.Tests -c Release
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Test.ps1 -Suite Core
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Test.ps1 -Suite UI
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Test.ps1 -Suite Full
 ```
 
-See the testing guide for independent categories and optional machine-specific source checks. The current main branch does not implement account registration/login or exercise answering. The supplied authoring skills may still produce exercise companions; the reader excludes those files from navigation and does not render them.
-
-## Unified publishing
-
-Run `.\tools\Publish.ps1` from this repository root. All four applications use Portable.pubxml, staged validation, and a single EXE under dist. See [Publishing](docs/Publishing.md), [health check](docs/Health-Check-2026-10-13.md), and [Release notes](docs/Release-Notes.md).
-
-
-## Unified testing and acceptance
-
-Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. After publishing, run `.\tools\Test-PublishedApp.ps1`. External audio/article/dictionary paths are optional explicit arguments; missing optional integration data is reported as skipped. See the [documentation index](docs/README.md) and [test guide](docs/Testing.md). PowerShell source is English-only.
+All fixed test inputs live in `tests/TestData/`. The test runner generates synthetic WAV audio in an isolated temporary workspace; no personal article directory or external recording collection is required. See [Testing and acceptance](docs/Testing.md) for suite coverage and limitations.
