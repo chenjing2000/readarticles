@@ -12,17 +12,17 @@ function New-TestWaveFile([string]$Path, [int]$DurationMilliseconds = 700) {
         $writer.Write([Text.Encoding]::ASCII.GetBytes('WAVE'))
         $writer.Write([Text.Encoding]::ASCII.GetBytes('fmt '))
         $writer.Write([int]16)
-        $writer.Write([short]1)
-        $writer.Write([short]1)
+        $writer.Write([System.Int16]1)
+        $writer.Write([System.Int16]1)
         $writer.Write([int]$sampleRate)
         $writer.Write([int]($sampleRate * 2))
-        $writer.Write([short]2)
-        $writer.Write([short]16)
+        $writer.Write([System.Int16]2)
+        $writer.Write([System.Int16]16)
         $writer.Write([Text.Encoding]::ASCII.GetBytes('data'))
         $writer.Write([int]$dataLength)
         for ($i = 0; $i -lt $sampleCount; $i++) {
             $sample = [int]([Math]::Sin(2.0 * [Math]::PI * 440.0 * $i / $sampleRate) * 1800)
-            $writer.Write([short]$sample)
+            $writer.Write([System.Int16]$sample)
         }
         $writer.Flush()
     }
