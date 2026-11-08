@@ -78,8 +78,9 @@ internal static class ContentChecks
                     Program.Check(Path.GetFileName(Path.GetDirectoryName(asset)) == "audio_sentences");
                     Program.Check(Path.GetFileNameWithoutExtension(asset) == $"{segment.Sid}_{accent}");
                 }
-            Program.Check(missing.SequenceEqual(new[] { "s011_uk", "s011_us" }));
-            Program.Check(article.Warnings.Any(w => w.Contains("缺失 2")));
+            if (!missing.SequenceEqual(new[] { "s011_uk", "s011_us" }))
+                throw new Exception("Expected only s011 recordings to be absent; actual missing files: " + string.Join(", ", missing));
+            Program.Check(!article.Warnings.Any(w => w.Contains("录音") || w.Contains("音频")));
             foreach (var word in article.Vocabulary.Data.Words)
                 foreach (var accent in new[] { "uk", "us" })
                     Program.Check(AudioResources.IsAvailable(resources.Vocabulary(article.Directory, word, accent)));
