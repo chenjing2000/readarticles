@@ -1,0 +1,2240 @@
+{
+  "filetype": "vocabulary",
+  "words": [
+    {
+      "word": "sloppy",
+      "phonetic_uk": "/ˈslɒpi/",
+      "phonetic_us": "/ˈslɑːpi/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "草率的；马虎的；不严谨的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/sloppy_uk.mp3",
+        "us": "audio_vocabulary/sloppy_us.mp3"
+      }
+    },
+    {
+      "word": "coarse",
+      "phonetic_uk": "/kɔːs/",
+      "phonetic_us": "/kɔːrs/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "粗俗的；粗鲁的；粗糙的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/coarse_uk.mp3",
+        "us": "audio_vocabulary/coarse_us.mp3"
+      }
+    },
+    {
+      "word": "get the credit",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "得到应有的认可；获得赞誉"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/get_the_credit_uk.mp3",
+        "us": "audio_vocabulary/get_the_credit_us.mp3"
+      }
+    },
+    {
+      "word": "cunning",
+      "phonetic_uk": "/ˈkʌnɪŋ/",
+      "phonetic_us": "/ˈkʌnɪŋ/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "狡黠；精明；善于算计"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "狡猾的；巧妙的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/cunning_uk.mp3",
+        "us": "audio_vocabulary/cunning_us.mp3"
+      }
+    },
+    {
+      "word": "subtlety",
+      "phonetic_uk": "/ˈsʌtlti/",
+      "phonetic_us": "/ˈsʌtlti/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "微妙；精妙；细腻之处"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/subtlety_uk.mp3",
+        "us": "audio_vocabulary/subtlety_us.mp3"
+      }
+    },
+    {
+      "word": "take one's handling of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "以某人处理……的方式为例；看看某人如何处理……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/take_one's_handling_of_uk.mp3",
+        "us": "audio_vocabulary/take_one's_handling_of_us.mp3"
+      }
+    },
+    {
+      "word": "attorney",
+      "phonetic_uk": "/əˈtɜːni/",
+      "phonetic_us": "/əˈtɜːrni/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "律师；法律事务代理人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/attorney_uk.mp3",
+        "us": "audio_vocabulary/attorney_us.mp3"
+      }
+    },
+    {
+      "word": "attorney-general",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "总检察长；司法部长"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/attorney-general_uk.mp3",
+        "us": "audio_vocabulary/attorney-general_us.mp3"
+      }
+    },
+    {
+      "word": "cartoonish",
+      "phonetic_uk": "/kɑːˈtuːnɪʃ/",
+      "phonetic_us": "/kɑːrˈtuːnɪʃ/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "漫画式的；夸张荒诞的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/cartoonish_uk.mp3",
+        "us": "audio_vocabulary/cartoonish_us.mp3"
+      }
+    },
+    {
+      "word": "Senate",
+      "phonetic_uk": "/ˈsenət/",
+      "phonetic_us": "/ˈsenət/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "参议院"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/senate_uk.mp3",
+        "us": "audio_vocabulary/senate_us.mp3"
+      }
+    },
+    {
+      "word": "contest",
+      "phonetic_uk": "/ˈkɒntest/",
+      "phonetic_us": "/ˈkɑːntest/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "竞赛；竞争；（尤指选举中的）角逐"
+        },
+        {
+          "pos": "v.",
+          "meaning": "竞争；争夺；对……提出异议"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/contest_uk.mp3",
+        "us": "audio_vocabulary/contest_us.mp3"
+      }
+    },
+    {
+      "word": "comic routine",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "固定的滑稽表演；反复使用的搞笑套路"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/comic_routine_uk.mp3",
+        "us": "audio_vocabulary/comic_routine_us.mp3"
+      }
+    },
+    {
+      "word": "at one's expense",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "拿某人开玩笑或让某人难堪；以某人为代价"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/at_one's_expense_uk.mp3",
+        "us": "audio_vocabulary/at_one's_expense_us.mp3"
+      }
+    },
+    {
+      "word": "relish",
+      "phonetic_uk": "/ˈrelɪʃ/",
+      "phonetic_us": "/ˈrelɪʃ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "享受；津津有味地做"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/relish_uk.mp3",
+        "us": "audio_vocabulary/relish_us.mp3"
+      }
+    },
+    {
+      "word": "convention",
+      "phonetic_uk": "/kənˈvenʃn/",
+      "phonetic_us": "/kənˈvenʃn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "大会；会议"
+        },
+        {
+          "pos": "n.",
+          "meaning": "惯例；习俗"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/convention_uk.mp3",
+        "us": "audio_vocabulary/convention_us.mp3"
+      }
+    },
+    {
+      "word": "delivery",
+      "phonetic_uk": "/dɪˈlɪvəri/",
+      "phonetic_us": "/dɪˈlɪvəri/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "说话或表演的方式；表达方式"
+        },
+        {
+          "pos": "n.",
+          "meaning": "递送；交付"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/delivery_uk.mp3",
+        "us": "audio_vocabulary/delivery_us.mp3"
+      }
+    },
+    {
+      "word": "confide",
+      "phonetic_uk": "/kənˈfaɪd/",
+      "phonetic_us": "/kənˈfaɪd/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "吐露；私下透露；倾诉"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/confide_uk.mp3",
+        "us": "audio_vocabulary/confide_us.mp3"
+      }
+    },
+    {
+      "word": "aide",
+      "phonetic_uk": "/eɪd/",
+      "phonetic_us": "/eɪd/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "助手；助理；幕僚"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/aide_uk.mp3",
+        "us": "audio_vocabulary/aide_us.mp3"
+      }
+    },
+    {
+      "word": "implore",
+      "phonetic_uk": "/ɪmˈplɔː(r)/",
+      "phonetic_us": "/ɪmˈplɔːr/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "恳求；哀求"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/implore_uk.mp3",
+        "us": "audio_vocabulary/implore_us.mp3"
+      }
+    },
+    {
+      "word": "recall",
+      "phonetic_uk": "/rɪˈkɔːl/",
+      "phonetic_us": "/rɪˈkɔːl/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "回忆起；记起"
+        },
+        {
+          "pos": "v.",
+          "meaning": "召回；叫回"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/recall_uk.mp3",
+        "us": "audio_vocabulary/recall_us.mp3"
+      }
+    },
+    {
+      "word": "convulse",
+      "phonetic_uk": "/kənˈvʌls/",
+      "phonetic_us": "/kənˈvʌls/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "（使）剧烈抽动；（使）笑得浑身发颤"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/convulse_uk.mp3",
+        "us": "audio_vocabulary/convulse_us.mp3"
+      }
+    },
+    {
+      "word": "be convulsed with laughter",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "笑得前仰后合；笑得全身发颤"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_convulsed_with_laughter_uk.mp3",
+        "us": "audio_vocabulary/be_convulsed_with_laughter_us.mp3"
+      }
+    },
+    {
+      "word": "schtick",
+      "phonetic_uk": "/ʃtɪk/",
+      "phonetic_us": "/ʃtɪk/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "招牌表演；反复使用的搞笑套路"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/schtick_uk.mp3",
+        "us": "audio_vocabulary/schtick_us.mp3"
+      }
+    },
+    {
+      "word": "shift",
+      "phonetic_uk": "/ʃɪft/",
+      "phonetic_us": "/ʃɪft/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "移动；挪动；转移"
+        },
+        {
+          "pos": "v.",
+          "meaning": "改变；转换"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/shift_uk.mp3",
+        "us": "audio_vocabulary/shift_us.mp3"
+      }
+    },
+    {
+      "word": "shift from foot to foot",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "两脚交替站立；不安地来回换脚"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/shift_from_foot_to_foot_uk.mp3",
+        "us": "audio_vocabulary/shift_from_foot_to_foot_us.mp3"
+      }
+    },
+    {
+      "word": "refer to",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "提到；谈及；指的是"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/refer_to_uk.mp3",
+        "us": "audio_vocabulary/refer_to_us.mp3"
+      }
+    },
+    {
+      "word": "commentator",
+      "phonetic_uk": "/ˈkɒmənteɪtə(r)/",
+      "phonetic_us": "/ˈkɑːmənteɪtər/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "评论员；评论者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/commentator_uk.mp3",
+        "us": "audio_vocabulary/commentator_us.mp3"
+      }
+    },
+    {
+      "word": "trash",
+      "phonetic_uk": "/træʃ/",
+      "phonetic_us": "/træʃ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "猛烈批评；严厉贬损"
+        },
+        {
+          "pos": "v.",
+          "meaning": "破坏；毁坏"
+        },
+        {
+          "pos": "n.",
+          "meaning": "垃圾；废物"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/trash_uk.mp3",
+        "us": "audio_vocabulary/trash_us.mp3"
+      }
+    },
+    {
+      "word": "underestimate",
+      "phonetic_uk": "/ˌʌndərˈestɪmeɪt/",
+      "phonetic_us": "/ˌʌndərˈestɪmeɪt/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "低估；轻视"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/underestimate_uk.mp3",
+        "us": "audio_vocabulary/underestimate_us.mp3"
+      }
+    },
+    {
+      "word": "be convicted of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "被判……有罪"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_convicted_of_uk.mp3",
+        "us": "audio_vocabulary/be_convicted_of_us.mp3"
+      }
+    },
+    {
+      "word": "convict",
+      "phonetic_uk": "/kənˈvɪkt/",
+      "phonetic_us": "/kənˈvɪkt/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "判定有罪；定罪"
+        },
+        {
+          "pos": "n.",
+          "meaning": "已决犯；服刑人员"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/convict_uk.mp3",
+        "us": "audio_vocabulary/convict_us.mp3"
+      }
+    },
+    {
+      "word": "felony",
+      "phonetic_uk": "/ˈfeləni/",
+      "phonetic_us": "/ˈfeləni/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "重罪"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/felony_uk.mp3",
+        "us": "audio_vocabulary/felony_us.mp3"
+      }
+    },
+    {
+      "word": "demean",
+      "phonetic_uk": "/dɪˈmiːn/",
+      "phonetic_us": "/dɪˈmiːn/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "贬低；羞辱；降低……的尊严"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/demean_uk.mp3",
+        "us": "audio_vocabulary/demean_us.mp3"
+      }
+    },
+    {
+      "word": "lackey",
+      "phonetic_uk": "/ˈlæki/",
+      "phonetic_us": "/ˈlæki/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "跟班；走卒；唯命是从者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/lackey_uk.mp3",
+        "us": "audio_vocabulary/lackey_us.mp3"
+      }
+    },
+    {
+      "word": "hammer",
+      "phonetic_uk": "/ˈhæmə(r)/",
+      "phonetic_us": "/ˈhæmər/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "反复强调；猛烈抨击"
+        },
+        {
+          "pos": "v.",
+          "meaning": "敲打；锤击"
+        },
+        {
+          "pos": "n.",
+          "meaning": "锤子"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hammer_uk.mp3",
+        "us": "audio_vocabulary/hammer_us.mp3"
+      }
+    },
+    {
+      "word": "hammer home",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "反复强调；使人充分认识到"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hammer_home_uk.mp3",
+        "us": "audio_vocabulary/hammer_home_us.mp3"
+      }
+    },
+    {
+      "word": "politico",
+      "phonetic_uk": "/pəˈlɪtɪkəʊ/",
+      "phonetic_us": "/pəˈlɪtɪkəʊ/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "政客；政治人物（非正式用语）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/politico_uk.mp3",
+        "us": "audio_vocabulary/politico_us.mp3"
+      }
+    },
+    {
+      "word": "permission structure",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "使某种选择或立场显得可以接受的一套理由或舆论框架"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/permission_structure_uk.mp3",
+        "us": "audio_vocabulary/permission_structure_us.mp3"
+      }
+    },
+    {
+      "word": "think much of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "看重；对……评价很高"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/think_much_of_uk.mp3",
+        "us": "audio_vocabulary/think_much_of_us.mp3"
+      }
+    },
+    {
+      "word": "act on a lesson",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "根据吸取的教训或经验采取行动"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/act_on_a_lesson_uk.mp3",
+        "us": "audio_vocabulary/act_on_a_lesson_us.mp3"
+      }
+    },
+    {
+      "word": "far better than most",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "远胜于大多数人；比大多数人强得多"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/far_better_than_most_uk.mp3",
+        "us": "audio_vocabulary/far_better_than_most_us.mp3"
+      }
+    },
+    {
+      "word": "religious",
+      "phonetic_uk": "/rɪˈlɪdʒəs/",
+      "phonetic_us": "/rɪˈlɪdʒəs/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "宗教的；与宗教有关的"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "虔诚的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/religious_uk.mp3",
+        "us": "audio_vocabulary/religious_us.mp3"
+      }
+    },
+    {
+      "word": "righteous",
+      "phonetic_uk": "/ˈraɪtʃəs/",
+      "phonetic_us": "/ˈraɪtʃəs/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "自认为正义的；义愤的"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "正义的；正当的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/righteous_uk.mp3",
+        "us": "audio_vocabulary/righteous_us.mp3"
+      }
+    },
+    {
+      "word": "excuse ugly behaviour in somebody",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "宽容或原谅某人的恶劣行为"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/excuse_ugly_behaviour_in_somebody_uk.mp3",
+        "us": "audio_vocabulary/excuse_ugly_behaviour_in_somebody_us.mp3"
+      }
+    },
+    {
+      "word": "champion",
+      "phonetic_uk": "/ˈtʃæmpiən/",
+      "phonetic_us": "/ˈtʃæmpiən/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "某一群体、事业或理念的捍卫者；代表人物"
+        },
+        {
+          "pos": "n.",
+          "meaning": "冠军；优胜者"
+        },
+        {
+          "pos": "v.",
+          "meaning": "支持；捍卫；为……而斗争"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/champion_uk.mp3",
+        "us": "audio_vocabulary/champion_us.mp3"
+      }
+    },
+    {
+      "word": "deeply",
+      "phonetic_uk": "/ˈdiːpli/",
+      "phonetic_us": "/ˈdiːpli/",
+      "meanings": [
+        {
+          "pos": "adv.",
+          "meaning": "深深地；强烈地；在很大程度上"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/deeply_uk.mp3",
+        "us": "audio_vocabulary/deeply_us.mp3"
+      }
+    },
+    {
+      "word": "ditch",
+      "phonetic_uk": "/dɪtʃ/",
+      "phonetic_us": "/dɪtʃ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "抛弃；放弃；甩掉"
+        },
+        {
+          "pos": "n.",
+          "meaning": "沟；沟渠"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/ditch_uk.mp3",
+        "us": "audio_vocabulary/ditch_us.mp3"
+      }
+    },
+    {
+      "word": "tattoo",
+      "phonetic_uk": "/təˈtuː/",
+      "phonetic_us": "/tæˈtuː/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "纹身；纹身图案"
+        },
+        {
+          "pos": "v.",
+          "meaning": "在……身上刺纹身"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/tattoo_uk.mp3",
+        "us": "audio_vocabulary/tattoo_us.mp3"
+      }
+    },
+    {
+      "word": "misogyny",
+      "phonetic_uk": "/mɪˈsɒdʒɪni/",
+      "phonetic_us": "/mɪˈsɑːdʒɪni/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "厌女；对女性的厌恶或歧视"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/misogyny_uk.mp3",
+        "us": "audio_vocabulary/misogyny_us.mp3"
+      }
+    },
+    {
+      "word": "accusation",
+      "phonetic_uk": "/ˌækjuˈzeɪʃn/",
+      "phonetic_us": "/ˌækjuˈzeɪʃn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "指控；控告；指责"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/accusation_uk.mp3",
+        "us": "audio_vocabulary/accusation_us.mp3"
+      }
+    },
+    {
+      "word": "muse",
+      "phonetic_uk": "/mjuːz/",
+      "phonetic_us": "/mjuːz/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "沉思；若有所思地说"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/muse_uk.mp3",
+        "us": "audio_vocabulary/muse_us.mp3"
+      }
+    },
+    {
+      "word": "in the age of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "在……时代；在……盛行的时期"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/in_the_age_of_uk.mp3",
+        "us": "audio_vocabulary/in_the_age_of_us.mp3"
+      }
+    },
+    {
+      "word": "severe",
+      "phonetic_uk": "/sɪˈvɪə(r)/",
+      "phonetic_us": "/sɪˈvɪr/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "严峻的；严重的；严厉的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/severe_uk.mp3",
+        "us": "audio_vocabulary/severe_us.mp3"
+      }
+    },
+    {
+      "word": "indict",
+      "phonetic_uk": "/ɪnˈdaɪt/",
+      "phonetic_us": "/ɪnˈdaɪt/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "正式起诉；控告"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/indict_uk.mp3",
+        "us": "audio_vocabulary/indict_us.mp3"
+      }
+    },
+    {
+      "word": "pay restitution",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "支付赔偿；作出赔偿"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/pay_restitution_uk.mp3",
+        "us": "audio_vocabulary/pay_restitution_us.mp3"
+      }
+    },
+    {
+      "word": "restitution",
+      "phonetic_uk": "/ˌrestɪˈtjuːʃn/",
+      "phonetic_us": "/ˌrestɪˈtuːʃn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "赔偿；归还；恢复原状"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/restitution_uk.mp3",
+        "us": "audio_vocabulary/restitution_us.mp3"
+      }
+    },
+    {
+      "word": "deputy",
+      "phonetic_uk": "/ˈdepjuti/",
+      "phonetic_us": "/ˈdepjuti/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "副手；副职人员；代理人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/deputy_uk.mp3",
+        "us": "audio_vocabulary/deputy_us.mp3"
+      }
+    },
+    {
+      "word": "bribery",
+      "phonetic_uk": "/ˈbraɪbəri/",
+      "phonetic_us": "/ˈbraɪbəri/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "贿赂；行贿或受贿行为"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/bribery_uk.mp3",
+        "us": "audio_vocabulary/bribery_us.mp3"
+      }
+    },
+    {
+      "word": "abuse of office",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "滥用职权"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/abuse_of_office_uk.mp3",
+        "us": "audio_vocabulary/abuse_of_office_us.mp3"
+      }
+    },
+    {
+      "word": "abuse",
+      "phonetic_uk": "/əˈbjuːs/",
+      "phonetic_us": "/əˈbjuːs/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "滥用；虐待"
+        },
+        {
+          "pos": "v.",
+          "meaning": "虐待；辱骂；滥用"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/abuse_uk.mp3",
+        "us": "audio_vocabulary/abuse_us.mp3"
+      }
+    },
+    {
+      "word": "impeach",
+      "phonetic_uk": "/ɪmˈpiːtʃ/",
+      "phonetic_us": "/ɪmˈpiːtʃ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "弹劾；对公职人员提出弹劾"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/impeach_uk.mp3",
+        "us": "audio_vocabulary/impeach_us.mp3"
+      }
+    },
+    {
+      "word": "acquit",
+      "phonetic_uk": "/əˈkwɪt/",
+      "phonetic_us": "/əˈkwɪt/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "宣判无罪；免除罪责"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/acquit_uk.mp3",
+        "us": "audio_vocabulary/acquit_us.mp3"
+      }
+    },
+    {
+      "word": "multimillionaire",
+      "phonetic_uk": "/ˌmʌltimɪljəˈneə(r)/",
+      "phonetic_us": "/ˌmʌltimɪljəˈner/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "拥有数百万资产的富豪"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/multimillionaire_uk.mp3",
+        "us": "audio_vocabulary/multimillionaire_us.mp3"
+      }
+    },
+    {
+      "word": "file for",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "正式申请；提出申请"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/file_for_uk.mp3",
+        "us": "audio_vocabulary/file_for_us.mp3"
+      }
+    },
+    {
+      "word": "on the grounds of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "以……为理由；基于……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/on_the_grounds_of_uk.mp3",
+        "us": "audio_vocabulary/on_the_grounds_of_us.mp3"
+      }
+    },
+    {
+      "word": "adultery",
+      "phonetic_uk": "/əˈdʌltəri/",
+      "phonetic_us": "/əˈdʌltəri/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "通奸；婚外性关系"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/adultery_uk.mp3",
+        "us": "audio_vocabulary/adultery_us.mp3"
+      }
+    },
+    {
+      "word": "be caught on video",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "被视频拍到；被录像记录下来"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_caught_on_video_uk.mp3",
+        "us": "audio_vocabulary/be_caught_on_video_us.mp3"
+      }
+    },
+    {
+      "word": "help oneself to",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "自行取用；擅自拿取"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/help_oneself_to_uk.mp3",
+        "us": "audio_vocabulary/help_oneself_to_us.mp3"
+      }
+    },
+    {
+      "word": "scanner",
+      "phonetic_uk": "/ˈskænə(r)/",
+      "phonetic_us": "/ˈskænər/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "扫描仪；扫描设备"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/scanner_uk.mp3",
+        "us": "audio_vocabulary/scanner_us.mp3"
+      }
+    },
+    {
+      "word": "lousy",
+      "phonetic_uk": "/ˈlaʊzi/",
+      "phonetic_us": "/ˈlaʊzi/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "很差的；糟糕的；蹩脚的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/lousy_uk.mp3",
+        "us": "audio_vocabulary/lousy_us.mp3"
+      }
+    },
+    {
+      "word": "orator",
+      "phonetic_uk": "/ˈɒrətə(r)/",
+      "phonetic_us": "/ˈɔːrətər/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "演说家；善于演讲的人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/orator_uk.mp3",
+        "us": "audio_vocabulary/orator_us.mp3"
+      }
+    },
+    {
+      "word": "choirboy",
+      "phonetic_uk": "/ˈkwaɪəbɔɪ/",
+      "phonetic_us": "/ˈkwaɪərbɔɪ/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "唱诗班男童；唱诗班男孩"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/choirboy_uk.mp3",
+        "us": "audio_vocabulary/choirboy_us.mp3"
+      }
+    },
+    {
+      "word": "minister",
+      "phonetic_uk": "/ˈmɪnɪstə(r)/",
+      "phonetic_us": "/ˈmɪnɪstər/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "牧师"
+        },
+        {
+          "pos": "n.",
+          "meaning": "部长；大臣"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/minister_uk.mp3",
+        "us": "audio_vocabulary/minister_us.mp3"
+      }
+    },
+    {
+      "word": "eloquent",
+      "phonetic_uk": "/ˈeləkwənt/",
+      "phonetic_us": "/ˈeləkwənt/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "雄辩的；口才好的；表达有力的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/eloquent_uk.mp3",
+        "us": "audio_vocabulary/eloquent_us.mp3"
+      }
+    },
+    {
+      "word": "disciplined",
+      "phonetic_uk": "/ˈdɪsəplɪnd/",
+      "phonetic_us": "/ˈdɪsəplɪnd/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "自律的；训练有素的；严谨的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/disciplined_uk.mp3",
+        "us": "audio_vocabulary/disciplined_us.mp3"
+      }
+    },
+    {
+      "word": "present as",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "以……形象出现；给人……的印象"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/present_as_uk.mp3",
+        "us": "audio_vocabulary/present_as_us.mp3"
+      }
+    },
+    {
+      "word": "not merely",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "不仅仅；不只是"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/not_merely_uk.mp3",
+        "us": "audio_vocabulary/not_merely_us.mp3"
+      }
+    },
+    {
+      "word": "earnest",
+      "phonetic_uk": "/ˈɜːnɪst/",
+      "phonetic_us": "/ˈɜːrnɪst/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "认真的；诚挚的；郑重的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/earnest_uk.mp3",
+        "us": "audio_vocabulary/earnest_us.mp3"
+      }
+    },
+    {
+      "word": "reverent",
+      "phonetic_uk": "/ˈrevərənt/",
+      "phonetic_us": "/ˈrevərənt/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "虔敬的；恭敬的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/reverent_uk.mp3",
+        "us": "audio_vocabulary/reverent_us.mp3"
+      }
+    },
+    {
+      "word": "Scripture",
+      "phonetic_uk": "/ˈskrɪptʃə(r)/",
+      "phonetic_us": "/ˈskrɪptʃər/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "（尤指《圣经》的）经文；圣典"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/scripture_uk.mp3",
+        "us": "audio_vocabulary/scripture_us.mp3"
+      }
+    },
+    {
+      "word": "late-night host",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "深夜谈话或综艺节目的主持人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/late-night_host_uk.mp3",
+        "us": "audio_vocabulary/late-night_host_us.mp3"
+      }
+    },
+    {
+      "word": "immigrant",
+      "phonetic_uk": "/ˈɪmɪɡrənt/",
+      "phonetic_us": "/ˈɪmɪɡrənt/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "移民；移居外国者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/immigrant_uk.mp3",
+        "us": "audio_vocabulary/immigrant_us.mp3"
+      }
+    },
+    {
+      "word": "adore",
+      "phonetic_uk": "/əˈdɔː(r)/",
+      "phonetic_us": "/əˈdɔːr/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "非常喜爱；崇拜"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/adore_uk.mp3",
+        "us": "audio_vocabulary/adore_us.mp3"
+      }
+    },
+    {
+      "word": "credibly",
+      "phonetic_uk": "/ˈkredəbli/",
+      "phonetic_us": "/ˈkredəbli/",
+      "meanings": [
+        {
+          "pos": "adv.",
+          "meaning": "令人信服地；可信地"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/credibly_uk.mp3",
+        "us": "audio_vocabulary/credibly_us.mp3"
+      }
+    },
+    {
+      "word": "wreathe",
+      "phonetic_uk": "/riːð/",
+      "phonetic_us": "/riːð/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "以……包裹；用……装点（常用于比喻）"
+        },
+        {
+          "pos": "v.",
+          "meaning": "环绕；笼罩"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/wreathe_uk.mp3",
+        "us": "audio_vocabulary/wreathe_us.mp3"
+      }
+    },
+    {
+      "word": "agenda",
+      "phonetic_uk": "/əˈdʒendə/",
+      "phonetic_us": "/əˈdʒendə/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "（政治或组织的）议程；行动纲领"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/agenda_uk.mp3",
+        "us": "audio_vocabulary/agenda_us.mp3"
+      }
+    },
+    {
+      "word": "in the creed of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "置于……的信条或理念框架中；用……的信条包装"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/in_the_creed_of_uk.mp3",
+        "us": "audio_vocabulary/in_the_creed_of_us.mp3"
+      }
+    },
+    {
+      "word": "charge somebody with hypocrisy",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "指责某人虚伪；指控某人伪善"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/charge_somebody_with_hypocrisy_uk.mp3",
+        "us": "audio_vocabulary/charge_somebody_with_hypocrisy_us.mp3"
+      }
+    },
+    {
+      "word": "hypocrisy",
+      "phonetic_uk": "/hɪˈpɒkrəsi/",
+      "phonetic_us": "/hɪˈpɑːkrəsi/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "虚伪；伪善"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hypocrisy_uk.mp3",
+        "us": "audio_vocabulary/hypocrisy_us.mp3"
+      }
+    },
+    {
+      "word": "charm",
+      "phonetic_uk": "/tʃɑːm/",
+      "phonetic_us": "/tʃɑːrm/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "使着迷；赢得……的好感"
+        },
+        {
+          "pos": "n.",
+          "meaning": "魅力；吸引力"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/charm_uk.mp3",
+        "us": "audio_vocabulary/charm_us.mp3"
+      }
+    },
+    {
+      "word": "heterodox",
+      "phonetic_uk": "/ˈhetərədɒks/",
+      "phonetic_us": "/ˈhetərədɑːks/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "非正统的；持非主流观点的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/heterodox_uk.mp3",
+        "us": "audio_vocabulary/heterodox_us.mp3"
+      }
+    },
+    {
+      "word": "philic",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "亲……的；喜爱……的（常用于复合词）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/philic_uk.mp3",
+        "us": "audio_vocabulary/philic_us.mp3"
+      }
+    },
+    {
+      "word": "podcaster",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "播客主持人；播客制作者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/podcaster_uk.mp3",
+        "us": "audio_vocabulary/podcaster_us.mp3"
+      }
+    },
+    {
+      "word": "urge",
+      "phonetic_uk": "/ɜːdʒ/",
+      "phonetic_us": "/ɜːrdʒ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "敦促；力劝；强烈建议"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/urge_uk.mp3",
+        "us": "audio_vocabulary/urge_us.mp3"
+      }
+    },
+    {
+      "word": "run for",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "竞选；参加……职位的选举"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/run_for_uk.mp3",
+        "us": "audio_vocabulary/run_for_us.mp3"
+      }
+    },
+    {
+      "word": "vulnerability",
+      "phonetic_uk": "/ˌvʌlnərəˈbɪləti/",
+      "phonetic_us": "/ˌvʌlnərəˈbɪləti/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "弱点；脆弱之处；易受攻击之处"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/vulnerability_uk.mp3",
+        "us": "audio_vocabulary/vulnerability_us.mp3"
+      }
+    },
+    {
+      "word": "hop",
+      "phonetic_uk": "/hɒp/",
+      "phonetic_us": "/hɑːp/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "很短的距离；一小步"
+        },
+        {
+          "pos": "n.",
+          "meaning": "跳跃；单脚跳"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hop_uk.mp3",
+        "us": "audio_vocabulary/hop_us.mp3"
+      }
+    },
+    {
+      "word": "piety",
+      "phonetic_uk": "/ˈpaɪəti/",
+      "phonetic_us": "/ˈpaɪəti/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "虔诚；敬神"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/piety_uk.mp3",
+        "us": "audio_vocabulary/piety_us.mp3"
+      }
+    },
+    {
+      "word": "sanctimony",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "道貌岸然；自以为高尚"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/sanctimony_uk.mp3",
+        "us": "audio_vocabulary/sanctimony_us.mp3"
+      }
+    },
+    {
+      "word": "hazard",
+      "phonetic_uk": "/ˈhæzəd/",
+      "phonetic_us": "/ˈhæzərd/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "危险；隐患；风险"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hazard_uk.mp3",
+        "us": "audio_vocabulary/hazard_us.mp3"
+      }
+    },
+    {
+      "word": "earn a reputation for",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "因……而获得某种名声"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/earn_a_reputation_for_uk.mp3",
+        "us": "audio_vocabulary/earn_a_reputation_for_us.mp3"
+      }
+    },
+    {
+      "word": "condescension",
+      "phonetic_uk": "/ˌkɒndɪˈsenʃn/",
+      "phonetic_us": "/ˌkɑːndɪˈsenʃn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "居高临下的态度；傲慢"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/condescension_uk.mp3",
+        "us": "audio_vocabulary/condescension_us.mp3"
+      }
+    },
+    {
+      "word": "if not",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "甚至可以说是；如果还不能说是……的话"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/if_not_uk.mp3",
+        "us": "audio_vocabulary/if_not_us.mp3"
+      }
+    },
+    {
+      "word": "priggishness",
+      "phonetic_uk": "/ˈprɪɡɪʃnəs/",
+      "phonetic_us": "/ˈprɪɡɪʃnəs/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "自命清高；一本正经的道学气"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/priggishness_uk.mp3",
+        "us": "audio_vocabulary/priggishness_us.mp3"
+      }
+    },
+    {
+      "word": "a seeming saint",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "看似圣人或道德完美的人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/a_seeming_saint_uk.mp3",
+        "us": "audio_vocabulary/a_seeming_saint_us.mp3"
+      }
+    },
+    {
+      "word": "saint",
+      "phonetic_uk": "/seɪnt/",
+      "phonetic_us": "/seɪnt/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "圣人；圣徒；道德高尚的人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/saint_uk.mp3",
+        "us": "audio_vocabulary/saint_us.mp3"
+      }
+    },
+    {
+      "word": "scoundrel",
+      "phonetic_uk": "/ˈskaʊndrəl/",
+      "phonetic_us": "/ˈskaʊndrəl/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "无赖；恶棍"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/scoundrel_uk.mp3",
+        "us": "audio_vocabulary/scoundrel_us.mp3"
+      }
+    },
+    {
+      "word": "have a long way to fall",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "一旦失势会跌得很惨；有很大的下坠空间"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/have_a_long_way_to_fall_uk.mp3",
+        "us": "audio_vocabulary/have_a_long_way_to_fall_us.mp3"
+      }
+    },
+    {
+      "word": "arguably",
+      "phonetic_uk": "/ˈɑːɡjuəbli/",
+      "phonetic_us": "/ˈɑːrɡjuəbli/",
+      "meanings": [
+        {
+          "pos": "adv.",
+          "meaning": "可以说；有理由认为"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/arguably_uk.mp3",
+        "us": "audio_vocabulary/arguably_us.mp3"
+      }
+    },
+    {
+      "word": "put somebody up for",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "推举；提名某人竞选或角逐……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/put_somebody_up_for_uk.mp3",
+        "us": "audio_vocabulary/put_somebody_up_for_us.mp3"
+      }
+    },
+    {
+      "word": "statewide",
+      "phonetic_uk": "/ˈsteɪtwaɪd/",
+      "phonetic_us": "/ˈsteɪtwaɪd/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "全州范围的；遍及全州的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/statewide_uk.mp3",
+        "us": "audio_vocabulary/statewide_us.mp3"
+      }
+    },
+    {
+      "word": "whereas",
+      "phonetic_uk": "/ˌweərˈæz/",
+      "phonetic_us": "/ˌwerˈæz/",
+      "meanings": [
+        {
+          "pos": "conj.",
+          "meaning": "然而；而（用于对比）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/whereas_uk.mp3",
+        "us": "audio_vocabulary/whereas_us.mp3"
+      }
+    },
+    {
+      "word": "tear down",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "贬低；诋毁；攻击"
+        },
+        {
+          "pos": "phrase",
+          "meaning": "拆毁；拆除"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/tear_down_uk.mp3",
+        "us": "audio_vocabulary/tear_down_us.mp3"
+      }
+    },
+    {
+      "word": "in the eyes of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "在……看来；在……眼中"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/in_the_eyes_of_uk.mp3",
+        "us": "audio_vocabulary/in_the_eyes_of_us.mp3"
+      }
+    },
+    {
+      "word": "portent",
+      "phonetic_uk": "/ˈpɔːtent/",
+      "phonetic_us": "/ˈpɔːrtent/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "预兆；征兆"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/portent_uk.mp3",
+        "us": "audio_vocabulary/portent_us.mp3"
+      }
+    },
+    {
+      "word": "dexterous",
+      "phonetic_uk": "/ˈdekstrəs/",
+      "phonetic_us": "/ˈdekstrəs/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "机敏娴熟的；灵巧的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/dexterous_uk.mp3",
+        "us": "audio_vocabulary/dexterous_us.mp3"
+      }
+    },
+    {
+      "word": "representative",
+      "phonetic_uk": "/ˌreprɪˈzentətɪv/",
+      "phonetic_us": "/ˌreprɪˈzentətɪv/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "代表；议员"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "典型的；有代表性的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/representative_uk.mp3",
+        "us": "audio_vocabulary/representative_us.mp3"
+      }
+    },
+    {
+      "word": "state House",
+      "phonetic_uk": "/ˈsteɪt haʊs/",
+      "phonetic_us": "/ˈsteɪt haʊs/",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "州众议院"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/state_house_uk.mp3",
+        "us": "audio_vocabulary/state_house_us.mp3"
+      }
+    },
+    {
+      "word": "Republic",
+      "phonetic_uk": "/rɪˈpʌblɪk/",
+      "phonetic_us": "/rɪˈpʌblɪk/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "共和国"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/republic_uk.mp3",
+        "us": "audio_vocabulary/republic_us.mp3"
+      }
+    },
+    {
+      "word": "state capital",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "州首府；州政府所在地"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/state_capital_uk.mp3",
+        "us": "audio_vocabulary/state_capital_us.mp3"
+      }
+    },
+    {
+      "word": "leftist",
+      "phonetic_uk": "/ˈleftɪst/",
+      "phonetic_us": "/ˈleftɪst/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "左翼的；左派的"
+        },
+        {
+          "pos": "n.",
+          "meaning": "左翼人士；左派人士"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/leftist_uk.mp3",
+        "us": "audio_vocabulary/leftist_us.mp3"
+      }
+    },
+    {
+      "word": "once-fashionable",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "一度流行的；曾经时髦的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/once-fashionable_uk.mp3",
+        "us": "audio_vocabulary/once-fashionable_us.mp3"
+      }
+    },
+    {
+      "word": "disavow",
+      "phonetic_uk": "/ˌdɪsəˈvaʊ/",
+      "phonetic_us": "/ˌdɪsəˈvaʊ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "公开否认；表示不再支持或认同"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/disavow_uk.mp3",
+        "us": "audio_vocabulary/disavow_us.mp3"
+      }
+    },
+    {
+      "word": "miss the mark",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "判断失误；没有说到点上；未达到预期"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/miss_the_mark_uk.mp3",
+        "us": "audio_vocabulary/miss_the_mark_us.mp3"
+      }
+    },
+    {
+      "word": "campaign",
+      "phonetic_uk": "/kæmˈpeɪn/",
+      "phonetic_us": "/kæmˈpeɪn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "竞选团队"
+        },
+        {
+          "pos": "n.",
+          "meaning": "竞选活动；竞选运动"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/campaign_uk.mp3",
+        "us": "audio_vocabulary/campaign_us.mp3"
+      }
+    },
+    {
+      "word": "capitalist",
+      "phonetic_uk": "/ˈkæpɪtəlɪst/",
+      "phonetic_us": "/ˈkæpɪtəlɪst/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "资本主义者；资本家"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "资本主义的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/capitalist_uk.mp3",
+        "us": "audio_vocabulary/capitalist_us.mp3"
+      }
+    },
+    {
+      "word": "rather than",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "而不是；而非"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/rather_than_uk.mp3",
+        "us": "audio_vocabulary/rather_than_us.mp3"
+      }
+    },
+    {
+      "word": "capitalism",
+      "phonetic_uk": "/ˈkæpɪtəlɪzəm/",
+      "phonetic_us": "/ˈkæpɪtəlɪzəm/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "资本主义"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/capitalism_uk.mp3",
+        "us": "audio_vocabulary/capitalism_us.mp3"
+      }
+    },
+    {
+      "word": "oppressive",
+      "phonetic_uk": "/əˈpresɪv/",
+      "phonetic_us": "/əˈpresɪv/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "压迫性的；专横的；令人压抑的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/oppressive_uk.mp3",
+        "us": "audio_vocabulary/oppressive_us.mp3"
+      }
+    },
+    {
+      "word": "in need of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "需要；有……的需要"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/in_need_of_uk.mp3",
+        "us": "audio_vocabulary/in_need_of_us.mp3"
+      }
+    },
+    {
+      "word": "dismantle",
+      "phonetic_uk": "/dɪsˈmæntl/",
+      "phonetic_us": "/dɪsˈmæntl/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "拆除；瓦解；废除"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/dismantle_uk.mp3",
+        "us": "audio_vocabulary/dismantle_us.mp3"
+      }
+    },
+    {
+      "word": "seize on",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "抓住并利用（机会、说法、弱点等）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/seize_on_uk.mp3",
+        "us": "audio_vocabulary/seize_on_us.mp3"
+      }
+    },
+    {
+      "word": "reversal",
+      "phonetic_uk": "/rɪˈvɜːsl/",
+      "phonetic_us": "/rɪˈvɜːrsl/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "立场转变；逆转；反转"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/reversal_uk.mp3",
+        "us": "audio_vocabulary/reversal_us.mp3"
+      }
+    },
+    {
+      "word": "politician",
+      "phonetic_uk": "/ˌpɒləˈtɪʃn/",
+      "phonetic_us": "/ˌpɑːləˈtɪʃn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "政客；政治人物"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/politician_uk.mp3",
+        "us": "audio_vocabulary/politician_us.mp3"
+      }
+    },
+    {
+      "word": "phoney",
+      "phonetic_uk": "/ˈfəʊni/",
+      "phonetic_us": "/ˈfəʊni/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "冒牌货；虚伪的人"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "假的；虚伪的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/phoney_uk.mp3",
+        "us": "audio_vocabulary/phoney_us.mp3"
+      }
+    },
+    {
+      "word": "vegan",
+      "phonetic_uk": "/ˈviːɡən/",
+      "phonetic_us": "/ˈviːɡən/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "纯素食者"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "纯素的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/vegan_uk.mp3",
+        "us": "audio_vocabulary/vegan_us.mp3"
+      }
+    },
+    {
+      "word": "define deviancy down",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "降低对越轨或不当行为的界定标准"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/define_deviancy_down_uk.mp3",
+        "us": "audio_vocabulary/define_deviancy_down_us.mp3"
+      }
+    },
+    {
+      "word": "deviancy",
+      "phonetic_uk": "/ˈdiːviənsi/",
+      "phonetic_us": "/ˈdiːviənsi/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "偏离社会规范；越轨行为"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/deviancy_uk.mp3",
+        "us": "audio_vocabulary/deviancy_us.mp3"
+      }
+    },
+    {
+      "word": "repurpose",
+      "phonetic_uk": "/ˌriːˈpɜːpəs/",
+      "phonetic_us": "/ˌriːˈpɜːrpəs/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "改作他用；重新利用；重新赋予用途"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/repurpose_uk.mp3",
+        "us": "audio_vocabulary/repurpose_us.mp3"
+      }
+    },
+    {
+      "word": "immortal",
+      "phonetic_uk": "/ɪˈmɔːtl/",
+      "phonetic_us": "/ɪˈmɔːrtl/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "不朽的；流传久远的"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "永生的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/immortal_uk.mp3",
+        "us": "audio_vocabulary/immortal_us.mp3"
+      }
+    },
+    {
+      "word": "hit bottom",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "跌至谷底；达到最低点"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hit_bottom_uk.mp3",
+        "us": "audio_vocabulary/hit_bottom_us.mp3"
+      }
+    }
+  ]
+}
