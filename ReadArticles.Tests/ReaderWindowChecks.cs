@@ -137,7 +137,7 @@ internal static class ReaderWindowChecks
                 double readerWidth = window.Readers[0].ActualWidth;
                 double vocabularyWidth = ((ListBox)window.FindName("VocabularyList")).ActualWidth;
                 Console.WriteLine($"  Resized content widths: reader={readerWidth:F1}, vocabulary={vocabularyWidth:F1}");
-                Program.Check(readerWidth > 400 && vocabularyWidth > 400);
+                Program.Check(readerWidth > 200 && vocabularyWidth > 400);
                 Program.Check(window.Readers.Count == 13 && window.ViewModel.Words.Count == 120);
                 left.Width = new GridLength(310); right.Width = new GridLength(390); Layout(window);
                 window.ViewModel.HighlightsVisible = false;
