@@ -15,7 +15,8 @@ All fixed test inputs come from `tests/TestData/`. The runner copies the article
 ## Suites
 
 - **Core** runs content, matching, rendering, tree-navigation, and vocabulary-editing regression categories.
-- **UI** runs Core plus icons, reader windows, and reader-control interaction checks. It requires an interactive Windows desktop session.
+- **UI** runs Core plus icons and reader-window layout/interaction checks. It requires an interactive Windows desktop session but does not require an audio output device.
+- **Full** additionally runs reader-control playback interactions and real media decoding; run it on a Windows machine with an available audio device.
 - **Full** runs the complete application regression suite, media decoding/playback checks, and a read-only source-fixture integrity check.
 
 A failed native command or assertion makes the entry point return a nonzero exit code. Individual test cases and grouped checks are reported separately. A skipped check is not a pass.
