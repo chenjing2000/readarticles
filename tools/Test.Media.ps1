@@ -1,58 +1,119 @@
-function Prepare-ArticleFixture([string]$SourceDirectory, [string]$Workspace, [string]$TemporaryDirectory) {
+function New-TestWaveFile([string]$Path, [int]$DurationMilliseconds = 700) {
+    $sampleRate = 22050
+    $sampleCount = [int][Math]::Ceiling($sampleRate * $DurationMilliseconds / 1000.0)
+    $dataLength = $sampleCount * 2
+    New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Create, [IO.FileAccess]::Write, [IO.FileShare]::None)
+    $writer = $null
+    try {
+        $writer = [IO.BinaryWriter]::new($stream)
+        $writer.Write([Text.Encoding]::ASCII.GetBytes('RIFF'))
+        $writer.Write([int](36 + $dataLength))
+        $writer.Write([Text.Encoding]::ASCII.GetBytes('WAVE'))
+        $writer.Write([Text.Encoding]::ASCII.GetBytes('fmt '))
+        $writer.Write([int]16)
+        $writer.Write([short]1)
+        $writer.Write([short]1)
+        $writer.Write([int]$sampleRate)
+        $writer.Write([int]($sampleRate * 2))
+        $writer.Write([short]2)
+        $writer.Write([short]16)
+        $writer.Write([Text.Encoding]::ASCII.GetBytes('data'))
+        $writer.Write([int]$dataLength)
+        for ($i = 0; $i -lt $sampleCount; $i++) {
+            $sample = [int]([Math]::Sin(2.0 * [Math]::PI * 440.0 * $i / $sampleRate) * 1800)
+            $writer.Write([short]$sample)
+        }
+        $writer.Flush()
+    }
+    finally {
+        if ($writer) { $writer.Dispose() } else { $stream.Dispose() }
+    }
+}
+
+function Get-TestVocabularyStem([string]$Word) {
+    return [regex]::Replace($Word.Trim().ToLowerInvariant(), '[^a-z0-9]+', '_').Trim('_')
+}
+
+function New-TestAudioPool([string]$AudioRoot, [string]$ArticlePath) {
+    $article = Get-Content -LiteralPath $ArticlePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $vocabularyPath = [IO.Path]::ChangeExtension($ArticlePath, '.vocabulary.json')
+    if (-not (Test-Path -LiteralPath $vocabularyPath -PathType Leaf)) {
+        throw "Main test vocabulary is missing: $vocabularyPath"
+    }
+    $vocabulary = Get-Content -LiteralPath $vocabularyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $stems = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($paragraph in $article.paragraphs) {
+        foreach ($segment in $paragraph.paragraph) {
+            if ($segment.sid -eq 's011') { continue }
+            foreach ($accent in @('uk', 'us')) {
+                New-TestWaveFile (Join-Path $AudioRoot "audio_sentences/$($segment.sid)_$accent.wav")
+            }
+        }
+    }
+    foreach ($word in $vocabulary.words) {
+        $stem = Get-TestVocabularyStem $word.word
+        if (-not $stem -or -not $stems.Add($stem)) { continue }
+        foreach ($accent in @('uk', 'us')) {
+            New-TestWaveFile (Join-Path $AudioRoot "audio/$($stem)_$accent.wav")
+        }
+    }
+    Write-Host "Generated shared WAV pool: $($stems.Count * 2) vocabulary files; s011 sentence audio intentionally absent."
+}
+
+function Copy-TestAudioFolder([string]$SourceRoot, [string]$TargetRoot, [string]$FolderName) {
+    $source = Join-Path $SourceRoot $FolderName
+    if (-not (Test-Path -LiteralPath $source -PathType Container)) {
+        throw "Generated test audio folder is missing: $source"
+    }
+    $target = Join-Path $TargetRoot $FolderName
+    New-Item -ItemType Directory -Path $target -Force | Out-Null
+    Get-ChildItem -LiteralPath $source -File -Filter '*.wav' | Copy-Item -Destination $target
+}
+
+function Prepare-TestWorkspace([string]$Workspace, [string]$TemporaryDirectory) {
+    $librarySource = Join-Path $Workspace 'tests/TestData/Library'
+    if (-not (Test-Path -LiteralPath $librarySource -PathType Container)) {
+        throw "Unified test library is missing: $librarySource"
+    }
     $library = Join-Path $TemporaryDirectory 'Library'
-    Copy-Item -LiteralPath (Join-Path $Workspace 'ReadArticles.Tests/Fixtures/Library') -Destination $library -Recurse
-    $target = Join-Path $library 'The Economist/2026-09-26/When America walks away'
+    Copy-Item -LiteralPath $librarySource -Destination $library -Recurse
+
     $articleName = 'When America walks away.json'
     $vocabularyName = 'When America walks away.vocabulary.json'
-    $article = Get-Content -LiteralPath (Join-Path $target $articleName) -Raw -Encoding UTF8 | ConvertFrom-Json
-    $vocabulary = Get-Content -LiteralPath (Join-Path $target $vocabularyName) -Raw -Encoding UTF8 | ConvertFrom-Json
-    # Strip obsolete declarations only in the test copy.
+    $target = Join-Path $library 'The Economist/2026-09-26/When America walks away'
+    $articlePath = Join-Path $target $articleName
+    if (-not (Test-Path -LiteralPath $articlePath -PathType Leaf)) {
+        throw "Main test article is missing: $articlePath"
+    }
+
+    $audioPool = Join-Path $TemporaryDirectory 'Audio'
+    New-TestAudioPool $audioPool $articlePath
+    foreach ($folder in @('audio', 'audio_sentences')) {
+        Copy-TestAudioFolder $audioPool $target $folder
+    }
+
+    $article = Get-Content -LiteralPath $articlePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $vocabularyPath = Join-Path $target $vocabularyName
+    $vocabulary = Get-Content -LiteralPath $vocabularyPath -Raw -Encoding UTF8 | ConvertFrom-Json
     foreach ($paragraph in $article.paragraphs) {
         foreach ($segment in $paragraph.paragraph) { $segment.PSObject.Properties.Remove('audio') }
     }
     foreach ($word in $vocabulary.words) { $word.PSObject.Properties.Remove('audio') }
-    [IO.File]::WriteAllText((Join-Path $target $articleName), ($article | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText((Join-Path $target $vocabularyName), ($vocabulary | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
-    $required = @()
-    foreach ($paragraph in $article.paragraphs) {
-        foreach ($segment in $paragraph.paragraph) {
-            if ($segment.sid -eq 's011') { continue }
-            foreach ($accent in @('uk', 'us')) { $required += "audio_sentences/$($segment.sid)_$accent" }
-        }
-    }
-    $stems = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach ($word in $vocabulary.words) {
-        $stem = [regex]::Replace($word.word.Trim().ToLowerInvariant(), '[^a-z0-9]+', '_').Trim('_')
-        if ($stem -and $stems.Add($stem)) {
-            foreach ($accent in @('uk', 'us')) { $required += "audio/$($stem)_$accent" }
-        }
-    }
-    foreach ($relativeStem in $required) {
-        $found = $false
-        foreach ($extension in @('.mp3', '.wav')) {
-            $relativePath = $relativeStem + $extension
-            $source = Join-Path $SourceDirectory $relativePath
-            if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { continue }
-            $fullTarget = Join-Path $target $relativePath
-            New-Item -ItemType Directory -Path (Split-Path -Parent $fullTarget) -Force | Out-Null
-            Copy-Item -LiteralPath $source -Destination $fullTarget
-            $found = $true
-        }
-        if (-not $found) { throw "Required MP3/WAV test audio is missing: $relativeStem" }
-    }
+    [IO.File]::WriteAllText($articlePath, ($article | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($vocabularyPath, ($vocabulary | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
+
     $sourceBook = Join-Path $TemporaryDirectory 'Source/Book'
     New-Item -ItemType Directory -Path $sourceBook -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $sourceBook 'book.json'), '{}')
-    foreach ($name in @($articleName, $vocabularyName)) { Copy-Item -LiteralPath (Join-Path $SourceDirectory $name) -Destination (Join-Path $sourceBook $name) }
+    Copy-Item -LiteralPath $articlePath -Destination (Join-Path $sourceBook $articleName)
+    Copy-Item -LiteralPath $vocabularyPath -Destination (Join-Path $sourceBook $vocabularyName)
     foreach ($folder in @('audio', 'audio_sentences')) {
-        $sourceFolder = Join-Path $SourceDirectory $folder
-        if (Test-Path -LiteralPath $sourceFolder -PathType Container) {
-            $targetFolder = Join-Path $sourceBook $folder
-            New-Item -ItemType Directory -Path $targetFolder -Force | Out-Null
-            Get-ChildItem -LiteralPath $sourceFolder -File | Where-Object { $_.Extension -in @('.mp3', '.wav') } | Copy-Item -Destination $targetFolder
-        }
+        Copy-TestAudioFolder $audioPool $sourceBook $folder
     }
+
+    $env:READARTICLES_TEST_LIBRARY = $library
     $env:READARTICLES_TEST_ARTICLE = Join-Path $sourceBook $articleName
-    Write-Host 'Prepared temporary article and MP3/WAV fixtures; original files were not modified.'
+    Write-Host 'Prepared isolated test workspace from tests/TestData; source resources were not modified.'
     return $library
 }
