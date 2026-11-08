@@ -42,12 +42,16 @@ function New-TestAudioPool([string]$AudioRoot, [string]$ArticlePath) {
         throw "Main test vocabulary is missing: $vocabularyPath"
     }
     $vocabulary = Get-Content -LiteralPath $vocabularyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $template = Join-Path $AudioRoot 'template.wav'
+    New-TestWaveFile $template
     $stems = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($paragraph in $article.paragraphs) {
         foreach ($segment in $paragraph.paragraph) {
             if ($segment.sid -eq 's011') { continue }
             foreach ($accent in @('uk', 'us')) {
-                New-TestWaveFile (Join-Path $AudioRoot "audio_sentences/$($segment.sid)_$accent.wav")
+                $destination = Join-Path $AudioRoot "audio_sentences/$($segment.sid)_$accent.wav"
+                New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+                Copy-Item -LiteralPath $template -Destination $destination
             }
         }
     }
@@ -55,9 +59,12 @@ function New-TestAudioPool([string]$AudioRoot, [string]$ArticlePath) {
         $stem = Get-TestVocabularyStem $word.word
         if (-not $stem -or -not $stems.Add($stem)) { continue }
         foreach ($accent in @('uk', 'us')) {
-            New-TestWaveFile (Join-Path $AudioRoot "audio/$($stem)_$accent.wav")
+            $destination = Join-Path $AudioRoot "audio/$($stem)_$accent.wav"
+            New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+            Copy-Item -LiteralPath $template -Destination $destination
         }
     }
+    Remove-Item -LiteralPath $template -Force
     Write-Host "Generated shared WAV pool: $($stems.Count * 2) vocabulary files; s011 sentence audio intentionally absent."
 }
 
