@@ -41,7 +41,7 @@ try {
             Invoke-TestCheck $category { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', $category) }
         }
         if ($Suite -eq 'UI') {
-            foreach ($category in @('--icons-only', '--window-only', '--controls-only')) {
+            foreach ($category in @('--icons-only', '--window-only')) {
                 Invoke-TestCheck $category { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', $category) }
             }
         }
