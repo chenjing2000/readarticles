@@ -214,9 +214,12 @@ internal static class ReaderControlsChecks
                 {
                     slider.Value = 1;
                     PressArrow(window, target, Key.Left);
+                    WpfTestHelpers.Wait(() => Math.Abs(player.Position.TotalSeconds) < 0.05);
                     Program.Check(Math.Abs(player.Position.TotalSeconds) < 0.05);
                     PressArrow(window, target, Key.Right);
-                    Program.Check(Math.Abs(player.Position.TotalSeconds - Math.Min(4.0, player.Duration.TotalSeconds)) < 0.05);
+                    double expectedPosition = Math.Min(4.0, player.Duration.TotalSeconds);
+                    WpfTestHelpers.Wait(() => Math.Abs(player.Position.TotalSeconds - expectedPosition) < 0.05);
+                    Program.Check(Math.Abs(player.Position.TotalSeconds - expectedPosition) < 0.05);
                     PressArrow(window, target, Key.Space);
                     Program.Check(window.ViewModel.Playback.IsArticlePlaying);
                     PressArrow(window, target, Key.Space);
