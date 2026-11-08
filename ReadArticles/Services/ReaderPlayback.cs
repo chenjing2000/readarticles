@@ -73,6 +73,11 @@ public sealed class ReaderPlayback
             var current = RequireArticle(article);
             var segment = current.Segments.Single(s => s.Sid == sid);
             string path = resources.Segment(current.Directory, segment, accent);
+            if (!AudioResources.IsAvailable(path))
+            {
+                string accentName = accent == "uk" ? "英音" : "美音";
+                throw new FileNotFoundException($"句子 {sid} 的{accentName}录音文件缺失。");
+            }
             pronunciationPlayer.Play(new AudioItem(path, sid), "segment:" + sid);
         });
     }
