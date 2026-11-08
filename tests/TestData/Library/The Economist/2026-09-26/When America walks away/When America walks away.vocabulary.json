@@ -1,0 +1,1885 @@
+{
+  "filetype": "vocabulary",
+  "words": [
+    {
+      "word": "be stuck in",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "困在……中；陷入……而难以脱身"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_stuck_in_uk.mp3",
+        "us": "audio_vocabulary/be_stuck_in_us.mp3"
+      }
+    },
+    {
+      "word": "pull back from",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "从……撤回；减少对……的介入"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/pull_back_from_uk.mp3",
+        "us": "audio_vocabulary/pull_back_from_us.mp3"
+      }
+    },
+    {
+      "word": "in the sense that",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "从……意义上说；意思是……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/in_the_sense_that_uk.mp3",
+        "us": "audio_vocabulary/in_the_sense_that_us.mp3"
+      }
+    },
+    {
+      "word": "relinquish",
+      "phonetic_uk": "/rɪˈlɪŋkwɪʃ/",
+      "phonetic_us": "/rɪˈlɪŋkwɪʃ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "放弃；让出（权力、控制或权利）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/relinquish_uk.mp3",
+        "us": "audio_vocabulary/relinquish_us.mp3"
+      }
+    },
+    {
+      "word": "hegemony",
+      "phonetic_uk": "/hɪˈdʒeməni/",
+      "phonetic_us": "/hɪˈdʒeməni/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "霸权；支配地位"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hegemony_uk.mp3",
+        "us": "audio_vocabulary/hegemony_us.mp3"
+      }
+    },
+    {
+      "word": "dismember",
+      "phonetic_uk": "/dɪsˈmembə(r)/",
+      "phonetic_us": "/dɪsˈmembər/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "肢解；分割（国家、领土或组织）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/dismember_uk.mp3",
+        "us": "audio_vocabulary/dismember_us.mp3"
+      }
+    },
+    {
+      "word": "Ottoman",
+      "phonetic_uk": "/ˈɒtəmən/",
+      "phonetic_us": "/ˈɑːtəmən/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "奥斯曼的；奥斯曼帝国的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/ottoman_uk.mp3",
+        "us": "audio_vocabulary/ottoman_us.mp3"
+      }
+    },
+    {
+      "word": "overarching",
+      "phonetic_uk": "/ˌəʊvərˈɑːtʃɪŋ/",
+      "phonetic_us": "/ˌəʊvərˈɑːrtʃɪŋ/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "总体的；统摄全局的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/overarching_uk.mp3",
+        "us": "audio_vocabulary/overarching_us.mp3"
+      }
+    },
+    {
+      "word": "be imposed from afar",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "由外部强加；从远方施加"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_imposed_from_afar_uk.mp3",
+        "us": "audio_vocabulary/be_imposed_from_afar_us.mp3"
+      }
+    },
+    {
+      "word": "afar",
+      "phonetic_uk": "/əˈfɑː(r)/",
+      "phonetic_us": "/əˈfɑːr/",
+      "meanings": [
+        {
+          "pos": "adv.",
+          "meaning": "在远处；从远方"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/afar_uk.mp3",
+        "us": "audio_vocabulary/afar_us.mp3"
+      }
+    },
+    {
+      "word": "herald",
+      "phonetic_uk": "/ˈherəld/",
+      "phonetic_us": "/ˈherəld/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "预示；预告……的到来"
+        },
+        {
+          "pos": "n.",
+          "meaning": "预兆；先兆"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/herald_uk.mp3",
+        "us": "audio_vocabulary/herald_us.mp3"
+      }
+    },
+    {
+      "word": "orgy",
+      "phonetic_uk": "/ˈɔːdʒi/",
+      "phonetic_us": "/ˈɔːrdʒi/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "狂欢；（某种行为的）肆意爆发"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/orgy_uk.mp3",
+        "us": "audio_vocabulary/orgy_us.mp3"
+      }
+    },
+    {
+      "word": "score-settling",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "报复；算旧账"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/score-settling_uk.mp3",
+        "us": "audio_vocabulary/score-settling_us.mp3"
+      }
+    },
+    {
+      "word": "monotheistic",
+      "phonetic_uk": "/ˌmɒnəʊθiˈɪstɪk/",
+      "phonetic_us": "/ˌmɑːnəʊθiˈɪstɪk/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "一神教的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/monotheistic_uk.mp3",
+        "us": "audio_vocabulary/monotheistic_us.mp3"
+      }
+    },
+    {
+      "word": "religion",
+      "phonetic_uk": "/rɪˈlɪdʒən/",
+      "phonetic_us": "/rɪˈlɪdʒən/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "宗教；宗教信仰"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/religion_uk.mp3",
+        "us": "audio_vocabulary/religion_us.mp3"
+      }
+    },
+    {
+      "word": "heap",
+      "phonetic_uk": "/hiːp/",
+      "phonetic_us": "/hiːp/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "大量加在……上；堆积"
+        },
+        {
+          "pos": "n.",
+          "meaning": "一堆；大量"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/heap_uk.mp3",
+        "us": "audio_vocabulary/heap_us.mp3"
+      }
+    },
+    {
+      "word": "take control of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "控制；接管"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/take_control_of_uk.mp3",
+        "us": "audio_vocabulary/take_control_of_us.mp3"
+      }
+    },
+    {
+      "word": "help oneself to",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "自行取用；擅自拿取或占有"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/help_oneself_to_uk.mp3",
+        "us": "audio_vocabulary/help_oneself_to_us.mp3"
+      }
+    },
+    {
+      "word": "nationalist",
+      "phonetic_uk": "/ˈnæʃnəlɪst/",
+      "phonetic_us": "/ˈnæʃnəlɪst/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "民族主义的"
+        },
+        {
+          "pos": "n.",
+          "meaning": "民族主义者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/nationalist_uk.mp3",
+        "us": "audio_vocabulary/nationalist_us.mp3"
+      }
+    },
+    {
+      "word": "fall under the spell of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "受……迷惑或吸引；深受……影响"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/fall_under_the_spell_of_uk.mp3",
+        "us": "audio_vocabulary/fall_under_the_spell_of_us.mp3"
+      }
+    },
+    {
+      "word": "ruinous",
+      "phonetic_uk": "/ˈruːɪnəs/",
+      "phonetic_us": "/ˈruːɪnəs/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "毁灭性的；造成严重损失的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/ruinous_uk.mp3",
+        "us": "audio_vocabulary/ruinous_us.mp3"
+      }
+    },
+    {
+      "word": "Soviet-inspired",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "受苏联影响的；苏联式的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/soviet-inspired_uk.mp3",
+        "us": "audio_vocabulary/soviet-inspired_us.mp3"
+      }
+    },
+    {
+      "word": "staggering",
+      "phonetic_uk": "/ˈstæɡərɪŋ/",
+      "phonetic_us": "/ˈstæɡərɪŋ/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "惊人的；令人震惊的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/staggering_uk.mp3",
+        "us": "audio_vocabulary/staggering_us.mp3"
+      }
+    },
+    {
+      "word": "abuse of human rights",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "侵犯人权；践踏人权"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/abuse_of_human_rights_uk.mp3",
+        "us": "audio_vocabulary/abuse_of_human_rights_us.mp3"
+      }
+    },
+    {
+      "word": "dictator",
+      "phonetic_uk": "/dɪkˈteɪtə(r)/",
+      "phonetic_us": "/ˈdɪkteɪtər/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "独裁者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/dictator_uk.mp3",
+        "us": "audio_vocabulary/dictator_us.mp3"
+      }
+    },
+    {
+      "word": "fanaticism",
+      "phonetic_uk": "/fəˈnætɪsɪzəm/",
+      "phonetic_us": "/fəˈnætɪsɪzəm/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "狂热；盲目的极端信念"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/fanaticism_uk.mp3",
+        "us": "audio_vocabulary/fanaticism_us.mp3"
+      }
+    },
+    {
+      "word": "jihadist",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "圣战主义者；以“圣战”名义主张武装斗争的人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/jihadist_uk.mp3",
+        "us": "audio_vocabulary/jihadist_us.mp3"
+      }
+    },
+    {
+      "word": "sadistic",
+      "phonetic_uk": "/səˈdɪstɪk/",
+      "phonetic_us": "/səˈdɪstɪk/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "虐待成性的；以折磨他人为乐的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/sadistic_uk.mp3",
+        "us": "audio_vocabulary/sadistic_us.mp3"
+      }
+    },
+    {
+      "word": "covert",
+      "phonetic_uk": "/ˈkʌvət/",
+      "phonetic_us": "/ˈkəʊvɜːrt/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "秘密的；隐蔽的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/covert_uk.mp3",
+        "us": "audio_vocabulary/covert_us.mp3"
+      }
+    },
+    {
+      "word": "impose one's designs",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "把自己的意图或计划强加于人"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/impose_one's_designs_uk.mp3",
+        "us": "audio_vocabulary/impose_one's_designs_us.mp3"
+      }
+    },
+    {
+      "word": "run one's course",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "自然发展至结束；走完其过程"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/run_one's_course_uk.mp3",
+        "us": "audio_vocabulary/run_one's_course_us.mp3"
+      }
+    },
+    {
+      "word": "occasionally",
+      "phonetic_uk": "/əˈkeɪʒnəli/",
+      "phonetic_us": "/əˈkeɪʒnəli/",
+      "meanings": [
+        {
+          "pos": "adv.",
+          "meaning": "偶尔；间或"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/occasionally_uk.mp3",
+        "us": "audio_vocabulary/occasionally_us.mp3"
+      }
+    },
+    {
+      "word": "pursue",
+      "phonetic_uk": "/pəˈsjuː/",
+      "phonetic_us": "/pərˈsuː/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "追求；谋求（目标或利益）"
+        },
+        {
+          "pos": "v.",
+          "meaning": "追赶；追捕"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/pursue_uk.mp3",
+        "us": "audio_vocabulary/pursue_us.mp3"
+      }
+    },
+    {
+      "word": "pursue one's interests",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "谋求；维护自身利益"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/pursue_one's_interests_uk.mp3",
+        "us": "audio_vocabulary/pursue_one's_interests_us.mp3"
+      }
+    },
+    {
+      "word": "architect",
+      "phonetic_uk": "/ˈɑːkɪtekt/",
+      "phonetic_us": "/ˈɑːrkɪtekt/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "策划者；设计者；主导者"
+        },
+        {
+          "pos": "n.",
+          "meaning": "建筑师"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/architect_uk.mp3",
+        "us": "audio_vocabulary/architect_us.mp3"
+      }
+    },
+    {
+      "word": "looming",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "迫近的；即将发生的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/looming_uk.mp3",
+        "us": "audio_vocabulary/looming_us.mp3"
+      }
+    },
+    {
+      "word": "retrenchment",
+      "phonetic_uk": "/rɪˈtrentʃmənt/",
+      "phonetic_us": "/rɪˈtrentʃmənt/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "收缩；缩减（开支、力量或海外承诺）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/retrenchment_uk.mp3",
+        "us": "audio_vocabulary/retrenchment_us.mp3"
+      }
+    },
+    {
+      "word": "unmistakable",
+      "phonetic_uk": "/ˌʌnmɪˈsteɪkəbl/",
+      "phonetic_us": "/ˌʌnmɪˈsteɪkəbl/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "明显的；明确无误的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/unmistakable_uk.mp3",
+        "us": "audio_vocabulary/unmistakable_us.mp3"
+      }
+    },
+    {
+      "word": "even as",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "即使在……的同时；正当……时"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/even_as_uk.mp3",
+        "us": "audio_vocabulary/even_as_us.mp3"
+      }
+    },
+    {
+      "word": "annihilation",
+      "phonetic_uk": "/əˌnaɪəˈleɪʃn/",
+      "phonetic_us": "/əˌnaɪəˈleɪʃn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "彻底毁灭；消灭"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/annihilation_uk.mp3",
+        "us": "audio_vocabulary/annihilation_us.mp3"
+      }
+    },
+    {
+      "word": "umpteenth",
+      "phonetic_uk": "/ˌʌmpˈtiːnθ/",
+      "phonetic_us": "/ˌʌmpˈtiːnθ/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "第无数次的；不知第多少次的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/umpteenth_uk.mp3",
+        "us": "audio_vocabulary/umpteenth_us.mp3"
+      }
+    },
+    {
+      "word": "stand out",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "突出；显眼；引人注目"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/stand_out_uk.mp3",
+        "us": "audio_vocabulary/stand_out_us.mp3"
+      }
+    },
+    {
+      "word": "behind one's back",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "背着某人；在某人不知情的情况下"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/behind_one's_back_uk.mp3",
+        "us": "audio_vocabulary/behind_one's_back_us.mp3"
+      }
+    },
+    {
+      "word": "vessel",
+      "phonetic_uk": "/ˈvesl/",
+      "phonetic_us": "/ˈvesl/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "船；大型船只"
+        },
+        {
+          "pos": "n.",
+          "meaning": "容器"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/vessel_uk.mp3",
+        "us": "audio_vocabulary/vessel_us.mp3"
+      }
+    },
+    {
+      "word": "insurgent",
+      "phonetic_uk": "/ɪnˈsɜːdʒənt/",
+      "phonetic_us": "/ɪnˈsɜːrdʒənt/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "叛乱的；反政府武装的"
+        },
+        {
+          "pos": "n.",
+          "meaning": "叛乱者；反政府武装人员"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/insurgent_uk.mp3",
+        "us": "audio_vocabulary/insurgent_us.mp3"
+      }
+    },
+    {
+      "word": "militia",
+      "phonetic_uk": "/məˈlɪʃə/",
+      "phonetic_us": "/məˈlɪʃə/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "民兵组织；民兵武装"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/militia_uk.mp3",
+        "us": "audio_vocabulary/militia_us.mp3"
+      }
+    },
+    {
+      "word": "cut one's commitments",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "削减承担的义务、承诺或投入"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/cut_one's_commitments_uk.mp3",
+        "us": "audio_vocabulary/cut_one's_commitments_us.mp3"
+      }
+    },
+    {
+      "word": "vulnerable",
+      "phonetic_uk": "/ˈvʌlnərəbl/",
+      "phonetic_us": "/ˈvʌlnərəbl/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "易受伤害或攻击的；脆弱的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/vulnerable_uk.mp3",
+        "us": "audio_vocabulary/vulnerable_us.mp3"
+      }
+    },
+    {
+      "word": "drone",
+      "phonetic_uk": "/drəʊn/",
+      "phonetic_us": "/drəʊn/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "无人机"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/drone_uk.mp3",
+        "us": "audio_vocabulary/drone_us.mp3"
+      }
+    },
+    {
+      "word": "be obliged to",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "不得不；有义务做……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_obliged_to_uk.mp3",
+        "us": "audio_vocabulary/be_obliged_to_us.mp3"
+      }
+    },
+    {
+      "word": "depend on",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "依赖；取决于"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/depend_on_uk.mp3",
+        "us": "audio_vocabulary/depend_on_us.mp3"
+      }
+    },
+    {
+      "word": "aircraft-carrier",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "航空母舰"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/aircraft-carrier_uk.mp3",
+        "us": "audio_vocabulary/aircraft-carrier_us.mp3"
+      }
+    },
+    {
+      "word": "Diego Garcia",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "迪戈加西亚岛（印度洋岛屿及军事基地所在地）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/diego_garcia_uk.mp3",
+        "us": "audio_vocabulary/diego_garcia_us.mp3"
+      }
+    },
+    {
+      "word": "realignment",
+      "phonetic_uk": "/ˌriːəˈlaɪnmənt/",
+      "phonetic_us": "/ˌriːəˈlaɪnmənt/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "重新调整；力量或关系的重组"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/realignment_uk.mp3",
+        "us": "audio_vocabulary/realignment_us.mp3"
+      }
+    },
+    {
+      "word": "pull out of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "撤出；退出"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/pull_out_of_uk.mp3",
+        "us": "audio_vocabulary/pull_out_of_us.mp3"
+      }
+    },
+    {
+      "word": "be focused on",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "专注于；把重点放在……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_focused_on_uk.mp3",
+        "us": "audio_vocabulary/be_focused_on_us.mp3"
+      }
+    },
+    {
+      "word": "securocrat",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "安全事务官员；安全政策官僚"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/securocrat_uk.mp3",
+        "us": "audio_vocabulary/securocrat_us.mp3"
+      }
+    },
+    {
+      "word": "rivalry",
+      "phonetic_uk": "/ˈraɪvlri/",
+      "phonetic_us": "/ˈraɪvlri/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "竞争；对抗"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/rivalry_uk.mp3",
+        "us": "audio_vocabulary/rivalry_us.mp3"
+      }
+    },
+    {
+      "word": "teeter",
+      "phonetic_uk": "/ˈtiːtə(r)/",
+      "phonetic_us": "/ˈtiːtər/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "摇摆不定；处于两种状态之间"
+        },
+        {
+          "pos": "v.",
+          "meaning": "摇摇欲坠"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/teeter_uk.mp3",
+        "us": "audio_vocabulary/teeter_us.mp3"
+      }
+    },
+    {
+      "word": "wary",
+      "phonetic_uk": "/ˈweəri/",
+      "phonetic_us": "/ˈweri/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "警惕的；谨慎的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/wary_uk.mp3",
+        "us": "audio_vocabulary/wary_us.mp3"
+      }
+    },
+    {
+      "word": "outright",
+      "phonetic_uk": "/ˈaʊtraɪt/",
+      "phonetic_us": "/ˈaʊtraɪt/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "彻底的；公然的"
+        },
+        {
+          "pos": "adv.",
+          "meaning": "完全地；直截了当地"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/outright_uk.mp3",
+        "us": "audio_vocabulary/outright_us.mp3"
+      }
+    },
+    {
+      "word": "hostility",
+      "phonetic_uk": "/hɒˈstɪləti/",
+      "phonetic_us": "/hɑːˈstɪləti/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "敌意；敌对状态"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hostility_uk.mp3",
+        "us": "audio_vocabulary/hostility_us.mp3"
+      }
+    },
+    {
+      "word": "arsenal",
+      "phonetic_uk": "/ˈɑːsənl/",
+      "phonetic_us": "/ˈɑːrsənl/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "武器库；军火储备"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/arsenal_uk.mp3",
+        "us": "audio_vocabulary/arsenal_us.mp3"
+      }
+    },
+    {
+      "word": "suck one's forces out of Asia",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "把自己的军力从亚洲抽走"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/suck_one's_forces_out_of_asia_uk.mp3",
+        "us": "audio_vocabulary/suck_one's_forces_out_of_asia_us.mp3"
+      }
+    },
+    {
+      "word": "to what end",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "为了什么目的；有何意义"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/to_what_end_uk.mp3",
+        "us": "audio_vocabulary/to_what_end_us.mp3"
+      }
+    },
+    {
+      "word": "colossal",
+      "phonetic_uk": "/kəˈlɒsl/",
+      "phonetic_us": "/kəˈlɑːsl/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "巨大的；庞大的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/colossal_uk.mp3",
+        "us": "audio_vocabulary/colossal_us.mp3"
+      }
+    },
+    {
+      "word": "by contrast",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "相比之下；与之相反"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/by_contrast_uk.mp3",
+        "us": "audio_vocabulary/by_contrast_us.mp3"
+      }
+    },
+    {
+      "word": "beneficiary",
+      "phonetic_uk": "/ˌbenɪˈfɪʃəri/",
+      "phonetic_us": "/ˌbenɪˈfɪʃieri/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "受益者；受益方"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/beneficiary_uk.mp3",
+        "us": "audio_vocabulary/beneficiary_us.mp3"
+      }
+    },
+    {
+      "word": "step in",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "介入；插手；接替"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/step_in_uk.mp3",
+        "us": "audio_vocabulary/step_in_us.mp3"
+      }
+    },
+    {
+      "word": "hegemon",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "霸主；具有支配地位的国家或势力"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hegemon_uk.mp3",
+        "us": "audio_vocabulary/hegemon_us.mp3"
+      }
+    },
+    {
+      "word": "trillion",
+      "phonetic_uk": "/ˈtrɪljən/",
+      "phonetic_us": "/ˈtrɪljən/",
+      "meanings": [
+        {
+          "pos": "num.",
+          "meaning": "万亿；兆（10¹²）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/trillion_uk.mp3",
+        "us": "audio_vocabulary/trillion_us.mp3"
+      }
+    },
+    {
+      "word": "privilege",
+      "phonetic_uk": "/ˈprɪvəlɪdʒ/",
+      "phonetic_us": "/ˈprɪvəlɪdʒ/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "特权；特殊待遇"
+        },
+        {
+          "pos": "n.",
+          "meaning": "荣幸"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/privilege_uk.mp3",
+        "us": "audio_vocabulary/privilege_us.mp3"
+      }
+    },
+    {
+      "word": "heft",
+      "phonetic_uk": "/heft/",
+      "phonetic_us": "/heft/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "分量；影响力；实力"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/heft_uk.mp3",
+        "us": "audio_vocabulary/heft_us.mp3"
+      }
+    },
+    {
+      "word": "fill the vacuum",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "填补空缺；填补权力真空"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/fill_the_vacuum_uk.mp3",
+        "us": "audio_vocabulary/fill_the_vacuum_us.mp3"
+      }
+    },
+    {
+      "word": "be in no position to",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "无法；没有能力或条件做……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_in_no_position_to_uk.mp3",
+        "us": "audio_vocabulary/be_in_no_position_to_us.mp3"
+      }
+    },
+    {
+      "word": "malign",
+      "phonetic_uk": "/məˈlaɪn/",
+      "phonetic_us": "/məˈlaɪn/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "有害的；恶意的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/malign_uk.mp3",
+        "us": "audio_vocabulary/malign_us.mp3"
+      }
+    },
+    {
+      "word": "as is likely",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "很可能如此；正如很可能发生的那样"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/as_is_likely_uk.mp3",
+        "us": "audio_vocabulary/as_is_likely_us.mp3"
+      }
+    },
+    {
+      "word": "extract rents",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "攫取超额利益；榨取经济租"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/extract_rents_uk.mp3",
+        "us": "audio_vocabulary/extract_rents_us.mp3"
+      }
+    },
+    {
+      "word": "bully",
+      "phonetic_uk": "/ˈbʊli/",
+      "phonetic_us": "/ˈbʊli/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "欺凌；胁迫"
+        },
+        {
+          "pos": "n.",
+          "meaning": "欺凌者；仗势欺人者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/bully_uk.mp3",
+        "us": "audio_vocabulary/bully_us.mp3"
+      }
+    },
+    {
+      "word": "may well",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "很可能；完全有可能"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/may_well_uk.mp3",
+        "us": "audio_vocabulary/may_well_us.mp3"
+      }
+    },
+    {
+      "word": "receive Russian backing",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "获得俄罗斯的支持"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/receive_russian_backing_uk.mp3",
+        "us": "audio_vocabulary/receive_russian_backing_us.mp3"
+      }
+    },
+    {
+      "word": "regional",
+      "phonetic_uk": "/ˈriːdʒənl/",
+      "phonetic_us": "/ˈriːdʒənl/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "地区的；区域性的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/regional_uk.mp3",
+        "us": "audio_vocabulary/regional_us.mp3"
+      }
+    },
+    {
+      "word": "route",
+      "phonetic_uk": "/ruːt/",
+      "phonetic_us": "/ruːt/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "路线；航线；通道"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/route_uk.mp3",
+        "us": "audio_vocabulary/route_us.mp3"
+      }
+    },
+    {
+      "word": "counter",
+      "phonetic_uk": "/ˈkaʊntə(r)/",
+      "phonetic_us": "/ˈkaʊntər/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "对抗；反制；抵消"
+        },
+        {
+          "pos": "n.",
+          "meaning": "柜台；计数器"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/counter_uk.mp3",
+        "us": "audio_vocabulary/counter_us.mp3"
+      }
+    },
+    {
+      "word": "champion",
+      "phonetic_uk": "/ˈtʃæmpiən/",
+      "phonetic_us": "/ˈtʃæmpiən/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "支持；拥护；捍卫"
+        },
+        {
+          "pos": "n.",
+          "meaning": "冠军；拥护者"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/champion_uk.mp3",
+        "us": "audio_vocabulary/champion_us.mp3"
+      }
+    },
+    {
+      "word": "Brotherhood",
+      "phonetic_uk": "/ˈbrʌðəhʊd/",
+      "phonetic_us": "/ˈbrʌðərhʊd/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "（此处指）穆斯林兄弟会"
+        },
+        {
+          "pos": "n.",
+          "meaning": "兄弟会；兄弟情谊"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/brotherhood_uk.mp3",
+        "us": "audio_vocabulary/brotherhood_us.mp3"
+      }
+    },
+    {
+      "word": "pragmatic",
+      "phonetic_uk": "/præɡˈmætɪk/",
+      "phonetic_us": "/præɡˈmætɪk/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "务实的；讲求实际的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/pragmatic_uk.mp3",
+        "us": "audio_vocabulary/pragmatic_us.mp3"
+      }
+    },
+    {
+      "word": "ideological",
+      "phonetic_uk": "/ˌaɪdiəˈlɒdʒɪkl/",
+      "phonetic_us": "/ˌaɪdiəˈlɑːdʒɪkl/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "意识形态的；受意识形态驱动的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/ideological_uk.mp3",
+        "us": "audio_vocabulary/ideological_us.mp3"
+      }
+    },
+    {
+      "word": "firm",
+      "phonetic_uk": "/fɜːm/",
+      "phonetic_us": "/fɜːrm/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "公司；企业"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "坚定的；牢固的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/firm_uk.mp3",
+        "us": "audio_vocabulary/firm_us.mp3"
+      }
+    },
+    {
+      "word": "massacre",
+      "phonetic_uk": "/ˈmæsəkə(r)/",
+      "phonetic_us": "/ˈmæsəkər/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "大屠杀；屠杀事件"
+        },
+        {
+          "pos": "v.",
+          "meaning": "屠杀"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/massacre_uk.mp3",
+        "us": "audio_vocabulary/massacre_us.mp3"
+      }
+    },
+    {
+      "word": "Sparta",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "斯巴达（古希腊城邦）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/sparta_uk.mp3",
+        "us": "audio_vocabulary/sparta_us.mp3"
+      }
+    },
+    {
+      "word": "seek to",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "试图；设法做……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/seek_to_uk.mp3",
+        "us": "audio_vocabulary/seek_to_us.mp3"
+      }
+    },
+    {
+      "word": "under the Abraham Accords",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "根据《亚伯拉罕协议》；在其框架下"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/under_the_abraham_accords_uk.mp3",
+        "us": "audio_vocabulary/under_the_abraham_accords_us.mp3"
+      }
+    },
+    {
+      "word": "forge",
+      "phonetic_uk": "/fɔːdʒ/",
+      "phonetic_us": "/fɔːrdʒ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "建立；缔造（关系或联系）"
+        },
+        {
+          "pos": "v.",
+          "meaning": "锻造；伪造"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/forge_uk.mp3",
+        "us": "audio_vocabulary/forge_us.mp3"
+      }
+    },
+    {
+      "word": "forge close ties with",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "与……建立密切关系"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/forge_close_ties_with_uk.mp3",
+        "us": "audio_vocabulary/forge_close_ties_with_us.mp3"
+      }
+    },
+    {
+      "word": "Emirates",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "酋长国；（此处为 United Arab Emirates 的组成部分）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/emirates_uk.mp3",
+        "us": "audio_vocabulary/emirates_us.mp3"
+      }
+    },
+    {
+      "word": "be at loggerheads",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "意见严重不合；处于对立状态"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/be_at_loggerheads_uk.mp3",
+        "us": "audio_vocabulary/be_at_loggerheads_us.mp3"
+      }
+    },
+    {
+      "word": "loggerheads",
+      "phonetic_uk": "/ˈlɒɡəhedz/",
+      "phonetic_us": "/ˈlɔːɡərhedz/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "严重分歧；对立（常用于 at loggerheads）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/loggerheads_uk.mp3",
+        "us": "audio_vocabulary/loggerheads_us.mp3"
+      }
+    },
+    {
+      "word": "imperial",
+      "phonetic_uk": "/ɪmˈpɪəriəl/",
+      "phonetic_us": "/ɪmˈpɪriəl/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "帝国的；帝国主义的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/imperial_uk.mp3",
+        "us": "audio_vocabulary/imperial_us.mp3"
+      }
+    },
+    {
+      "word": "rival",
+      "phonetic_uk": "/ˈraɪvl/",
+      "phonetic_us": "/ˈraɪvl/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "对手；竞争者"
+        },
+        {
+          "pos": "adj.",
+          "meaning": "竞争的；对立的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/rival_uk.mp3",
+        "us": "audio_vocabulary/rival_us.mp3"
+      }
+    },
+    {
+      "word": "emerge from the ashes of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "从……的废墟或灾难中重新崛起"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/emerge_from_the_ashes_of_uk.mp3",
+        "us": "audio_vocabulary/emerge_from_the_ashes_of_us.mp3"
+      }
+    },
+    {
+      "word": "devote one's energy to",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "把精力投入到……；致力于……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/devote_one's_energy_to_uk.mp3",
+        "us": "audio_vocabulary/devote_one's_energy_to_us.mp3"
+      }
+    },
+    {
+      "word": "crush",
+      "phonetic_uk": "/krʌʃ/",
+      "phonetic_us": "/krʌʃ/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "镇压；压制"
+        },
+        {
+          "pos": "v.",
+          "meaning": "压碎；碾碎"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/crush_uk.mp3",
+        "us": "audio_vocabulary/crush_us.mp3"
+      }
+    },
+    {
+      "word": "monarchy",
+      "phonetic_uk": "/ˈmɒnəki/",
+      "phonetic_us": "/ˈmɑːnərki/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "君主制；君主制国家"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/monarchy_uk.mp3",
+        "us": "audio_vocabulary/monarchy_us.mp3"
+      }
+    },
+    {
+      "word": "agenda",
+      "phonetic_uk": "/əˈdʒendə/",
+      "phonetic_us": "/əˈdʒendə/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "议程；行动计划；政策议程"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/agenda_uk.mp3",
+        "us": "audio_vocabulary/agenda_us.mp3"
+      }
+    },
+    {
+      "word": "anaesthetise",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "麻醉；使麻木"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/anaesthetise_uk.mp3",
+        "us": "audio_vocabulary/anaesthetise_us.mp3"
+      }
+    },
+    {
+      "word": "ideology",
+      "phonetic_uk": "/ˌaɪdiˈɒlədʒi/",
+      "phonetic_us": "/ˌaɪdiˈɑːlədʒi/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "意识形态；思想体系"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/ideology_uk.mp3",
+        "us": "audio_vocabulary/ideology_us.mp3"
+      }
+    },
+    {
+      "word": "UAE",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "阿拉伯联合酋长国（阿联酋）"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/uae_uk.mp3",
+        "us": "audio_vocabulary/uae_us.mp3"
+      }
+    },
+    {
+      "word": "radiate",
+      "phonetic_uk": "/ˈreɪdieɪt/",
+      "phonetic_us": "/ˈreɪdieɪt/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "扩散；传播"
+        },
+        {
+          "pos": "v.",
+          "meaning": "辐射；散发"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/radiate_uk.mp3",
+        "us": "audio_vocabulary/radiate_us.mp3"
+      }
+    },
+    {
+      "word": "parting gift",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "临别礼物；告别礼物"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/parting_gift_uk.mp3",
+        "us": "audio_vocabulary/parting_gift_us.mp3"
+      }
+    },
+    {
+      "word": "work together",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "合作；共同努力"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/work_together_uk.mp3",
+        "us": "audio_vocabulary/work_together_us.mp3"
+      }
+    },
+    {
+      "word": "yearn",
+      "phonetic_uk": "/jɜːn/",
+      "phonetic_us": "/jɜːrn/",
+      "meanings": [
+        {
+          "pos": "v.",
+          "meaning": "渴望；向往"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/yearn_uk.mp3",
+        "us": "audio_vocabulary/yearn_us.mp3"
+      }
+    },
+    {
+      "word": "yearn for",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "渴望；向往……"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/yearn_for_uk.mp3",
+        "us": "audio_vocabulary/yearn_for_us.mp3"
+      }
+    },
+    {
+      "word": "beacon",
+      "phonetic_uk": "/ˈbiːkən/",
+      "phonetic_us": "/ˈbiːkən/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "灯塔；指引方向的典范或希望"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/beacon_uk.mp3",
+        "us": "audio_vocabulary/beacon_us.mp3"
+      }
+    },
+    {
+      "word": "departing",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "即将离开的；正在撤离的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/departing_uk.mp3",
+        "us": "audio_vocabulary/departing_us.mp3"
+      }
+    },
+    {
+      "word": "leave a legacy of",
+      "phonetic_uk": "",
+      "phonetic_us": "",
+      "meanings": [
+        {
+          "pos": "phrase",
+          "meaning": "留下……的遗产或长期影响"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/leave_a_legacy_of_uk.mp3",
+        "us": "audio_vocabulary/leave_a_legacy_of_us.mp3"
+      }
+    },
+    {
+      "word": "legacy",
+      "phonetic_uk": "/ˈleɡəsi/",
+      "phonetic_us": "/ˈleɡəsi/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "遗产；长期遗留的影响"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/legacy_uk.mp3",
+        "us": "audio_vocabulary/legacy_us.mp3"
+      }
+    },
+    {
+      "word": "frustrated",
+      "phonetic_uk": "/frʌˈstreɪtɪd/",
+      "phonetic_us": "/ˈfrʌstreɪtɪd/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "未能实现的；受挫的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/frustrated_uk.mp3",
+        "us": "audio_vocabulary/frustrated_us.mp3"
+      }
+    },
+    {
+      "word": "unintended",
+      "phonetic_uk": "/ˌʌnɪnˈtendɪd/",
+      "phonetic_us": "/ˌʌnɪnˈtendɪd/",
+      "meanings": [
+        {
+          "pos": "adj.",
+          "meaning": "非故意的；意料之外的"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/unintended_uk.mp3",
+        "us": "audio_vocabulary/unintended_us.mp3"
+      }
+    },
+    {
+      "word": "hatred",
+      "phonetic_uk": "/ˈheɪtrɪd/",
+      "phonetic_us": "/ˈheɪtrɪd/",
+      "meanings": [
+        {
+          "pos": "n.",
+          "meaning": "仇恨；憎恨"
+        }
+      ],
+      "audio": {
+        "uk": "audio_vocabulary/hatred_uk.mp3",
+        "us": "audio_vocabulary/hatred_us.mp3"
+      }
+    }
+  ]
+}
