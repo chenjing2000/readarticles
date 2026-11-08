@@ -2,31 +2,31 @@
 
 ## Runner and data ownership
 
-Run from the repository root on Windows with the SDK specified by `global.json`:
+Run from the repository root on Windows with the .NET 10 SDK:
 
 ```powershell
-dotnet run --project ReadArticles.Tests -c Release
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite Core
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite UI
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite Full
 ```
 
-The STA console runner tests production services and real WPF controls. A fake audio adapter makes state transitions deterministic; local fixture MP3 files exercise actual decoding. Exit code 0 means all selected checks passed, 1 means failure, and 2 means an unknown category.
+The STA console runner tests production services and real WPF controls. A fake audio adapter makes state transitions deterministic; generated PCM WAV files exercise actual decoding and playback lifecycle. All fixed article and vocabulary JSON inputs live under `tests/TestData/Library/`. The runner creates a unique temporary workspace and a single shared audio pool for each run. It never modifies checked-in fixtures.
 
-Default checks use fixed fixtures under `ReadArticles.Tests/Fixtures/`. Write tests create temporary copies and clean them afterward. Test windows normally disable preference persistence; settings-restoration checks back up and restore settings beside the test executable. Tests share immutable fixture definitions and small WPF helpers rather than a separate prototype application. Run categories sequentially: generated test directories are shared by the runner.
-
-The main branch has no exercise module or exercise test category. No test restores exercise behavior from another branch. Case-insensitive exclusion of UserData and cache directories is part of navigation regression coverage.
+Run categories sequentially: native WPF input and playback checks require an interactive Windows desktop session.
 
 ## Functional categories
 
 | Category | Responsibility |
 | --- | --- |
-| `--content-only` | Passage JSON contracts, library discovery, optional account label, atomic vocabulary writes, metadata, external edits, and harmless deletion requests without an active entry |
+| `--content-only` | Passage JSON contracts, library discovery, atomic vocabulary writes, metadata, external edits, and harmless deletion requests |
 | `--rendering-only` | Literal matching, SID ownership, valid and invalid selections, blank passages, and styles |
 | `--window-only` | Loaded-control hit-testing, selection action, three-pane rendering, independent scrolling, and status lifecycle |
 | `--tree-only` | One-level expansion and recursive collapse |
-| `--audio-only` | Single-file playback, two-player coordination, stale callbacks, invalid resources, and real MP3 decoding |
-| `--controls-only` | Library-only startup, configuration initialization and value normalization, immediate settings saves, keyboard shortcuts, progress/time, and sibling article-audio controls |
+| `--audio-only` | Single-file playback, two-player coordination, stale callbacks, invalid resources, and real media decoding |
+| `--controls-only` | Settings, keyboard shortcuts, progress/time, and sibling article-audio controls |
 | `--icons-only` | Embedded icons, circle-plus movement, footer alignment, startup size, and highlighting |
 | `--editing-only` | Vocabulary move/delete UI and corresponding persisted order |
-| `--source-only` | Optional read-only integration against a local Economist article; excluded from default checks |
+| `--source-only` | Read-only integration against the fixed test article and vocabulary JSON |
 
 Example:
 
@@ -34,28 +34,23 @@ Example:
 dotnet run --project ReadArticles.Tests -c Release -- --audio-only
 ```
 
-Each category has a clear behavioral purpose. Write cases own their data, and separate cases do not depend on previous answers or edits. A small amount of setup repetition keeps that ownership explicit.
+## Audio fixture behavior
 
-`--source-only` reads the temporary article selected by tools/Test.ps1 -ArticleDirectory through READARTICLES_TEST_ARTICLE. It checks current content rather than a fixed word count. The original article is not modified.
+The runner generates UK and US WAV files for every sentence SID except `s011`, and for each distinct vocabulary filename stem. The missing `s011_uk` and `s011_us` files are intentional. Opening or switching to the article must not probe sentence audio files or report missing recordings. The sentence remains selectable for playback; only an explicit playback request checks that sentence's selected accent and reports that single missing file.
+
+Generated WAVs are short synthetic tones, not speech and not pronunciation content. They exercise filename resolution, media decoding, playback position, pause/resume, and completion. MP3-priority and corrupt-MP3 behavior are tested with focused temporary files.
 
 ## Manual acceptance
 
 Automated checks cover state, controls, layout, and event routing. Native dialogs and physical input should also be checked:
 
-1. Open a copied library. Confirm startup is collapsed with empty passage/vocabulary panes and visible disabled footer controls. Expand and select a passage.
-2. Select text, scroll both ways, and move the window. Confirm the circle-plus follows the selection, does not cover text, and disappears when the selection clears.
-3. Play the sibling article recording (MP3, or WAV when MP3 is absent), then word or sentence audio. Confirm pronunciation pauses the article and preserves its position. Resume the article and confirm pronunciation stops. Stop and seek must affect only the article file.
-4. Change Forward/Backward settings. Check Left, Right, and Space with the physical keyboard from each pane and settings popup; inspect progress and the time label.
-5. Move, delete, and import vocabulary in a copied library. Reopen and confirm persisted order and contents. Try externally editing the companion before saving; the app must warn rather than overwrite that change.
-
-Check the unified audio contract in copied data: WAV-only word/sentence/article targets play; adding the corresponding MP3 makes it win even when corrupt (report failure without WAV retry). Confirm old directories and JSON path fields cannot redirect lookup, saving vocabulary removes legacy audio fields, and later stem collisions and empty stems preserve text but disable all audio. Check that an ordinary article without audio fields still offers sentence playback, while valid [[n]] blank articles do not.
-
-Do not manually edit checked-in fixtures. Screenshots support inspection but do not themselves prove a test passed.
+1. Open the test library. Confirm startup is collapsed with empty passage/vocabulary panes.
+2. Select the main article. Confirm no missing sentence-audio warning appears.
+3. Play a normal sentence and confirm playback works.
+4. Select sentence `s011`. Confirm the play action remains available; click it and confirm only the selected accent's missing-file message appears.
+5. Switch to the other accent and repeat. Confirm the message identifies only the selected accent.
+6. Play article, word, and sentence audio in turn. Confirm player ownership and pause/resume behavior.
 
 ## Generated files
 
-MP3 files are local resources and are ignored by Git. Keep the local fixture audio when cleaning generated files. A fresh checkout needs the corresponding MP3 files restored under the fixture library before running audio and playback integration checks; these checks intentionally verify real decoding rather than silently skipping missing resources.
-
-Build outputs and screenshots are ignored by Git and can be removed after review. Tests may recreate artifacts; the published application does not use it. The font checks use 14/15/16 DIP and verify that direct pt declarations stay unchanged. Size checks use rounded window and column calculations, and settings checks verify integer persisted widths. Keep the formal `dist/` release and its settings. See [Getting Started](Getting-Started.md) for publishing and settings-preserving replacement.
-
-For a release check, publish with the Portable profile and confirm dist contains only the EXE before first run. Run from another working directory and confirm the .settings.json is created beside the EXE. Copy the EXE under another filename and confirm the settings stem follows that filename. Verify the missing-runtime installation prompt on a clean Windows machine; the development machine already has .NET installed.
+Reports, transcript logs, and screenshots are written under `artifacts/`. Temporary audio and copied article data are stored under the OS temporary directory and removed after the run. Do not commit generated reports, screenshots, logs, or temporary media.
