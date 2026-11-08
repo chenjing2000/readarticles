@@ -106,6 +106,16 @@ function Prepare-TestWorkspace([string]$Workspace, [string]$TemporaryDirectory) 
     foreach ($folder in @('audio', 'audio_sentences')) {
         Copy-TestAudioFolder $audioPool $target $folder
     }
+    $copiedSentences = @(Get-ChildItem -LiteralPath (Join-Path $target 'audio_sentences') -File -Filter '*.wav')
+    $copiedWords = @(Get-ChildItem -LiteralPath (Join-Path $target 'audio') -File -Filter '*.wav')
+    if ($copiedSentences.Count -ne 122 -or $copiedWords.Count -ne 240) {
+        throw "Copied test audio is incomplete: $($copiedSentences.Count) sentence WAV files, $($copiedWords.Count) vocabulary WAV files."
+    }
+    foreach ($accent in @('uk', 'us')) {
+        if (Test-Path -LiteralPath (Join-Path $target "audio_sentences/s011_$accent.wav")) {
+            throw "The s011 $accent sentence recording must remain absent."
+        }
+    }
 
     $article = Get-Content -LiteralPath $articlePath -Raw -Encoding UTF8 | ConvertFrom-Json
     $vocabularyPath = Join-Path $target $vocabularyName
