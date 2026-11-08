@@ -219,7 +219,12 @@ internal static class ContentChecks
             File.AppendAllText(Path.ChangeExtension(passage, ".vocabulary.json"), " ");
             model.DeleteWord(model.Words[0].Entry);
             Program.Check(model.Words.Count == 121 && model.Status != "" && model.Status != "warning: earlier failure");
-            Program.Check(model.OpenArticle(TestData.ArticlePath) && model.Status.Contains("缺失 2"));
+            Program.Check(model.OpenArticle(TestData.ArticlePath) && model.Status == "");
+            model.PlaySegment("s011");
+            Program.Check(model.Status == "句子 s011 的英音录音文件缺失。");
+            model.Accent = "us";
+            model.PlaySegment("s011");
+            Program.Check(model.Status == "句子 s011 的美音录音文件缺失。");
             Program.Check(model.OpenLibrary(TestData.LibraryRoot) && model.Status == "");
             Program.Check(!model.OpenArticle(Path.Combine(root, "Missing.json")) && model.Status != "");
         });
