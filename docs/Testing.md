@@ -1,51 +1,49 @@
 # Testing and acceptance
 
-Run commands from the repository root on Windows with .NET 10 SDK. Scripts work in Windows PowerShell 5.1 and PowerShell 7. Every .ps1 source file must contain English ASCII text only; Test.ps1 checks both this rule and script syntax.
+Run from the repository root on Windows with the .NET 10 SDK. Scripts support Windows PowerShell 5.1 and PowerShell 7. If unsigned scripts are blocked by the machine policy, use a process-scoped bypass; no permanent execution-policy change is required.
 
 ## Unified entry points
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite Core
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite UI
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite Full
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-PublishedApp.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Test.ps1 -Suite Core
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Test.ps1 -Suite UI
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Test.ps1 -Suite Full
 ```
 
-Core selects fast checks that need no external content. UI includes window checks; Full adds available real-content integration. Existing runners retain their assertions and may also run core checks when UI is selected. Native input and playback checks must run serially without other desktop interaction.
+All fixed test inputs come from `tests/TestData/`. The runner copies the article and vocabulary JSON into a unique temporary workspace, generates one shared pool of deterministic PCM WAV files, and sets `READARTICLES_TEST_LIBRARY` and `READARTICLES_TEST_ARTICLE` for child test processes. The source fixtures are never modified.
 
-The summary reports Passed, Failed, and Skipped test groups. Existing runners print individual case counts. A failed native command or assertion makes the script exit nonzero. Skipped external-content checks are explicitly printed and are not counted as verified. An explicitly supplied missing/invalid data path is an error, not a skip.
+## Suites
 
-## Published EXE acceptance
+- **Core** runs content, matching, rendering, tree-navigation, and vocabulary-editing regression categories.
+- **UI** runs Core plus icons, reader windows, and reader-control interaction checks. It requires an interactive Windows desktop session.
+- **Full** runs the complete application regression suite, media decoding/playback checks, and a read-only source-fixture integrity check.
 
-Test-PublishedApp.ps1 copies only the EXE into a temporary path with spaces, renames it, and launches it from another working directory. It checks the main window, configuration placement, clean closure, and the native missing-.NET installation instructions using an isolated runtime root. Installed runtimes and user configuration are untouched. MdictViewer also runs its existing nine application-specific published checks, covering settings, dictionary rendering, and missing WebView2.
+A failed native command or assertion makes the entry point return a nonzero exit code. Individual test cases and grouped checks are reported separately. A skipped check is not a pass.
 
-Use -ExePath to verify an explicit binary. Tests do not publish automatically; an absent EXE is an error. Missing-runtime checks disable the graphical error popup and verify its text instructions rather than visually inspecting the popup. UI/audio checks do not replace listening and manual user acceptance.
+## Test data layout
 
-## Workflow regression checks
+```text
+tests/TestData/
+├── Library/                 # Fixed article and vocabulary JSON
+│   └── The Economist/
+└── Audio/
+    └── README.md             # Generated audio-pool rules
+```
+
+The main article contains 13 paragraphs, 62 stable SIDs, and 120 vocabulary entries. The test runner generates UK and US WAV files for all sentence SIDs except `s011`, and for every distinct vocabulary filename stem. The missing `s011_uk` and `s011_us` files are intentional: loading an article must not scan or report missing sentence recordings; only attempting to play `s011` should report the selected sentence's missing recording.
+
+Generated WAVs are short synthetic tones, not speech and not pronunciation content. They exercise filename resolution, media decoding, position, pause/resume, and completion. Tests that specifically exercise MP3 priority or invalid MP3 handling create their own temporary files. No separate WAV-only or missing-audio fixture tree is maintained.
+
+## Outputs and cleanup
+
+Screenshots, reports, and transcript logs are written under `artifacts/`: `screenshots/`, `reports/`, and `logs/`. Audio copies and scratch files are kept under the OS temporary directory. The runner restores environment variables and removes only the unique temporary directory it created. The source test data is never modified.
+
+## Published application acceptance
+
+After publishing, run:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\tools\\Test-PublishedApp.ps1
 ```
 
-These checks replace external test processes and verify successful/failing exit handling and skip reporting. Test-Publish.ps1 separately exercises actual staged replacement against temporary files. Full application tests and actual EXE acceptance are required beyond these orchestration tests.
-
-## Test data and ownership
-
-External data paths are passed as arguments; scripts do not hard-code a developer's private directories. Source data is read and copied to unique temporary directories. Temporary files and environment overrides are cleaned up/restored; existing repository fixtures and original user files are not changed. Do not commit media, personal settings, or test output.
-
-### ReadArticles
-
-Core runs rendering, tree, and vocabulary-editing categories without external MP3s. UI adds icons and, when an article directory is supplied, the audio-dependent window checks. Full with -ArticleDirectory runs all fixed regression cases and the current-source checks. Without the argument it runs the available categories and explicitly skips audio-dependent checks.
-
-```powershell
-.\tools\Test.ps1 -Suite Full -ArticleDirectory '<local When America walks away directory>'
-```
-
-The supplied directory must contain the article JSON, matching vocabulary JSON, sentence MP3/WAV files in audio_sentences/, and word recordings in audio/ using the current inferred names. Old directories and JSON audio paths are not fallback sources: prepare source resources under the new convention before running this command. Fixed regression JSON is copied into a temporary library and filled with matching real recordings. Its deliberately missing s011 recordings remain missing. Fixtures intentionally include obsolete audio fields to check that they are ignored; the preparation tool removes those fields only in temporary JSON copies. A separate temporary copy verifies the supplied current JSON/vocabulary without assuming the fixed fixture's 120-word count. The original files are never rewritten.
-
-READARTICLES_TEST_LIBRARY and READARTICLES_TEST_ARTICLE are scoped to the child test run and restored afterward. The detailed case categories remain in [Testing Reference](Testing-Reference.md). A fresh checkout can run Core; Full requires the matching external recordings.
-
-## CI and results
-
-The tag-triggered GitHub Release workflow runs Core, publishes the EXE, and then runs Test-PublishedApp.ps1 before uploading it. It cannot access private local recordings or dictionaries, so it does not certify Full real-content checks. Dated local results and remaining limitations are recorded in [Health Check](Health-Check-2026-10-13.md).
+This check validates the published EXE in an isolated path. It does not replace the Core, UI, or Full regression suites.
