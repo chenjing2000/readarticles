@@ -80,7 +80,9 @@ public sealed class ReaderPlayback
     public bool CanPlaySegment(LoadedArticle? article, string sid, string accent)
     {
         var segment = article?.Segments.FirstOrDefault(s => s.Sid == sid);
-        return segment?.HasAudio == true && AudioResources.IsAvailable(resources.Segment(article!.Directory, segment, accent));
+        // Availability is checked only when the user requests playback.
+        // Rendering and article switching must not probe sentence recording files.
+        return segment?.HasAudio == true;
     }
 
     public void PlayWord(LoadedArticle? article, VocabularyEntry entry, string accent)
