@@ -79,7 +79,7 @@ internal static class ContentChecks
                     Program.Check(Path.GetFileNameWithoutExtension(asset) == $"{segment.Sid}_{accent}");
                 }
             Program.Check(missing.SequenceEqual(new[] { "s011_uk", "s011_us" }));
-            Program.Check(article.Warnings.Any(w => w.Contains("缺失 2")));
+            Program.Check(!article.Warnings.Any(w => w.Contains("正文音频") || w.Contains("缺失")));
             foreach (var word in article.Vocabulary.Data.Words)
                 foreach (var accent in new[] { "uk", "us" })
                     Program.Check(AudioResources.IsAvailable(resources.Vocabulary(article.Directory, word, accent)));
@@ -219,7 +219,12 @@ internal static class ContentChecks
             File.AppendAllText(Path.ChangeExtension(passage, ".vocabulary.json"), " ");
             model.DeleteWord(model.Words[0].Entry);
             Program.Check(model.Words.Count == 121 && model.Status != "" && model.Status != "warning: earlier failure");
-            Program.Check(model.OpenArticle(TestData.ArticlePath) && model.Status.Contains("缺失 2"));
+            Program.Check(model.OpenArticle(TestData.ArticlePath) && model.Status == "");
+            model.PlaySegment("s011");
+            Program.Check(model.Status == "句子 s011 的英音录音文件缺失。");
+            model.Accent = "us";
+            model.PlaySegment("s011");
+            Program.Check(model.Status == "句子 s011 的美音录音文件缺失。");
             Program.Check(model.OpenLibrary(TestData.LibraryRoot) && model.Status == "");
             Program.Check(!model.OpenArticle(Path.Combine(root, "Missing.json")) && model.Status != "");
         });
@@ -248,7 +253,7 @@ internal static class ContentChecks
     {
         Program.Run(name, () =>
         {
-            string root = Path.GetFullPath(Path.Combine("artifacts", "content-tests", Guid.NewGuid().ToString("N")));
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-content-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             try
             {

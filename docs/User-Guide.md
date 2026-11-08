@@ -33,7 +33,7 @@ A time label between the progress bar and play button displays current time/tota
 
 Successful ordinary actions are quiet. Warning/error status appears for six seconds and then disappears with its layout row. A new warning restarts that interval. Missing physical audio does not prevent passage reading.
 
-Use a separate working copy of a library for interactive editing experiments. Do not alter `ReadArticles.Tests/Fixtures/Library` directly; deterministic tests depend on that fixed data.
+Use a separate working copy of a library for interactive editing experiments. Do not alter `tests/TestData/` directly while tests are running; deterministic tests use this fixed source data and operate on temporary copies.
 
 ## Maintenance and configuration
 

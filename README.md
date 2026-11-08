@@ -29,7 +29,9 @@ All maintained documentation is in English. The conversion skills prepare conten
 | Path | Purpose |
 | --- | --- |
 | `ReadArticles/` | Published application's source and embedded UI resources |
-| `ReadArticles.Tests/` | Categorized checks of production services and controls, with fixed fixtures |
+| `ReadArticles.Tests/` | Categorized checks of production services and controls |
+| `tests/TestData/` | Single source of fixed article, vocabulary, and audio test resources |
+| `artifacts/` | Test screenshots, reports, and logs |
 | `dist/` | Runtime files and user settings; keep these together |
 | `docs/` | Current documentation and conversion skills |
 
@@ -39,10 +41,10 @@ Run from the repository root with an SDK compatible with `global.json`:
 
 ```powershell
 dotnet build ReadArticles -c Release
-dotnet run --project ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Full
 ```
 
-See the testing guide for independent categories and optional machine-specific source checks. The current main branch does not implement account registration/login or exercise answering. The supplied authoring skills may still produce exercise companions; the reader excludes those files from navigation and does not render them.
+See the testing guide for the unified test-data layout and Core/UI/Full suites. The current main branch does not implement account registration/login or exercise answering. The supplied authoring skills may still produce exercise companions; the reader excludes those files from navigation and does not render them.
 
 ## Unified publishing
 
@@ -51,4 +53,4 @@ Run `.\tools\Publish.ps1` from this repository root. All four applications use P
 
 ## Unified testing and acceptance
 
-Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. After publishing, run `.\tools\Test-PublishedApp.ps1`. External audio/article/dictionary paths are optional explicit arguments; missing optional integration data is reported as skipped. See the [documentation index](docs/README.md) and [test guide](docs/Testing.md). PowerShell source is English-only.
+Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. All fixed test inputs come from `tests/TestData/`; temporary copies are isolated under the OS temporary directory. After publishing, run `.\tools\Test-PublishedApp.ps1`. See the [documentation index](docs/README.md) and [test guide](docs/Testing.md). PowerShell source is English-only.

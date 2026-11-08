@@ -22,7 +22,7 @@ internal static class AudioChecks
                 throw new Exception("Unsafe path accepted: " + relative);
             }
         });
-        var root = Path.Combine(Directory.GetCurrentDirectory(), "artifacts", "test-media", Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Path.GetTempPath(), "ReadArticles-audio-checks-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var first = Path.Combine(root, "a.mp3");
         var second = Path.Combine(root, "b.mp3");
@@ -198,7 +198,7 @@ internal static class AudioChecks
                 model.ToggleArticleAudio();
                 Program.Check(pronunciation.Owner == "word:uk:life" && pronunciation.State == PlaybackState.Playing && model.Status.Contains("MP3"));
                 model.PlaySegment("s001");
-                Program.Check(pronunciation.State == PlaybackState.Stopped && model.Status.Contains("MP3"));
+                Program.Check(pronunciation.State == PlaybackState.Stopped && model.Status == "句子 s001 的英音录音文件缺失。");
             });
             Program.Run("missing MP3 leaves the player stopped and reports a warning", () =>
             {

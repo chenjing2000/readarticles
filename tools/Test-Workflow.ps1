@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $testScript = Join-Path $PSScriptRoot 'Test.ps1'
 if (-not (Test-Path -LiteralPath $testScript)) { throw 'The unified Test.ps1 entry point is missing.' }
 $global:workflowForceFailure = $false
@@ -15,8 +15,8 @@ try {
     Write-Host 'PASS failed native commands reject the test run'
     $global:workflowForceFailure = $false
     $output = & $testScript -Suite Full *>&1 | Out-String
-    if ($output -notmatch 'Skipped: [1-9]') { throw 'Missing external media was not reported as skipped.' }
-    Write-Host 'PASS unavailable optional integration data is explicitly skipped'
+    if ($output -notmatch 'Passed: 5; Failed: 0; Skipped: 0') { throw 'Full suite did not run from the unified test data directory.' }
+    Write-Host 'PASS Full suite runs from unified test data without external paths'
 }
 finally {
     Remove-Item Function:\dotnet, Function:\powershell.exe

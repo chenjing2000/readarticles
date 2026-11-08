@@ -21,15 +21,6 @@ public sealed class ArticleRepository
             warnings.Add("词汇表无法加载：" + error.Message);
             vocabulary = new VocabularySnapshot(new VocabularyData(), null, false, error.Message);
         }
-        var resources = new AudioResources();
-        int missing = 0;
-        foreach (var segment in paragraphs.SelectMany(p => p).Where(s => s.HasAudio))
-            foreach (string accent in new[] { "uk", "us" })
-            {
-                var asset = resources.Segment(Path.GetDirectoryName(absolute)!, segment, accent);
-                if (!AudioResources.IsAvailable(asset)) missing++;
-            }
-        if (missing > 0) warnings.Add($"缺失 {missing} 个正文音频；正文仍可阅读。");
         return new LoadedArticle(absolute, title, paragraphs, vocabularyPath, vocabulary, warnings);
     }
 

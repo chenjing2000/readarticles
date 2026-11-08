@@ -167,8 +167,8 @@ internal static class ReaderControlsChecks
                 bitmap.Render(valuesSurface);
                 var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
                 encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
-                Directory.CreateDirectory(Path.GetFullPath("artifacts"));
-                using (var file = File.Create(Path.GetFullPath("artifacts/progress-options.png"))) encoder.Save(file);
+                Directory.CreateDirectory(Path.GetFullPath(Path.Combine("artifacts", "screenshots")));
+                using (var file = File.Create(Path.GetFullPath("artifacts/screenshots/progress-options.png"))) encoder.Save(file);
                 context.IsOpen = false;
                 window.Close();
                 window = new ReadArticles.MainWindow { ShowActivated = false, Left = -10000, Top = -10000 };
@@ -186,7 +186,7 @@ internal static class ReaderControlsChecks
         Program.Run("left and right arrows control article progress from every pane and popup", () =>
         {
             var window = CreateWindow();
-            string root = Path.GetFullPath(Path.Combine("artifacts", "controls-tests", Guid.NewGuid().ToString("N")));
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-controls-tests-" + Guid.NewGuid().ToString("N"));
             try
             {
                 Directory.CreateDirectory(root);
@@ -295,7 +295,7 @@ internal static class ReaderControlsChecks
         Program.Run("folder selection discovers names without opening any JSON or content", () =>
         {
             var window = CreateWindow();
-            string root = Path.GetFullPath(Path.Combine("artifacts", "controls-tests", Guid.NewGuid().ToString("N")));
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-controls-tests-" + Guid.NewGuid().ToString("N"));
             try
             {
                 Directory.CreateDirectory(root);
@@ -320,7 +320,7 @@ internal static class ReaderControlsChecks
             var window = CreateWindow();
             try
             {
-                Directory.CreateDirectory(Path.GetFullPath("artifacts"));
+                Directory.CreateDirectory(Path.GetFullPath(Path.Combine("artifacts", "screenshots")));
                 window.Show();
                 Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
                 Program.Check(window.SelectPassage(TestData.ArticlePath)); WpfTestHelpers.Pump(30);
@@ -353,13 +353,13 @@ internal static class ReaderControlsChecks
                 menuImage.Render(button.ContextMenu);
                 var menuEncoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
                 menuEncoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(menuImage));
-                using (var menuFile = File.Create(Path.GetFullPath("artifacts/settings-menu.png"))) menuEncoder.Save(menuFile);
+                using (var menuFile = File.Create(Path.GetFullPath("artifacts/screenshots/settings-menu.png"))) menuEncoder.Save(menuFile);
                 var submenu = (Border)popup.Child;
                 var submenuImage = new System.Windows.Media.Imaging.RenderTargetBitmap((int)(submenu.ActualWidth + submenu.Margin.Left + submenu.Margin.Right), (int)(submenu.ActualHeight + submenu.Margin.Top + submenu.Margin.Bottom), 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
                 submenuImage.Render(submenu);
                 var submenuEncoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
                 submenuEncoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(submenuImage));
-                using (var submenuFile = File.Create(Path.GetFullPath("artifacts/settings-submenu.png"))) submenuEncoder.Save(submenuFile);
+                using (var submenuFile = File.Create(Path.GetFullPath("artifacts/screenshots/settings-submenu.png"))) submenuEncoder.Save(submenuFile);
                 fonts.IsSubmenuOpen = false; button.ContextMenu.IsOpen = false;
                 window.Left = -10000; window.Top = -10000;
                 foreach (int points in new[] { 14, 15, 16 })
@@ -390,7 +390,7 @@ internal static class ReaderControlsChecks
             var window = CreateWindow();
             try
             {
-                Directory.CreateDirectory(Path.GetFullPath("artifacts"));
+                Directory.CreateDirectory(Path.GetFullPath(Path.Combine("artifacts", "screenshots")));
                 window.Show();
                 LoadArticle(window);
                 var player = (WpfAudioPlayer)typeof(ReadArticles.MainWindow).GetField("player", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(window)!;
@@ -420,7 +420,7 @@ internal static class ReaderControlsChecks
                 bitmap.Render(window);
                 var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
                 encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
-                using (var image = File.Create(Path.GetFullPath("artifacts/reader-controls.png"))) encoder.Save(image);
+                using (var image = File.Create(Path.GetFullPath("artifacts/screenshots/reader-controls.png"))) encoder.Save(image);
                 window.ViewModel.Stop();
                 Program.Check(slider.Visibility == Visibility.Collapsed && slider.Value == 0);
                 window.ViewModel.PlayWord(window.ViewModel.Words[0].Entry, "uk");
@@ -444,7 +444,7 @@ internal static class ReaderControlsChecks
         Program.Run("bottom play and stop control only the first sibling recording", () =>
         {
             var window = CreateWindow();
-            string root = Path.GetFullPath(Path.Combine("artifacts", "controls-tests", Guid.NewGuid().ToString("N")));
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-controls-tests-" + Guid.NewGuid().ToString("N"));
             try
             {
                 Directory.CreateDirectory(root);

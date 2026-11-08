@@ -12,7 +12,7 @@ internal static class VocabularyEditingChecks
     {
         Program.Run("SVG vocabulary actions swap and delete with matching JSON and selection", () =>
         {
-            string root = Path.GetFullPath(Path.Combine("artifacts", "editing-tests", Guid.NewGuid().ToString("N")));
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-editing-tests-" + Guid.NewGuid().ToString("N"));
             ReadArticles.MainWindow? window = null;
             try
             {
@@ -68,7 +68,8 @@ internal static class VocabularyEditingChecks
                 image.Render(window);
                 var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
                 encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(image));
-                using (var screenshot = File.Create(Path.GetFullPath("artifacts/vocabulary-actions.png"))) encoder.Save(screenshot);
+                Directory.CreateDirectory(Path.GetFullPath(Path.Combine("artifacts", "screenshots")));
+                using (var screenshot = File.Create(Path.GetFullPath("artifacts/screenshots/vocabulary-actions.png"))) encoder.Save(screenshot);
                 string unchanged = File.ReadAllText(vocabulary);
                 File.AppendAllText(vocabulary, "\n");
                 Click(up);

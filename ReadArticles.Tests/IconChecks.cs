@@ -127,7 +127,7 @@ internal static class IconChecks
             try
             {
                 window.Show();
-                Directory.CreateDirectory(Path.GetFullPath("artifacts"));
+                Directory.CreateDirectory(Path.GetFullPath(Path.Combine("artifacts", "screenshots")));
                 WpfTestHelpers.Pump(); window.UpdateLayout();
                 var controls = (Grid)window.FindName("PassageControls");
                 var play = (Button)window.FindName("ReadAllButton");
@@ -153,7 +153,7 @@ internal static class IconChecks
                 snapshot.Render(window);
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(new CroppedBitmap(snapshot, new Int32Rect(0, snapshot.PixelHeight - 130, snapshot.PixelWidth, 130))));
-                using (var screenshot = File.Create(Path.GetFullPath("artifacts/reader-startup-footer.png"))) encoder.Save(screenshot);
+                using (var screenshot = File.Create(Path.GetFullPath("artifacts/screenshots/reader-startup-footer.png"))) encoder.Save(screenshot);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });

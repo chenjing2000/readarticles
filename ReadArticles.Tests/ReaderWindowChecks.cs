@@ -50,7 +50,7 @@ internal static class ReaderWindowChecks
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
-        Program.Run("real reader: every SID is owned and missing audio reported", () =>
+        Program.Run("real reader: every SID is owned and missing audio is reported only on playback", () =>
         {
             var window = CreateWindow();
             try
@@ -61,7 +61,9 @@ internal static class ReaderWindowChecks
                     foreach (var range in reader.Ranges)
                         Program.Check(reader.FindSegment(reader.PositionAt(range, 2))?.Segment.Sid == range.Segment.Sid);
                 Program.Check(!window.ViewModel.CanPlaySegment("s011") && window.ViewModel.CanPlaySegment("s001"));
-                Program.Check(window.ViewModel.Status.Contains("缺失 2"));
+                Program.Check(window.ViewModel.Status == "");
+                window.ViewModel.PlaySegment("s011");
+                Program.Check(window.ViewModel.Status == "句子 s011 的英音录音文件缺失。");
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
@@ -163,7 +165,7 @@ internal static class ReaderWindowChecks
         var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(window);
         var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap));
-        string path = Path.GetFullPath(Path.Combine("artifacts", filename));
+        string path = Path.GetFullPath(Path.Combine("artifacts", "screenshots", filename));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         using var stream = File.Create(path); png.Save(stream);
         Console.WriteLine("  Screenshot: " + path);

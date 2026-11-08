@@ -2,15 +2,19 @@
 
 ## Runner and data ownership
 
-Run from the repository root on Windows with the SDK specified by `global.json`:
+Run the unified test entry point from the repository root on Windows:
 
 ```powershell
-dotnet run --project ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+.\tools\Test.ps1 -Suite UI
+.\tools\Test.ps1 -Suite Full
 ```
 
-The STA console runner tests production services and real WPF controls. A fake audio adapter makes state transitions deterministic; local fixture MP3 files exercise actual decoding. Exit code 0 means all selected checks passed, 1 means failure, and 2 means an unknown category.
+All fixed input data lives under `tests/TestData/`. `Test.ps1` validates that source, creates an isolated working copy under the operating system temporary directory, and supplies the library/article paths to child test processes through environment variables. Test code must not modify checked-in source data. Scratch directories are created under the OS temporary directory and cleaned after use. Screenshots, reports, and transcripts are the only test outputs retained under `artifacts/`.
 
-Default checks use fixed fixtures under `ReadArticles.Tests/Fixtures/`. Write tests create temporary copies and clean them afterward. Test windows normally disable preference persistence; settings-restoration checks back up and restore settings beside the test executable. Tests share immutable fixture definitions and small WPF helpers rather than a separate prototype application. Run categories sequentially: generated test directories are shared by the runner.
+The STA console runner tests production services and real WPF controls. Fake audio adapters make state transitions deterministic; the shared MP3 fixtures exercise actual decoding. WAV-only and corrupt-media scenarios are generated in temporary directories. Exit code 0 means all selected checks passed, 1 means a test failed, and 2 means an unknown category. Run categories sequentially because WPF input and media checks share the desktop session.
+
+The main test article has 13 paragraphs, 62 stable sentence IDs, and 120 vocabulary entries. UK/US audio is supplied for all vocabulary entries and all sentence IDs except `s011`. The missing `s011` recordings are intentional and verify that missing sentence audio is reported only when that sentence is played. A second article supports navigation and switching tests.
 
 The main branch has no exercise module or exercise test category. No test restores exercise behavior from another branch. Case-insensitive exclusion of UserData and cache directories is part of navigation regression coverage.
 
@@ -26,17 +30,13 @@ The main branch has no exercise module or exercise test category. No test restor
 | `--controls-only` | Library-only startup, configuration initialization and value normalization, immediate settings saves, keyboard shortcuts, progress/time, and sibling article-audio controls |
 | `--icons-only` | Embedded icons, circle-plus movement, footer alignment, startup size, and highlighting |
 | `--editing-only` | Vocabulary move/delete UI and corresponding persisted order |
-| `--source-only` | Optional read-only integration against a local Economist article; excluded from default checks |
+| `--source-only` | Read-only integrity and rendering checks against the unified test article |
 
-Example:
-
-```powershell
-dotnet run --project ReadArticles.Tests -c Release -- --audio-only
-```
+The category switches are intended for the unified runner, which prepares the environment first. For ordinary use, run `tools/Test.ps1`; do not launch the test executable directly unless `READARTICLES_TEST_LIBRARY` and `READARTICLES_TEST_ARTICLE` have been prepared.
 
 Each category has a clear behavioral purpose. Write cases own their data, and separate cases do not depend on previous answers or edits. A small amount of setup repetition keeps that ownership explicit.
 
-`--source-only` reads the temporary article selected by tools/Test.ps1 -ArticleDirectory through READARTICLES_TEST_ARTICLE. It checks current content rather than a fixed word count. The original article is not modified.
+`--source-only` reads the temporary article selected by `tools/Test.ps1` through `READARTICLES_TEST_ARTICLE`. It checks the copied unified fixture and verifies that source files remain unchanged.
 
 ## Manual acceptance
 
@@ -54,8 +54,6 @@ Do not manually edit checked-in fixtures. Screenshots support inspection but do 
 
 ## Generated files
 
-MP3 files are local resources and are ignored by Git. Keep the local fixture audio when cleaning generated files. A fresh checkout needs the corresponding MP3 files restored under the fixture library before running audio and playback integration checks; these checks intentionally verify real decoding rather than silently skipping missing resources.
+Screenshots are written to `artifacts/screenshots/`. Per-run Markdown summaries are written to `artifacts/reports/`, and PowerShell transcripts to `artifacts/logs/`. Temporary copied libraries and audio are created under the OS temporary directory and removed after each run. The checked-in `tests/TestData/` directory is the only fixed test-input source.
 
-Build outputs and screenshots are ignored by Git and can be removed after review. Tests may recreate artifacts; the published application does not use it. The font checks use 14/15/16 DIP and verify that direct pt declarations stay unchanged. Size checks use rounded window and column calculations, and settings checks verify integer persisted widths. Keep the formal `dist/` release and its settings. See [Getting Started](Getting-Started.md) for publishing and settings-preserving replacement.
-
-For a release check, publish with the Portable profile and confirm dist contains only the EXE before first run. Run from another working directory and confirm the .settings.json is created beside the EXE. Copy the EXE under another filename and confirm the settings stem follows that filename. Verify the missing-runtime installation prompt on a clean Windows machine; the development machine already has .NET installed.
+Build outputs and screenshots can be removed after review. The published application does not use `artifacts/`. The font checks use 14/15/16 DIP and verify that direct pt declarations stay unchanged. Size checks use rounded window and column calculations, and settings checks verify integer persisted widths. Keep the formal `dist/` release and its settings. See [Getting Started](Getting-Started.md) for publishing and settings-preserving replacement.
