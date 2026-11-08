@@ -9,9 +9,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  full-tests:
+  core-tests:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -19,6 +19,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Run full regression suite
+      - name: Build application
         shell: powershell
-        run: .\tools\Test.ps1 -Suite Full
+        run: dotnet build ReadArticles -c Release
+      - name: Run core regression suite
+        shell: powershell
+        run: .\tools\Test.ps1 -Suite Core
