@@ -31,7 +31,7 @@ tests/TestData/
     └── README.md             # Generated audio-pool rules
 ```
 
-The main article contains 13 paragraphs, 62 stable SIDs, and 120 vocabulary entries. The test runner generates UK and US WAV files for all sentence SIDs except `s011`, and for every distinct vocabulary filename stem. The missing `s011_uk` and `s011_us` files are intentional: loading an article must not scan or report missing sentence recordings; only attempting to play `s011` should report the selected sentence's missing recording.
+The main article contains 13 paragraphs, 62 stable SIDs, and 120 vocabulary entries. The test runner generates UK and US WAV files for all sentence SIDs except `s011` (5 seconds per file), and for every distinct vocabulary filename stem (2 seconds per file). It verifies the shared pool contains 122 sentence files and 240 vocabulary files, then verifies the copied article workspace has the same counts. The missing `s011_uk` and `s011_us` files are intentional: loading an article must not scan or report missing sentence recordings; only attempting to play `s011` should report the selected sentence's missing recording.
 
 Generated WAVs are short synthetic tones, not speech and not pronunciation content. They exercise filename resolution, media decoding, position, pause/resume, and completion. Tests that specifically exercise MP3 priority or invalid MP3 handling create their own temporary files. No separate WAV-only or missing-audio fixture tree is maintained.
 
