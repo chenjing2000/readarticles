@@ -198,7 +198,7 @@ internal static class AudioChecks
                 model.ToggleArticleAudio();
                 Program.Check(pronunciation.Owner == "word:uk:life" && pronunciation.State == PlaybackState.Playing && model.Status.Contains("MP3"));
                 model.PlaySegment("s001");
-                Program.Check(pronunciation.State == PlaybackState.Stopped && model.Status.Contains("MP3"));
+                Program.Check(pronunciation.State == PlaybackState.Stopped && model.Status.Contains("句子 s001") && model.Status.Contains("录音文件缺失"));
             });
             Program.Run("missing MP3 leaves the player stopped and reports a warning", () =>
             {
