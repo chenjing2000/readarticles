@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $testScript = Join-Path $PSScriptRoot 'Test.ps1'
 if (-not (Test-Path -LiteralPath $testScript)) { throw 'The unified Test.ps1 entry point is missing.' }
 $global:workflowForceFailure = $false
@@ -8,15 +8,19 @@ try {
     $output = & $testScript -Suite Core *>&1 | Out-String
     if ($output -notmatch 'Failed: 0') { throw 'Core checks did not report success.' }
     Write-Host 'PASS successful commands produce a passing summary'
+
     $global:workflowForceFailure = $true
     $rejected = $false
     try { & $testScript -Suite Core *> $null } catch { $rejected = $true }
     if (-not $rejected) { throw 'A failed native test was accepted.' }
     Write-Host 'PASS failed native commands reject the test run'
+
     $global:workflowForceFailure = $false
     $output = & $testScript -Suite Full *>&1 | Out-String
-    if ($output -notmatch 'Skipped: [1-9]') { throw 'Missing external media was not reported as skipped.' }
-    Write-Host 'PASS unavailable optional integration data is explicitly skipped'
+    if ($output -notmatch 'Generated shared WAV pool' -or $output -match 'Skipped: [1-9]') {
+        throw 'Full did not prepare its fixed test data without external article paths.'
+    }
+    Write-Host 'PASS Full uses the unified test data without external article paths'
 }
 finally {
     Remove-Item Function:\dotnet, Function:\powershell.exe
