@@ -7,7 +7,7 @@ using ReadArticles.Services;
 internal static class SourceLibraryChecks
 {
     private static string ArticlePath => Environment.GetEnvironmentVariable("READARTICLES_TEST_ARTICLE")
-        ?? throw new InvalidOperationException("Supply -ArticleDirectory through tools/Test.ps1 to run source checks.");
+        ?? throw new InvalidOperationException("The unified test runner must set READARTICLES_TEST_ARTICLE before source checks.");
 
     internal static void Run()
     {
