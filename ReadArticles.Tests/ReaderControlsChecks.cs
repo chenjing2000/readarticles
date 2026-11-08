@@ -584,6 +584,7 @@ internal static class ReaderControlsChecks
         var source = PresentationSource.FromVisual(target) ?? PresentationSource.FromVisual(window)!;
         var args = new KeyEventArgs(Keyboard.PrimaryDevice, source, 0, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
         target.RaiseEvent(args);
+        WpfTestHelpers.Pump(40);
         Program.Check(args.Handled);
     }
     private static void CheckSettingsSelection(ItemsControl menu)
