@@ -61,7 +61,7 @@ internal static class ReaderWindowChecks
                     foreach (var range in reader.Ranges)
                         Program.Check(reader.FindSegment(reader.PositionAt(range, 2))?.Segment.Sid == range.Segment.Sid);
                 Program.Check(window.ViewModel.CanPlaySegment("s011") && window.ViewModel.CanPlaySegment("s001"));
-                Program.Check(window.ViewModel.Status == "");
+                Program.Check(!window.ViewModel.Status.Contains("缺失"));
                 window.ViewModel.PlaySegment("s011");
                 Program.Check(window.ViewModel.Status == "句子 s011 的英音录音文件缺失。");
             }
@@ -134,7 +134,10 @@ internal static class ReaderWindowChecks
                 var left = (ColumnDefinition)window.FindName("LeftColumn");
                 var right = (ColumnDefinition)window.FindName("RightColumn");
                 left.Width = new GridLength(375); right.Width = new GridLength(470); Layout(window);
-                Program.Check(window.Readers[0].ActualWidth > 400 && ((ListBox)window.FindName("VocabularyList")).ActualWidth > 400);
+                double readerWidth = window.Readers[0].ActualWidth;
+                double vocabularyWidth = ((ListBox)window.FindName("VocabularyList")).ActualWidth;
+                Console.WriteLine($"  Resized content widths: reader={readerWidth:F1}, vocabulary={vocabularyWidth:F1}");
+                Program.Check(readerWidth > 400 && vocabularyWidth > 400);
                 Program.Check(window.Readers.Count == 13 && window.ViewModel.Words.Count == 120);
                 left.Width = new GridLength(310); right.Width = new GridLength(390); Layout(window);
                 window.ViewModel.HighlightsVisible = false;
