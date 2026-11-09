@@ -1,0 +1,28 @@
+name: Windows regression tests
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: readarticles-windows-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-core:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build application
+        shell: powershell
+        run: dotnet build ReadArticles -c Release
+      - name: Run Core regression suite
+        shell: powershell
+        run: .\tools\Test.ps1 -Suite Core

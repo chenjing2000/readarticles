@@ -13,8 +13,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite 
 ## Suites
 
 - **Core** runs publishing safeguards and the core regression categories: content and unified-audio contracts, matching/rendering, tree navigation, and vocabulary editing.
-- **UI** runs Core plus icons, reader windows, and keyboard/control interaction checks. It requires a Windows desktop session.
-- **Full** runs the complete application regression suite, real MP3/WAV playback checks, and read-only checks against the unified test article. It does not require a developer-specific article directory.
+- **UI** runs Core plus icons, reader windows, and keyboard/control interaction checks. Run this suite locally on the Windows desktop where the application is used; it is the focused diagnostic suite for WPF interaction issues.
+- **Full** runs the complete application regression suite, real MP3/WAV playback checks, and read-only checks against the unified test article. Run this locally before merging; it does not require a developer-specific article directory.
+
+The hosted GitHub Actions runner runs **Core** only. WPF focus, popup, media-device, and input timing can differ between hosted virtual desktops and a user's interactive Windows session. A hosted UI timeout is therefore recorded as an environment-specific UI failure, not silently treated as a passing UI test. The local **UI** and **Full** results remain required for acceptance of changes affecting the reader interface or playback.
 
 The summary distinguishes Passed, Failed, and Skipped groups. A skipped group is not counted as verified. A failed native command or assertion makes the entry point return a nonzero exit code.
 
@@ -29,7 +31,7 @@ tests/TestData/
 └── README.md                # Inventory and fixture rules
 ```
 
-The main article contains 13 paragraphs, 62 stable sentence IDs, and 120 vocabulary entries. The shared audio pool contains UK and US MP3 recordings for every vocabulary entry and every sentence except `s011`. The missing `s011_uk` and `s011_us` files are intentional: opening an article must not scan or report missing sentence recordings, while attempting to play `s011` must report only that sentence and the selected accent.
+The main article contains 13 paragraphs, 62 stable sentence IDs, and 120 vocabulary entries. The shared audio pool contains UK and US MP3 recordings for every vocabulary entry and every sentence except `s011`. The missing `s011_uk` and `s011_us` files are intentional: opening or switching an article and rendering sentence controls must not probe or report missing sentence recordings. The sentence control remains available for a valid SID; attempting to play `s011` checks only the selected accent and reports that sentence's missing recording.
 
 WAV-only, MP3-priority, corrupt-MP3, and other exceptional media cases are generated in isolated temporary directories by the tests. Do not maintain duplicate WAV-only or missing-audio fixture trees.
 

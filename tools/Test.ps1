@@ -81,3 +81,10 @@ finally {
     if ($transcriptStarted) { Stop-Transcript | Out-Null }
     Pop-Location
 }
+
+# Do not leak a stale native-command exit code from the PowerShell host.
+# All test failures are tracked explicitly by Complete-TestRun.
+if ($script:failedChecks -gt 0) {
+    exit 1
+}
+exit 0
