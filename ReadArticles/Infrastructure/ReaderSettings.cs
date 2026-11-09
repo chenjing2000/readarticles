@@ -130,6 +130,7 @@ public sealed class ReaderSettings
 
     public static void RestoreLatestBackup()
     {
+        _ = Deserialize(AppPaths.SettingsBackupFile);
         BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
     }
 
