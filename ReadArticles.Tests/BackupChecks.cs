@@ -112,6 +112,12 @@ internal static class BackupChecks
                 Program.Check(repository.Load(source).Data.Words[0].Word == "beta");
                 Program.Check(repository.Load(backup).Data.Words[0].Word == "gamma");
                 Program.Check(Directory.GetFiles(backupRoot, "*.bak").Length == 1);
+
+                File.WriteAllText(source, "{ invalid vocabulary");
+                repository.RestoreLatestBackup(source, null);
+                Program.Check(repository.Load(source).Data.Words[0].Word == "gamma");
+                Program.Check(repository.Load(backup).Data.Words[0].Word == "gamma");
+                Program.Check(Directory.GetFiles(root, "*.corrupt").Length == 1);
             }
             finally
             {
