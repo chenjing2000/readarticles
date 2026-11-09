@@ -1,31 +1,62 @@
 # Publishing
 
-From the repository root on Windows with .NET 10 SDK, close the application and run:
+From the repository root on Windows with a .NET 10 SDK, close ReadArticles and run:
 
 ```powershell
 .\tools\Publish.ps1
 ```
 
-The script calls ReadArticles/Properties/PublishProfiles/Portable.pubxml with PublishProfile=Portable. All four projects use Release, win-x64, framework-dependent single-file publication, bundled native loaders, no trimming or compression, and no distributed PDB/XML documentation. The result is dist/ReadArticles.exe. User settings are stored in dist/userdata/config/settings.json; keep the executable and userdata directory together when moving the portable application. End users need .NET 10 Windows Desktop Runtime x64, not just the regular runtime.
+The script uses `ReadArticles/Properties/PublishProfiles/Portable.pubxml` (Release, win-x64, framework-dependent single-file, no trimming). The installed portable layout is:
 
-The script builds in a unique staging directory under dist, excludes build symbols and XML documentation, verifies that exactly one EXE remains, and atomically replaces an existing EXE on the same volume. Failed builds, extra dependencies, and locked executables stop publication. The script updates only dist/ReadArticles.exe. Existing userdata and arbitrary user files in dist are retained. Temporary staging files are removed. Build caches in bin/obj are not deleted. No parallel build, test, or publish should use the same project while publication runs.
+```text
+dist/
+  ReadArticles/
+    ReadArticles.exe
+    README.txt
+    userdata/
+      config/settings.json
+      backups/
+```
 
-If Windows blocks scripts, use a process-only policy override:
+`userdata/` is created on demand when the application saves settings or backups; it is never cleared during publishing. The application still uses the external library directory selected by the user. Keep the entire portable `ReadArticles/` folder together when moving it, and place it in a directory where the current Windows user has write permission. The machine must have **.NET 10 Windows Desktop Runtime x64**, patch 10.0.11 or later, not just the standard .NET runtime.
+
+## Safe publishing
+
+1. Publish the new EXE into a unique `dist/.publish-*` staging directory.
+2. Strip PDB/XML build artifacts and reject unexpected packaged files.
+3. Check the existing application EXE for incompatible file locks before making changes.
+4. If `dist/userdata/` exists and `dist/ReadArticles/userdata/` is absent, copy the legacy userdata directory to a staging folder, verify every copied file by SHA-256, and install the copied directory without deleting the original.
+5. Preserve a legacy `dist/ReadArticles.settings.json` alongside the new executable if it exists, so the existing application-level settings migration can read it.
+6. Create a short portable `README.txt` if absent.
+7. Install the new EXE, retaining the previous executable in the portable directory under a `ReadArticles.exe.previous-*` name when replacing an existing release.
+8. Remove only owned temporary staging paths after checking that they contain no reparse points.
+
+A failed build, unexpected dependency, locked EXE, or copy-validation failure does not replace the installed EXE. Updating does not overwrite existing `userdata/`, the user's external library, or arbitrary files in `dist/`.
+
+The earlier `dist/ReadArticles.exe` and `dist/userdata/` are deliberately **not deleted** by migration. After validating the new portable installation and verifying the user's configuration, the user may manually archive or remove obsolete root-level files. Do not delete them before checking the new installation. Previous EXE copies may also be removed manually after a version has been verified.
+
+The publish script validates the package structure and safe EXE replacement, **not** actual WPF startup. Always run the published-app check on an interactive local Windows desktop before declaring the new version usable.
+
+## Tests and runtime verification
+
+Use the process-only execution-policy override if required:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Publish.ps1
 ```
 
-Test the publication safeguards without building the application:
+Run the filesystem-level publication tests (the script mocks only `dotnet publish`, not filesystem changes):
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Publish.ps1
 ```
 
-The test substitutes only the external dotnet build and exercises the actual script against temporary files, including failed builds, unexpected DLLs, locked EXEs, and configuration preservation. Validate the real EXE separately; see [health check](Health-Check-2026-10-13.md).
+After a real publish:
 
-For GitHub distribution, push a unique portable-* tag pointing at a reviewed and tested commit. .github/workflows/release.yml runs the same safeguards and publishing script on Windows, then creates a Release with the generated EXE and docs/Release-Notes.md. Ordinary commits do not trigger a Release. Update the release notes before publishing a new tag. EXEs are Release assets; dist, user settings, libraries, and media remain outside Git.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-PublishedApp.ps1
+```
 
-## Unified release verification
+`Test-PublishedApp.ps1` tests a copied executable from a directory with spaces and a different working directory, checks that settings are created under `userdata/config/`, and checks the native missing-.NET instructions. Run `tools/Test.ps1 -Suite Core` in CI, and local `-Suite UI` and `-Suite Full` for interactive and media behavior.
 
-Run `tools/Test.ps1 -Suite Core` before publishing and `tools/Test-PublishedApp.ps1` afterward. The GitHub tag workflow now performs both steps before creating the Release. Local real-content Full checks are documented in [Testing](Testing.md).
+The `dist/` directory is local build output and is not committed. The project does not automatically install .NET, create an installer, or update itself online.

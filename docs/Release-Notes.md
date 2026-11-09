@@ -2,8 +2,8 @@
 
 Windows x64, framework-dependent single EXE. Install .NET 10 Windows Desktop Runtime x64 before running.
 
-- Unified Portable.pubxml and tools/Publish.ps1; output: dist/ReadArticles.exe.
-- Staged publication validates a single EXE and preserves existing user configuration and other user files.
+- Unified Portable.pubxml and tools/Publish.ps1; output: dist/ReadArticles/ReadArticles.exe.
+- Staged publication validates a single EXE inside a portable application directory, keeps `userdata/` beside the executable, preserves other user files, and retains the preceding EXE for recovery.
 - No bundled .NET runtime, trimming, single-file compression, separate PDBs, or XML documentation.
 - Source, documentation, and publishing regression tests are included in this tag; user data and local media are excluded.
 

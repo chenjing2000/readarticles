@@ -43,7 +43,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `Rendering/SelectionAddAdorner.cs` | Position and show/hide the native circle-plus selection action |
 | `Infrastructure/JsonFiles.cs` | JSON helpers, SHA256 fingerprints, and temporary-file replacement |
 | `Infrastructure/ResourcePaths.cs` | Relative-path and reparse-point checks |
-| `Infrastructure/ReaderSettings.cs` | Load and save application preferences beside the executable |
+| `Infrastructure/ReaderSettings.cs` | Load and save preferences under the portable `userdata/config/` directory |
 | `Infrastructure/UiIcons.cs` | Load embedded icons and create vector drawings, including disabled variants |
 | `Infrastructure/WpfAudioPlayer.cs` / `RelayCommand.cs` | Native media adapter and small WPF command implementation |
 
@@ -118,7 +118,7 @@ Keyboard focus remains available, but the global focus visual uses an empty temp
 
 Focusable buttons use a pale teal (#D7EFEB) background while they have keyboard focus, including the settings circle. Focus outlines remain hidden. Local MP3s and personal resource directories are excluded from Git; embedded UI icons remain source dependencies.
 
-The Portable publish profile creates one framework-dependent Windows x64 executable in dist/. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses the executable stem plus .settings.json in the executable directory; missing settings initialize at startup, recoverable JSON corruption keeps a backup, and settings changes save without waiting for exit. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
+The Portable publish profile creates one framework-dependent Windows x64 executable in `dist/ReadArticles/`. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses `userdata/config/settings.json` beside the executable directory; missing settings initialize at startup, recoverable JSON corruption keeps a backup, and settings changes save without waiting for exit. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
 
 ReaderSettings owns configuration defaults, recovery, and value normalization on load and save. It rounds stored column widths, bounds the font and volume, and validates accent and progress choices. MainWindow.Settings applies those values to controls and constrains column widths to the current viewport; it does not duplicate configuration validation.
 

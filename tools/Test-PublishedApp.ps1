@@ -3,8 +3,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Test.Common.ps1')
 $workspace = Split-Path -Parent $PSScriptRoot
 $exeName = 'ReadArticles.exe'
-$settingsName = 'Renamed App.settings.json'
-if (-not $ExePath) { $ExePath = Join-Path $workspace "dist\$exeName" }
+$settingsName = 'settings.json'
+if (-not $ExePath) { $ExePath = Join-Path $workspace "dist\ReadArticles\$exeName" }
 $ExePath = (Resolve-Path -LiteralPath $ExePath).Path
 $temporary = New-TestDirectory
 $script:publishedProcess = $null
@@ -24,9 +24,10 @@ try {
             $script:publishedProcess.Refresh()
         } while (-not $script:publishedProcess.HasExited -and $script:publishedProcess.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
         if ($script:publishedProcess.HasExited -or $script:publishedProcess.MainWindowHandle -eq 0) { throw 'The application did not create its main window.' }
-        $settings = Join-Path $appDirectory $settingsName
+        $settings = Join-Path $appDirectory ('userdata\config\' + $settingsName)
         while (-not (Test-Path -LiteralPath $settings) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
         Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json | Out-Null
+        if (Test-Path -LiteralPath (Join-Path $appDirectory 'Renamed App.settings.json')) { throw 'Legacy sibling settings file was unexpectedly created.' }
         if (@(Get-ChildItem -LiteralPath $workingDirectory -File).Count) { throw 'Application files followed the working directory.' }
         $script:publishedProcess.CloseMainWindow() | Out-Null
         if (-not $script:publishedProcess.WaitForExit(5000)) { throw 'The main window did not close cleanly.' }

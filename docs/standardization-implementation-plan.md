@@ -62,7 +62,7 @@ ReadArticles/
 
 ### Phase 3 — Portable publishing (P0)
 
-- Publish to `dist/ReadArticles/` with the executable and userdata kept separate.
+- Publish to `dist/ReadArticles/` with the executable and userdata kept separate. Preserve legacy `dist/userdata/` when copying it to the new layout; do not delete user originals automatically.
 - Replace only application binaries; preserve userdata and arbitrary user files.
 - Retain staging validation and old-version protection.
 - Test first publish, update, locked executable, failed build, interruption, and portable-folder relocation.
