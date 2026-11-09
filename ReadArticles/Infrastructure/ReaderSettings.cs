@@ -92,7 +92,7 @@ public sealed class ReaderSettings
                         warning += " 已从最近一次有效备份恢复，损坏文件保留为：" + Path.GetFileName(corruptPath);
                         return Deserialize(PathName);
                     }
-                    catch (Exception restoreError) when (restoreError is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
+                    catch (Exception restoreError) when (restoreError is JsonException or IOException or UnauthorizedAccessException)
                     {
                         warning += " 最近一次备份无法恢复：" + restoreError.Message;
                     }
