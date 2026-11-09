@@ -17,9 +17,7 @@
 - 发布入口：`dist/ReadArticles.exe`。
 - 用户数据根目录：可执行文件同级的 `userdata/`。
 - 设置：`userdata/config/settings.json`。
-- 设置备份：`userdata/backups/settings/`。
-- 词汇备份：`userdata/backups/vocabulary/`；每个源词汇文件仅保留最近一个备份。
-- 缓存：`userdata/cache/`；日志：`userdata/logs/`。
+- 后续阶段将增加 `userdata/backups/settings/`、`userdata/backups/vocabulary/`、`userdata/cache/` 和 `userdata/logs/`；这些机制尚未在本阶段实现。
 - 外部文章库和音频仍由用户选择，绝不自动移动到程序目录或 userdata。
 - 旧版 EXE 同级设置文件迁移到新位置时保留原文件；新版与旧版配置同时存在且内容不同时，优先读取新版并向用户显示警告。
 
