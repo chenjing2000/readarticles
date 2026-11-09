@@ -70,9 +70,10 @@ internal static class ReaderControlsChecks
                 Program.Check(File.Exists(markerPath));
                 var persisted = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && persisted.Accent == "us" && persisted.LeftWidth == 244);
-                File.WriteAllText(currentPath, JsonFiles.Fingerprint(currentPath) + " "); 
+                persisted.Accent = "uk";
+                persisted.Save();
                 var updated = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && updated.Accent == "us");
+                Program.Check(warning == null && updated.Accent == "uk");
             }
             finally
             {
