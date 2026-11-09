@@ -18,6 +18,8 @@ public sealed partial class MainViewModel
         Changed(nameof(CurrentUser));
         Changed(nameof(ArticleTitle));
         ArticleChanged?.Invoke();
+        if (workspace.Library.Warnings.Count > 0)
+            AppLogger.Default.Warning("LibraryLoadedWithWarnings");
         Status = string.Join("  ", workspace.Library.Warnings);
     });
 
