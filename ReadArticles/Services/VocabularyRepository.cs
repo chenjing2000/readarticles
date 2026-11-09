@@ -8,6 +8,13 @@ using System.Threading;
 namespace ReadArticles.Services;
 public sealed class VocabularyRepository
 {
+    private readonly Func<string, string> backupPathResolver;
+
+    public VocabularyRepository(Func<string, string>? backupPathResolver = null)
+    {
+        this.backupPathResolver = backupPathResolver ?? AppPaths.VocabularyBackupFile;
+    }
+
     public VocabularySnapshot Load(string path)
     {
         if (!File.Exists(path)) return new VocabularySnapshot(new VocabularyData(), null, true);
@@ -75,7 +82,7 @@ public sealed class VocabularyRepository
 
         try
         {
-            string backupPath = AppPaths.VocabularyBackupFile(absolute);
+            string backupPath = backupPathResolver(absolute);
             var backup = Load(backupPath);
             if (!backup.CanWrite)
                 throw new InvalidDataException("备份词汇表无效，不能恢复。");
