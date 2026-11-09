@@ -31,7 +31,7 @@ internal static class ReaderControlsChecks
             }
             finally { if (before == null) File.Delete(path); else File.WriteAllBytes(path, before); }
         });
-        Program.Run("settings initialize beside the executable and changes save before close", () =>
+        Program.Run("settings initialize in userdata config and changes save before close", () =>
         {
             string path = ReaderSettings.PathName;
             byte[]? previous = File.Exists(path) ? File.ReadAllBytes(path) : null;
@@ -41,7 +41,7 @@ internal static class ReaderControlsChecks
                 File.Delete(path);
                 window = new ReadArticles.MainWindow { ShowActivated = false, Left = -10000, Top = -10000 };
                 window.Show();
-                Program.Check(File.Exists(path) && Path.GetFileName(path) == Path.GetFileNameWithoutExtension(Environment.ProcessPath) + ".settings.json");
+                Program.Check(File.Exists(path) && path == AppPaths.SettingsFile && Path.GetRelativePath(AppPaths.ApplicationDirectory, path) == Path.Combine("userdata", "config", "settings.json"));
                 var defaults = ReaderSettings.Load(out var warning);
                 Program.Check(warning == null && defaults.ForwardStep == 4 && defaults.BackwardStep == 5 && defaults.FontSize == 15);
                 var menu = ((Button)window.FindName("SettingsButton")).ContextMenu;
