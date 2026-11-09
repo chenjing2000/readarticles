@@ -50,8 +50,8 @@ public sealed class PlaybackController
                 return;
             }
         }
-        catch (IOException error) { Message?.Invoke(error.Message); return; }
-        catch (UnauthorizedAccessException error) { Message?.Invoke(error.Message); return; }
+        catch (IOException error) { AppLogger.Default.Warning("AudioFileAccessFailed", error); Message?.Invoke(error.Message); return; }
+        catch (UnauthorizedAccessException error) { AppLogger.Default.Warning("AudioFileAccessDenied", error); Message?.Invoke(error.Message); return; }
         Owner = owner;
         CurrentSid = item.Sid;
         State = PlaybackState.Playing;
