@@ -132,6 +132,25 @@ try {
         & (Join-Path $tools 'Publish.ps1')
         Check ((Get-Content -LiteralPath $settings -Raw) -eq 'new-settings') 'Update overwrote migrated settings.'
     }
+    Run-Case 'legacy sibling settings are copied without overwriting the source' {
+        $oldSettings = Join-Path $dist 'ReadArticles.settings.json'
+        $newSettings = Join-Path $app 'ReadArticles.settings.json'
+        [IO.File]::WriteAllText($oldSettings, 'legacy-sibling')
+        & (Join-Path $tools 'Publish.ps1')
+        Check ((Get-Content -LiteralPath $newSettings -Raw) -eq 'legacy-sibling') 'Legacy sibling settings were not copied.'
+        Check ((Get-Content -LiteralPath $oldSettings -Raw) -eq 'legacy-sibling') 'Legacy settings source was modified.'
+        [IO.File]::WriteAllText($newSettings, 'new-sibling')
+        & (Join-Path $tools 'Publish.ps1')
+        Check ((Get-Content -LiteralPath $newSettings -Raw) -eq 'new-sibling') 'Existing sibling settings were overwritten.'
+        Check-UserData
+    }
+    Run-Case 'existing portable readme is never replaced' {
+        $readme = Join-Path $app 'README.txt'
+        [IO.File]::WriteAllText($readme, 'my portable notes')
+        & (Join-Path $tools 'Publish.ps1')
+        Check ((Get-Content -LiteralPath $readme -Raw) -eq 'my portable notes') 'User readme was overwritten.'
+        Check-UserData
+    }
     Run-Case 'existing userdata has precedence over legacy userdata' {
         $oldData = Join-Path $dist 'userdata'
         $oldConfig = Join-Path $oldData 'config'
