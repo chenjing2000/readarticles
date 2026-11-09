@@ -123,7 +123,14 @@ public sealed class ReaderSettings
     public void Save()
     {
         Normalize();
+        if (File.Exists(PathName))
+            BackupFiles.CreateVerifiedBackup(PathName, AppPaths.SettingsBackupFile);
         JsonFiles.WriteAtomic(PathName, this);
+    }
+
+    public static void RestoreLatestBackup()
+    {
+        BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
     }
 
     private void Normalize()
