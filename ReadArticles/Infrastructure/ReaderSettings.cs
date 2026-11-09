@@ -124,7 +124,10 @@ public sealed class ReaderSettings
     {
         Normalize();
         if (File.Exists(PathName))
+        {
+            _ = Deserialize(PathName);
             BackupFiles.CreateVerifiedBackup(PathName, AppPaths.SettingsBackupFile);
+        }
         JsonFiles.WriteAtomic(PathName, this);
     }
 
