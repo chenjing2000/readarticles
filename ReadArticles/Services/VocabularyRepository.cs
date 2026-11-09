@@ -52,7 +52,7 @@ public sealed class VocabularyRepository
                 if (actual != expectedFingerprint) throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再编辑。");
             }
             CheckCurrent();
-            string backupPath = AppPaths.VocabularyBackupFile(absolute);
+            string backupPath = backupPathResolver(absolute);
             return JsonFiles.WriteAtomic(absolute, data, () =>
             {
                 CheckCurrent();
@@ -68,7 +68,7 @@ public sealed class VocabularyRepository
     public void RestoreLatestBackup(string path, string? expectedFingerprint)
     {
         string absolute = Path.GetFullPath(path);
-        string lockName = @"Local\\ReadArticles.Vocabulary." + JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(absolute.ToUpperInvariant()));
+        string lockName = @"Local\ReadArticles.Vocabulary." + JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(absolute.ToUpperInvariant()));
         using var mutex = new Mutex(false, lockName);
         try { mutex.WaitOne(); }
         catch (AbandonedMutexException) { }
