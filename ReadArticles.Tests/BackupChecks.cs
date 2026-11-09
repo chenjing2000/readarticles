@@ -14,13 +14,17 @@ internal static class BackupChecks
             string settingsPath = ReaderSettings.PathName;
             string backupPath = AppPaths.SettingsBackupFile;
             string markerPath = AppPaths.LegacySettingsMigrationMarker;
+            string legacyPath = AppPaths.LegacySettingsFile;
             byte[]? settingsBefore = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : null;
             byte[]? backupBefore = File.Exists(backupPath) ? File.ReadAllBytes(backupPath) : null;
             byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
+            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
             try
             {
                 if (File.Exists(settingsPath)) File.Delete(settingsPath);
                 if (File.Exists(backupPath)) File.Delete(backupPath);
+                if (File.Exists(legacyPath)) File.Delete(legacyPath);
+                if (File.Exists(markerPath)) File.Delete(markerPath);
                 var first = new ReaderSettings { Volume = 0.2, Accent = "uk" };
                 first.Save();
                 Program.Check(!File.Exists(backupPath));
@@ -43,6 +47,7 @@ internal static class BackupChecks
                 RestoreFile(settingsPath, settingsBefore);
                 RestoreFile(backupPath, backupBefore);
                 RestoreFile(markerPath, markerBefore);
+                RestoreFile(legacyPath, legacyBefore);
             }
         });
 
@@ -98,6 +103,45 @@ internal static class BackupChecks
                 Program.Check(repository.Load(source).Data.Words[0].Word == "beta");
                 Program.Check(repository.Load(backup).Data.Words[0].Word == "gamma");
                 Program.Check(Directory.GetFiles(backupRoot, "*.bak").Length == 1);
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        });
+
+        Program.Run("vocabulary save aborts when its backup cannot be created", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-vocabulary-backup-failure-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                string source = Path.Combine(root, "article.vocabulary.json");
+                string blocked = Path.Combine(root, "blocked");
+                File.WriteAllText(blocked, "not a directory");
+                var original = new VocabularyData
+                {
+                    Words = new List<VocabularyEntry>
+                    {
+                        new() { Word = "original", Meanings = new List<Meaning> { new("n.", "original") } }
+                    }
+                };
+                JsonFiles.WriteAtomic(source, original);
+                string before = JsonFiles.Fingerprint(source);
+                var repository = new VocabularyRepository(_ => Path.Combine(blocked, "backup.bak"));
+                var changed = new VocabularyData
+                {
+                    Words = new List<VocabularyEntry>
+                    {
+                        new() { Word = "changed", Meanings = new List<Meaning> { new("n.", "changed") } }
+                    }
+                };
+                bool failed = false;
+                try { repository.Save(source, changed, before); }
+                catch (IOException) { failed = true; }
+                catch (UnauthorizedAccessException) { failed = true; }
+                Program.Check(failed && JsonFiles.Fingerprint(source) == before);
+                Program.Check(repository.Load(source).Data.Words[0].Word == "original");
             }
             finally
             {
