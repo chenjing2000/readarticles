@@ -31,6 +31,39 @@ internal static class ReaderControlsChecks
             }
             finally { if (before == null) File.Delete(path); else File.WriteAllBytes(path, before); }
         });
+        Program.Run("legacy settings migrate to userdata config without deleting the source", () =>
+        {
+            string currentPath = ReaderSettings.PathName;
+            string legacyPath = AppPaths.LegacySettingsFile;
+            byte[]? currentBefore = File.Exists(currentPath) ? File.ReadAllBytes(currentPath) : null;
+            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
+            try
+            {
+                if (File.Exists(currentPath)) File.Delete(currentPath);
+                JsonFiles.WriteAtomic(legacyPath, new ReaderSettings
+                {
+                    LeftWidth = 244,
+                    RightWidth = 355,
+                    FontSize = 16,
+                    Volume = 0.4,
+                    Accent = "us",
+                    Library = TestData.LibraryRoot
+                });
+                var migrated = ReaderSettings.Load(out var warning);
+                Program.Check(warning == null && migrated.LeftWidth == 244 && migrated.RightWidth == 355);
+                Program.Check(migrated.Accent == "us" && migrated.Volume == 0.4 && migrated.Library == TestData.LibraryRoot);
+                Program.Check(File.Exists(currentPath) && File.Exists(legacyPath));
+                var persisted = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && persisted.Accent == "us" && persisted.LeftWidth == 244);
+            }
+            finally
+            {
+                if (currentBefore == null) { if (File.Exists(currentPath)) File.Delete(currentPath); }
+                else File.WriteAllBytes(currentPath, currentBefore);
+                if (legacyBefore == null) { if (File.Exists(legacyPath)) File.Delete(legacyPath); }
+                else File.WriteAllBytes(legacyPath, legacyBefore);
+            }
+        });
         Program.Run("settings initialize in userdata config and changes save before close", () =>
         {
             string path = ReaderSettings.PathName;
