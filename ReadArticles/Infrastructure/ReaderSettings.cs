@@ -24,7 +24,16 @@ public sealed class ReaderSettings
             AppPaths.EnsureConfigDirectory();
 
             if (File.Exists(PathName))
-                return ReadCurrentSettings(out warning);
+            {
+                var current = ReadCurrentSettings(out warning);
+                string legacyPath = AppPaths.LegacySettingsFile;
+                if (File.Exists(legacyPath) &&
+                    !string.Equals(JsonFiles.Fingerprint(PathName), JsonFiles.Fingerprint(legacyPath), StringComparison.Ordinal))
+                {
+                    warning = "检测到新版和旧版配置文件同时存在且内容不同。当前使用 userdata/config/settings.json，旧版配置文件已保留；如需使用旧配置，请先备份两份文件后再处理。";
+                }
+                return current;
+            }
 
             string legacyPath = AppPaths.LegacySettingsFile;
             if (File.Exists(legacyPath))
