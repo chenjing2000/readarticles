@@ -27,10 +27,17 @@ public sealed class ReaderSettings
             {
                 var current = ReadCurrentSettings(out warning);
                 string legacyPath = AppPaths.LegacySettingsFile;
-                if (File.Exists(legacyPath) &&
-                    !string.Equals(JsonFiles.Fingerprint(PathName), JsonFiles.Fingerprint(legacyPath), StringComparison.Ordinal))
+                if (File.Exists(legacyPath) && !File.Exists(AppPaths.LegacySettingsMigrationMarker))
                 {
-                    warning = "检测到新版和旧版配置文件同时存在且内容不同。当前使用 userdata/config/settings.json，旧版配置文件已保留；如需使用旧配置，请先备份两份文件后再处理。";
+                    string legacyFingerprint = JsonFiles.Fingerprint(legacyPath);
+                    if (!string.Equals(JsonFiles.Fingerprint(PathName), legacyFingerprint, StringComparison.Ordinal))
+                    {
+                        warning = "检测到新版和旧版配置文件同时存在且内容不同。当前使用 userdata/config/settings.json，旧版配置文件已保留；如需使用旧配置，请先备份两份文件后再处理。";
+                    }
+                    else
+                    {
+                        WriteMigrationMarker(legacyFingerprint);
+                    }
                 }
                 return current;
             }
@@ -42,6 +49,14 @@ public sealed class ReaderSettings
                 {
                     var migrated = Deserialize(migrationSourcePath);
                     migrated.Save();
+                    try
+                    {
+                        WriteMigrationMarker(JsonFiles.Fingerprint(migrationSourcePath));
+                    }
+                    catch (Exception markerError) when (markerError is IOException or UnauthorizedAccessException)
+                    {
+                        warning = "设置已迁移，但无法写入迁移标记；旧版配置文件已保留：" + markerError.Message;
+                    }
                     return migrated;
                 }
                 catch (JsonException error)
@@ -82,6 +97,11 @@ public sealed class ReaderSettings
             warning = "无法创建或访问用户数据目录，设置暂存于内存。请将整个 ReadArticles 文件夹移动到具有写入权限的位置。详细信息：" + error.Message;
             return new ReaderSettings();
         }
+    }
+
+    private static void WriteMigrationMarker(string fingerprint)
+    {
+        File.WriteAllText(AppPaths.LegacySettingsMigrationMarker, fingerprint);
     }
 
     private static ReaderSettings ReadCurrentSettings(out string? warning)
