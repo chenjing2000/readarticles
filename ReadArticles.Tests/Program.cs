@@ -35,7 +35,8 @@ internal static class Program
             case "--window-only": WindowChecks.Run(); ReaderWindowChecks.Run(); break;
             case "--editing-only": VocabularyEditingChecks.Run(); break;
             case "--icons-only": IconChecks.Run(); break;
-            case "--controls-only": ReaderControlsChecks.Run(); break;
+            case "--controls-only": ReaderControlsChecks.Run(); BackupChecks.Run(); break;
+            case "--backup-only": BackupChecks.Run(); break;
             case "--tree-only": TreeNavigationChecks.Run(); break;
             case "--source-only": SourceLibraryChecks.Run(); break;
             default:
