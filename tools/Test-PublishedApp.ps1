@@ -33,6 +33,14 @@ try {
         if (-not $script:publishedProcess.WaitForExit(5000)) { throw 'The main window did not close cleanly.' }
         $script:publishedProcess.Dispose()
         $script:publishedProcess = $null
+
+        $logs = Join-Path $appDirectory 'userdata\logs'
+        $logFiles = @(Get-ChildItem -LiteralPath $logs -File -Filter '*.log' -ErrorAction SilentlyContinue)
+        if ($logFiles.Count -eq 0) { throw 'The published application did not create its runtime log.' }
+        $logText = ($logFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join [Environment]::NewLine
+        if ($logText -notmatch 'ApplicationStarted' -or $logText -notmatch 'ApplicationExited') {
+            throw 'The runtime log does not contain the application start and exit events.'
+        }
     }
     # Use a valid hostfxr with no frameworks, leaving installed runtimes untouched.
     Invoke-TestCheck 'Native installation instructions when .NET is missing' {

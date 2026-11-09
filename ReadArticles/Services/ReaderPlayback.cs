@@ -1,4 +1,5 @@
 using System.IO;
+using ReadArticles.Infrastructure;
 using ReadArticles.Models;
 
 namespace ReadArticles.Services;
@@ -149,6 +150,7 @@ public sealed class ReaderPlayback
         catch (Exception error) when (error is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
         {
             // A missing sibling MP3 leaves pronunciation playing; failed pronunciation cancels its previous target.
+            AppLogger.Default.Warning("PlaybackRequestFailed", error);
             if (stopOnFailure) pronunciationPlayer.Stop();
             Message?.Invoke(error.Message);
         }

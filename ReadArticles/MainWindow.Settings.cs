@@ -59,6 +59,7 @@ public partial class MainWindow
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
+            AppLogger.Default.Error("SettingsSaveFailed", error);
             string message = "无法保存配置文件：" + error.Message;
             if (IsLoaded) Dispatcher.BeginInvoke(() => ViewModel.Status = message);
             else MessageBox.Show(message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);

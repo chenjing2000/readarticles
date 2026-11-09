@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows.Input;
 using ReadArticles.Models;
+using ReadArticles.Infrastructure;
 using ReadArticles.Services;
 
 namespace ReadArticles.ViewModels;
@@ -81,6 +82,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception error) when (error is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException)
         {
+            AppLogger.Default.Warning("UserOperationFailed", error);
             Status = error.Message;
             return false;
         }

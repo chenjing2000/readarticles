@@ -28,6 +28,7 @@ internal static class Program
                 IconChecks.Run();
                 VocabularyEditingChecks.Run();
                 BackupChecks.Run();
+                AppLoggerChecks.Run();
                 break;
             case "--rendering-only": MatchingChecks.Run(); RenderingChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
@@ -38,6 +39,7 @@ internal static class Program
             case "--icons-only": IconChecks.Run(); break;
             case "--controls-only": ReaderControlsChecks.Run(); BackupChecks.Run(); break;
             case "--backup-only": BackupChecks.Run(); break;
+            case "--logging-only": AppLoggerChecks.Run(); break;
             case "--tree-only": TreeNavigationChecks.Run(); break;
             case "--source-only": SourceLibraryChecks.Run(); break;
             default:

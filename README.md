@@ -54,3 +54,6 @@ Run `.\tools\Publish.ps1` from this repository root. The application uses Portab
 ## Unified testing and acceptance
 
 Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. All fixed test inputs come from `tests/TestData/`; temporary copies are isolated under the OS temporary directory. After publishing, run `.\tools\Test-PublishedApp.ps1`. See the [documentation index](docs/README.md) and [test guide](docs/Testing.md). PowerShell source is English-only.
+
+
+- [Runtime logging](docs/Logging.md)

@@ -45,6 +45,12 @@ Test screenshots, Markdown reports, and transcripts are written under `artifacts
 
 Scratch directories and copied audio are not test outputs; they belong in the OS temporary directory and are removed after execution. The published application does not use `artifacts/`.
 
+## Runtime logging checks
+
+Every suite runs the isolated logger checks through `--logging-only`. They verify that exception messages and learning content are omitted, daily files rotate within their size bound, expired files and excess total storage are pruned, and log-directory failures never escape into application code. The tests use temporary directories and do not write into the real `userdata/logs/` folder.
+
+After launching the actual portable application, inspect `dist/ReadArticles/userdata/logs/` to confirm that a daily log is created. The application does not log article or vocabulary content.
+
 ## Published EXE acceptance
 
 After publishing, run:

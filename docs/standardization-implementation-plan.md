@@ -1,6 +1,6 @@
 # ReadArticles Standardization Implementation Plan
 
-Status: approved plan; implementation proceeds in independently tested phases.
+Status: phases 1–3 merged; phase 4 runtime logging is implemented on `feature/runtime-logging` and awaiting acceptance.
 
 ## Goals
 
@@ -42,7 +42,7 @@ ReadArticles/
 
 ## Phases
 
-### Phase 1 — User-data paths and settings migration (P0)
+### Phase 1 — User-data paths and settings migration (P0) — Complete
 
 - Introduce one path service for application, userdata, config, backups, cache, and logs.
 - Store settings at `userdata/config/settings.json`.
@@ -51,7 +51,7 @@ ReadArticles/
 - On access/permission failures, clearly instruct the user to move the whole folder to a writable location. Do not use `%LOCALAPPDATA%` as a fallback.
 - Add migration, conflict, corruption, and path tests.
 
-### Phase 2 — Backup and recovery (P0)
+### Phase 2 — Backup and recovery (P0) — Complete
 
 - Settings: retain exactly one latest valid pre-save backup.
 - Vocabulary: retain exactly one latest valid pre-save backup per source file.
@@ -60,18 +60,21 @@ ReadArticles/
 - During restore, preserve the current file as the new latest backup before replacing it with the previous backup.
 - Test failed backup, external edits, interrupted writes, same-name path collisions, and restore behavior.
 
-### Phase 3 — Portable publishing (P0)
+### Phase 3 — Portable publishing (P0) — Complete
 
 - Publish to `dist/ReadArticles/` with the executable and userdata kept separate. Preserve legacy `dist/userdata/` when copying it to the new layout; do not delete user originals automatically.
 - Replace only application binaries; preserve userdata and arbitrary user files.
 - Retain staging validation and old-version protection.
 - Test first publish, update, locked executable, failed build, interruption, and portable-folder relocation.
 
-### Phase 4 — Runtime logs (P1)
+### Phase 4 — Runtime logs (P1) — Implemented; acceptance pending
 
-- Add lightweight daily logs under `userdata/logs/`.
-- Record operational events and actionable errors without recording article text or vocabulary meanings.
-- Apply file-size and retention limits. Logging failures must not crash core reading or playback.
+- Add lightweight daily JSON-lines logs under `userdata/logs/`.
+- Record application start/exit, handled operation failures, library/article warnings, playback failures, settings-save failures, and unhandled exceptions.
+- Do not record exception messages, article text, vocabulary words or meanings, or absolute media paths. Exception type, HRESULT, and method-only stack frames are retained for diagnosis.
+- Keep each daily log file at or below 2 MiB, retain at most 14 days, and cap the log directory at 20 MiB. A single rollover file per day is allowed.
+- Logging failures are swallowed and must not crash core reading or playback.
+- No application cache currently requires persistence; `userdata/cache/` remains reserved and is not created until a real cache feature needs it.
 
 ### Phase 5 — Documentation and UI standardization (P1/P2)
 
@@ -90,4 +93,4 @@ ReadArticles/
 
 ## Current implementation note
 
-Phase 1 is merged into main. Phase 2 is in progress on `feature/data-backup-recovery`; later-phase behaviors must not be documented as implemented until their code and tests have landed.
+Phases 1–3 are merged into `main`. Phase 4 is implemented on `feature/runtime-logging` and requires hosted Core CI plus local UI/Full acceptance before merge. Phase 5 remains pending.

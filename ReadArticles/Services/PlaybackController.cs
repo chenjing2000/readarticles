@@ -1,5 +1,6 @@
 namespace ReadArticles.Services;
 using System.IO;
+using ReadArticles.Infrastructure;
 
 public sealed class PlaybackController
 {
@@ -44,12 +45,13 @@ public sealed class PlaybackController
                 !(string.Equals(extension, ".mp3", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".wav", StringComparison.OrdinalIgnoreCase)) ||
                 !File.Exists(item.Path) || new FileInfo(item.Path).Length == 0)
             {
+                AppLogger.Default.Warning("AudioFileUnavailable");
                 Message?.Invoke("缺少或无效 MP3/WAV：" + item.Path);
                 return;
             }
         }
-        catch (IOException error) { Message?.Invoke(error.Message); return; }
-        catch (UnauthorizedAccessException error) { Message?.Invoke(error.Message); return; }
+        catch (IOException error) { AppLogger.Default.Warning("AudioFileAccessFailed", error); Message?.Invoke(error.Message); return; }
+        catch (UnauthorizedAccessException error) { AppLogger.Default.Warning("AudioFileAccessDenied", error); Message?.Invoke(error.Message); return; }
         Owner = owner;
         CurrentSid = item.Sid;
         State = PlaybackState.Playing;
@@ -61,6 +63,7 @@ public sealed class PlaybackController
         }
         catch (Exception error) when (error is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
+            AppLogger.Default.Warning("AudioPlaybackStartFailed", error);
             OnFailed(token, error.Message);
         }
     }
@@ -80,6 +83,7 @@ public sealed class PlaybackController
     {
         if (token != request || State == PlaybackState.Stopped) return;
         Stop();
+        AppLogger.Default.Warning("AudioPlaybackFailed");
         Message?.Invoke($"音频文件无法播放：{error}");
     }
 

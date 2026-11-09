@@ -1,4 +1,5 @@
 using System.IO;
+using ReadArticles.Infrastructure;
 using ReadArticles.Models;
 using ReadArticles.Services;
 
@@ -18,6 +19,8 @@ public sealed partial class MainViewModel
         Changed(nameof(CurrentUser));
         Changed(nameof(ArticleTitle));
         ArticleChanged?.Invoke();
+        if (workspace.Library.Warnings.Count > 0)
+            AppLogger.Default.Warning("LibraryLoadedWithWarnings");
         Status = string.Join("  ", workspace.Library.Warnings);
     });
 
@@ -34,7 +37,9 @@ public sealed partial class MainViewModel
         Changed(nameof(CurrentUser));
         Changed(nameof(ArticleTitle));
         ArticleChanged?.Invoke();
-        Status = string.Join("  ", Article!.Warnings);
+        if (Article!.Warnings.Count > 0)
+            AppLogger.Default.Warning("ArticleLoadedWithWarnings");
+        Status = string.Join("  ", Article.Warnings);
     });
 
     private string ReadUser(string path)

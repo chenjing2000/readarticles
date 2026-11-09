@@ -39,6 +39,10 @@ try {
         Invoke-TestCommand 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/Test-Publish.ps1')
     }
 
+    Invoke-TestCheck 'Runtime logging safeguards' {
+        Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', '--logging-only')
+    }
+
     if ($Suite -eq 'Full') {
         Invoke-TestCheck 'Complete application regression suite' {
             Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release')

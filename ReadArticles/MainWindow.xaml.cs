@@ -30,7 +30,11 @@ public partial class MainWindow : Window
         Closed += WindowClosed;
 
         RenderArticle();
-        if (settingsWarning != null) Dispatcher.BeginInvoke(() => ViewModel.Status = settingsWarning);
+        if (settingsWarning != null)
+        {
+            AppLogger.Default.Warning("SettingsLoadWarning");
+            Dispatcher.BeginInvoke(() => ViewModel.Status = settingsWarning);
+        }
     }
 
     private void WindowClosed(object? sender, EventArgs e)
