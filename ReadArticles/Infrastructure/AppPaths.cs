@@ -8,6 +8,7 @@ public static class AppPaths
     public static string UserDataDirectory => Path.Combine(ApplicationDirectory, "userdata");
     public static string ConfigDirectory => Path.Combine(UserDataDirectory, "config");
     public static string SettingsFile => Path.Combine(ConfigDirectory, "settings.json");
+    public static string LegacySettingsMigrationMarker => Path.Combine(ConfigDirectory, "legacy-settings-migrated.sha256");
     public static string BackupDirectory => Path.Combine(UserDataDirectory, "backups");
     public static string SettingsBackupDirectory => Path.Combine(BackupDirectory, "settings");
     public static string VocabularyBackupDirectory => Path.Combine(BackupDirectory, "vocabulary");
