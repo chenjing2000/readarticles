@@ -8,6 +8,13 @@ using System.Threading;
 namespace ReadArticles.Services;
 public sealed class VocabularyRepository
 {
+    private readonly Func<string, string> backupPathResolver;
+
+    public VocabularyRepository(Func<string, string>? backupPathResolver = null)
+    {
+        this.backupPathResolver = backupPathResolver ?? AppPaths.VocabularyBackupFile;
+    }
+
     public VocabularySnapshot Load(string path)
     {
         if (!File.Exists(path)) return new VocabularySnapshot(new VocabularyData(), null, true);
@@ -52,9 +59,67 @@ public sealed class VocabularyRepository
                 if (actual != expectedFingerprint) throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再编辑。");
             }
             CheckCurrent();
-            return JsonFiles.WriteAtomic(absolute, data, () => { CheckCurrent(); guard?.Dispose(); });
+            string backupPath = backupPathResolver(absolute);
+            return JsonFiles.WriteAtomic(absolute, data, () =>
+            {
+                CheckCurrent();
+                if (File.Exists(absolute))
+                    BackupFiles.CreateVerifiedBackup(absolute, backupPath);
+                CheckCurrent();
+                guard?.Dispose();
+            });
         }
         finally { mutex.ReleaseMutex(); }
+    }
+
+    public void RestoreLatestBackup(string path, string? expectedFingerprint)
+    {
+        string absolute = Path.GetFullPath(path);
+        string lockName = @"Local\ReadArticles.Vocabulary." + JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(absolute.ToUpperInvariant()));
+        using var mutex = new Mutex(false, lockName);
+        try { mutex.WaitOne(); }
+        catch (AbandonedMutexException) { }
+
+        try
+        {
+            string backupPath = backupPathResolver(absolute);
+            var backup = Load(backupPath);
+            if (!backup.CanWrite)
+                throw new InvalidDataException("备份词汇表无效，不能恢复。");
+
+            string? actual = File.Exists(absolute) ? JsonFiles.Fingerprint(absolute) : null;
+            bool invalidCurrent = false;
+            if (actual != expectedFingerprint)
+            {
+                if (expectedFingerprint is null && actual is not null)
+                {
+                    try { _ = Load(absolute); }
+                    catch (Exception error) when (error is JsonException or InvalidDataException) { invalidCurrent = true; }
+                }
+                if (!invalidCurrent)
+                    throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再恢复。");
+            }
+
+            if (invalidCurrent)
+            {
+                string corruptPath = absolute + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
+                File.Move(absolute, corruptPath);
+            }
+            else
+            {
+                // The repository mutex protects this application's writers. Do not keep
+                // the source file open while the backup service atomically replaces it:
+                // Windows can reject the rename even when the handle allows delete sharing.
+                BackupFiles.RestoreLatestBackup(absolute, backupPath);
+                return;
+            }
+
+            BackupFiles.RestoreLatestBackup(absolute, backupPath);
+        }
+        finally
+        {
+            mutex.ReleaseMutex();
+        }
     }
 
     public static VocabularyEntry NewEntry(string text)
