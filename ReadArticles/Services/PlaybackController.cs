@@ -45,6 +45,7 @@ public sealed class PlaybackController
                 !(string.Equals(extension, ".mp3", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".wav", StringComparison.OrdinalIgnoreCase)) ||
                 !File.Exists(item.Path) || new FileInfo(item.Path).Length == 0)
             {
+                AppLogger.Default.Warning("AudioFileUnavailable");
                 Message?.Invoke("缺少或无效 MP3/WAV：" + item.Path);
                 return;
             }
