@@ -20,7 +20,7 @@ public static class AppPaths
     {
         get
         {
-            string executableName = Path.GetFileNameWithoutExtension(Environment.ProcessPath);
+            string? executableName = Path.GetFileNameWithoutExtension(Environment.ProcessPath);
             if (string.IsNullOrWhiteSpace(executableName))
                 executableName = "ReadArticles";
             return Path.Combine(ApplicationDirectory, executableName + ".settings.json");
