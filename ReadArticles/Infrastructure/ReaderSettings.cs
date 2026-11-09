@@ -35,12 +35,12 @@ public sealed class ReaderSettings
                 return current;
             }
 
-            string legacyPath = AppPaths.LegacySettingsFile;
-            if (File.Exists(legacyPath))
+            string migrationSourcePath = AppPaths.LegacySettingsFile;
+            if (File.Exists(migrationSourcePath))
             {
                 try
                 {
-                    var migrated = Deserialize(legacyPath);
+                    var migrated = Deserialize(migrationSourcePath);
                     migrated.Save();
                     return migrated;
                 }
