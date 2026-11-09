@@ -81,6 +81,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception error) when (error is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException)
         {
+            AppLogger.Default.Warning("UserOperationFailed", error);
             Status = error.Message;
             return false;
         }
