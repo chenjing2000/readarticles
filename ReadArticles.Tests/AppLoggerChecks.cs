@@ -43,11 +43,11 @@ internal static class AppLoggerChecks
                 string expired = Path.Combine(root, "2000-01-01.log");
                 File.WriteAllText(expired, "expired");
                 File.SetLastWriteTime(expired, DateTime.Now.AddDays(-40));
-                var logger = new AppLogger(root, maxFileBytes: 512, retentionDays: 14, maxTotalBytes: 1024);
+                var logger = new AppLogger(root, maxFileBytes: 512, retentionDays: 14, maxTotalBytes: 512);
                 for (int i = 0; i < 40; i++) logger.Info("BoundedLogEvent" + i.ToString("D2"));
                 Program.Check(!File.Exists(expired));
                 var files = Directory.GetFiles(root, "*.log");
-                Program.Check(files.Sum(file => new FileInfo(file).Length) <= 1024);
+                Program.Check(files.Sum(file => new FileInfo(file).Length) <= 512);
             }
             finally { Directory.Delete(root, true); }
         });
