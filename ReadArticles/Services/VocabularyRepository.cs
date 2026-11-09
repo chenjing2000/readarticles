@@ -107,9 +107,9 @@ public sealed class VocabularyRepository
             }
             else
             {
-                using var guard = File.Exists(absolute)
-                    ? new FileStream(absolute, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
-                    : null;
+                // The repository mutex protects this application's writers. Do not keep
+                // the source file open while the backup service atomically replaces it:
+                // Windows can reject the rename even when the handle allows delete sharing.
                 BackupFiles.RestoreLatestBackup(absolute, backupPath);
                 return;
             }
