@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+
 namespace ReadArticles.Infrastructure;
 
 public sealed class ReaderSettings
@@ -12,29 +13,51 @@ public sealed class ReaderSettings
     public double ForwardStep { get; set; } = 4.0;
     public double BackwardStep { get; set; } = 5.0;
     public string? Library { get; set; }
-    public static string PathName => Path.Combine(AppContext.BaseDirectory,
-        Path.GetFileNameWithoutExtension(Environment.ProcessPath) + ".settings.json");
+
+    public static string PathName => AppPaths.SettingsFile;
+
     public static ReaderSettings Load(out string? warning)
     {
         warning = null;
         try
         {
-            if (!File.Exists(PathName))
+            AppPaths.EnsureConfigDirectory();
+
+            if (File.Exists(PathName))
+                return ReadCurrentSettings(out warning);
+
+            string legacyPath = AppPaths.LegacySettingsFile;
+            if (File.Exists(legacyPath))
             {
-                var defaults = new ReaderSettings();
-                defaults.Save();
-                return defaults;
+                try
+                {
+                    var migrated = Deserialize(legacyPath);
+                    migrated.Save();
+                    return migrated;
+                }
+                catch (JsonException error)
+                {
+                    warning = "旧版配置文件损坏，原文件已保留；本次使用默认设置。请检查旧配置文件：" + error.Message;
+                    return new ReaderSettings();
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                {
+                    warning = "无法迁移旧版配置文件，原文件已保留；本次设置暂存于内存：" + error.Message;
+                    return new ReaderSettings();
+                }
             }
-            var settings = JsonSerializer.Deserialize<ReaderSettings>(File.ReadAllText(PathName)) ?? throw new JsonException("配置内容不能为空。");
-            settings.Normalize();
-            return settings;
+
+            var defaults = new ReaderSettings();
+            defaults.Save();
+            return defaults;
         }
         catch (JsonException error)
         {
             warning = "配置文件损坏，使用默认设置：" + error.Message;
             try
             {
-                File.Move(PathName, PathName + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".bak");
+                string corruptPath = PathName + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
+                if (File.Exists(PathName)) File.Move(PathName, corruptPath);
                 var defaults = new ReaderSettings();
                 defaults.Save();
                 return defaults;
@@ -47,10 +70,27 @@ public sealed class ReaderSettings
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            warning = "无法读取或创建配置文件，设置暂存于内存：" + error.Message;
+            warning = "无法创建或访问用户数据目录，设置暂存于内存。请将整个 ReadArticles 文件夹移动到具有写入权限的位置。详细信息：" + error.Message;
             return new ReaderSettings();
         }
     }
+
+    private static ReaderSettings ReadCurrentSettings(out string? warning)
+    {
+        warning = null;
+        var settings = Deserialize(PathName);
+        settings.Normalize();
+        return settings;
+    }
+
+    private static ReaderSettings Deserialize(string path)
+    {
+        var settings = JsonSerializer.Deserialize<ReaderSettings>(File.ReadAllText(path))
+            ?? throw new JsonException("配置内容不能为空。");
+        settings.Normalize();
+        return settings;
+    }
+
     public void Save()
     {
         Normalize();
