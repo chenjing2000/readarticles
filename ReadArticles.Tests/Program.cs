@@ -27,6 +27,7 @@ internal static class Program
                 ReaderControlsChecks.Run();
                 IconChecks.Run();
                 VocabularyEditingChecks.Run();
+                BackupChecks.Run();
                 break;
             case "--rendering-only": MatchingChecks.Run(); RenderingChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
