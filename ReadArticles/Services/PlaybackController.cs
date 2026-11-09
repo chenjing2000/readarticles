@@ -63,6 +63,7 @@ public sealed class PlaybackController
         }
         catch (Exception error) when (error is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
+            AppLogger.Default.Warning("AudioPlaybackStartFailed", error);
             OnFailed(token, error.Message);
         }
     }
