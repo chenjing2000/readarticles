@@ -14,7 +14,7 @@
 
 ## 目录与用户数据
 
-- 发布入口：`dist/ReadArticles.exe`。
+- 发布入口：`dist/ReadArticles/ReadArticles.exe`。
 - 用户数据根目录：可执行文件同级的 `userdata/`。
 - 设置：`userdata/config/settings.json`。
 - 设置备份位于 `userdata/backups/settings/`，每个设置文件只保留最近一个有效版本。
@@ -25,7 +25,7 @@
 
 ## 构建与交付
 
-- `\.\tools\Publish.ps1` → `dist\ReadArticles.exe`。发布脚本只更新程序文件，不得覆盖或删除 `dist/userdata/`。
+- `\.\tools\Publish.ps1` → `dist\ReadArticles\ReadArticles.exe`。更新仅替换程序文件；保留 `dist/ReadArticles/userdata/`，旧 `dist/userdata/` 仅验证复制、不自动删除。
 - 发布采用临时暂存、验证和同卷替换；失败时保留现有程序。
 - 不采用安装器、自包含运行时或在线更新器。
 
