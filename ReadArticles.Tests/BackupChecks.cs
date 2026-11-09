@@ -41,6 +41,15 @@ internal static class BackupChecks
                 var restored = ReaderSettings.Load(out var warning);
                 Program.Check(warning == null && restored.Volume == 0.4 && restored.Accent == "us");
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
+
+                var corruptFilesBefore = Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt");
+                File.WriteAllText(settingsPath, "{ invalid json");
+                var recovered = ReaderSettings.Load(out warning);
+                Program.Check(recovered.Volume == 0.8 && recovered.Accent == "uk");
+                Program.Check(warning != null && warning.Contains("已从最近一次有效备份恢复", StringComparison.Ordinal));
+                Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
+                foreach (string corrupt in Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt"))
+                    if (!corruptFilesBefore.Contains(corrupt, StringComparer.OrdinalIgnoreCase)) File.Delete(corrupt);
             }
             finally
             {
