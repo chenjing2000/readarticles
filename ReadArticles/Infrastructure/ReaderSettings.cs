@@ -77,13 +77,30 @@ public sealed class ReaderSettings
         }
         catch (JsonException error)
         {
-            warning = "配置文件损坏，使用默认设置：" + error.Message;
+            warning = "配置文件损坏：" + error.Message;
             try
             {
                 string corruptPath = PathName + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
                 if (File.Exists(PathName)) File.Move(PathName, corruptPath);
+
+                if (File.Exists(AppPaths.SettingsBackupFile))
+                {
+                    try
+                    {
+                        _ = Deserialize(AppPaths.SettingsBackupFile);
+                        BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
+                        warning += " 已从最近一次有效备份恢复，损坏文件保留为：" + Path.GetFileName(corruptPath);
+                        return Deserialize(PathName);
+                    }
+                    catch (Exception restoreError) when (restoreError is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
+                    {
+                        warning += " 最近一次备份无法恢复：" + restoreError.Message;
+                    }
+                }
+
                 var defaults = new ReaderSettings();
                 defaults.Save();
+                warning += " 当前使用默认设置。";
                 return defaults;
             }
             catch (Exception saveError) when (saveError is IOException or UnauthorizedAccessException)
