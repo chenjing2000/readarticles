@@ -26,3 +26,14 @@ jobs:
       - name: Run Core regression suite
         shell: powershell
         run: .\tools\Test.ps1 -Suite Core
+      - name: Publish actual portable release
+        shell: powershell
+        run: .\tools\Publish.ps1
+      - name: Verify portable release layout
+        shell: powershell
+        run: |
+          $folder = Join-Path $PWD 'dist\ReadArticles'
+          if (-not (Test-Path -LiteralPath (Join-Path $folder 'ReadArticles.exe') -PathType Leaf)) { throw 'Portable EXE is missing.' }
+          if (-not (Test-Path -LiteralPath (Join-Path $folder 'README.txt') -PathType Leaf)) { throw 'Portable README is missing.' }
+          $unexpected = @(Get-ChildItem -LiteralPath $folder -File | Where-Object { $_.Extension -in @('.dll', '.xml', '.pdb') })
+          if ($unexpected.Count) { throw 'Unexpected loose dependencies in portable release.' }
