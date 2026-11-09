@@ -14,9 +14,15 @@ internal static class ReaderControlsChecks
         Program.Run("settings own value normalization on load and save", () =>
         {
             string path = ReaderSettings.PathName;
+            string legacyPath = AppPaths.LegacySettingsFile;
+            string markerPath = AppPaths.LegacySettingsMigrationMarker;
             byte[]? before = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
+            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
             try
             {
+                if (File.Exists(legacyPath)) File.Delete(legacyPath);
+                if (File.Exists(markerPath)) File.Delete(markerPath);
                 JsonFiles.WriteAtomic(path, new { LeftWidth = 221.4, RightWidth = 281.8, FontSize = 99,
                     Volume = 3, Accent = "invalid", ForwardStep = 1, BackwardStep = 1 });
                 var settings = ReaderSettings.Load(out var warning);
@@ -29,19 +35,73 @@ internal static class ReaderControlsChecks
                 settings = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && settings.FontSize == 15 && settings.Volume == 0.65);
             }
-            finally { if (before == null) File.Delete(path); else File.WriteAllBytes(path, before); }
+            finally
+            {
+                if (before == null) { if (File.Exists(path)) File.Delete(path); } else File.WriteAllBytes(path, before);
+                if (legacyBefore == null) { if (File.Exists(legacyPath)) File.Delete(legacyPath); } else File.WriteAllBytes(legacyPath, legacyBefore);
+                if (markerBefore == null) { if (File.Exists(markerPath)) File.Delete(markerPath); } else File.WriteAllBytes(markerPath, markerBefore);
+            }
         });
-        Program.Run("settings initialize beside the executable and changes save before close", () =>
+        Program.Run("legacy settings migrate to userdata config without deleting the source", () =>
+        {
+            string currentPath = ReaderSettings.PathName;
+            string legacyPath = AppPaths.LegacySettingsFile;
+            string markerPath = AppPaths.LegacySettingsMigrationMarker;
+            byte[]? currentBefore = File.Exists(currentPath) ? File.ReadAllBytes(currentPath) : null;
+            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
+            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
+            try
+            {
+                if (File.Exists(currentPath)) File.Delete(currentPath);
+                if (File.Exists(markerPath)) File.Delete(markerPath);
+                JsonFiles.WriteAtomic(legacyPath, new ReaderSettings
+                {
+                    LeftWidth = 244,
+                    RightWidth = 355,
+                    FontSize = 16,
+                    Volume = 0.4,
+                    Accent = "us",
+                    Library = TestData.LibraryRoot
+                });
+                var migrated = ReaderSettings.Load(out var warning);
+                Program.Check(warning == null && migrated.LeftWidth == 244 && migrated.RightWidth == 355);
+                Program.Check(migrated.Accent == "us" && migrated.Volume == 0.4 && migrated.Library == TestData.LibraryRoot);
+                Program.Check(File.Exists(currentPath) && File.Exists(legacyPath));
+                Program.Check(File.Exists(markerPath));
+                var persisted = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && persisted.Accent == "us" && persisted.LeftWidth == 244);
+                persisted.Accent = "uk";
+                persisted.Save();
+                var updated = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && updated.Accent == "uk");
+            }
+            finally
+            {
+                if (currentBefore == null) { if (File.Exists(currentPath)) File.Delete(currentPath); }
+                else File.WriteAllBytes(currentPath, currentBefore);
+                if (legacyBefore == null) { if (File.Exists(legacyPath)) File.Delete(legacyPath); }
+                else File.WriteAllBytes(legacyPath, legacyBefore);
+                if (markerBefore == null) { if (File.Exists(markerPath)) File.Delete(markerPath); }
+                else File.WriteAllBytes(markerPath, markerBefore);
+            }
+        });
+        Program.Run("settings initialize in userdata config and changes save before close", () =>
         {
             string path = ReaderSettings.PathName;
+            string legacyPath = AppPaths.LegacySettingsFile;
+            string markerPath = AppPaths.LegacySettingsMigrationMarker;
             byte[]? previous = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
+            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
             ReadArticles.MainWindow? window = null;
             try
             {
+                if (File.Exists(legacyPath)) File.Delete(legacyPath);
+                if (File.Exists(markerPath)) File.Delete(markerPath);
                 File.Delete(path);
                 window = new ReadArticles.MainWindow { ShowActivated = false, Left = -10000, Top = -10000 };
                 window.Show();
-                Program.Check(File.Exists(path) && Path.GetFileName(path) == Path.GetFileNameWithoutExtension(Environment.ProcessPath) + ".settings.json");
+                Program.Check(File.Exists(path) && path == AppPaths.SettingsFile && Path.GetRelativePath(AppPaths.ApplicationDirectory, path) == Path.Combine("userdata", "config", "settings.json"));
                 var defaults = ReaderSettings.Load(out var warning);
                 Program.Check(warning == null && defaults.ForwardStep == 4 && defaults.BackwardStep == 5 && defaults.FontSize == 15);
                 var menu = ((Button)window.FindName("SettingsButton")).ContextMenu;
@@ -60,7 +120,9 @@ internal static class ReaderControlsChecks
             finally
             {
                 window?.Close();
-                if (previous == null) File.Delete(path); else File.WriteAllBytes(path, previous);
+                if (previous == null) { if (File.Exists(path)) File.Delete(path); } else File.WriteAllBytes(path, previous);
+                if (legacyBefore == null) { if (File.Exists(legacyPath)) File.Delete(legacyPath); } else File.WriteAllBytes(legacyPath, legacyBefore);
+                if (markerBefore == null) { if (File.Exists(markerPath)) File.Delete(markerPath); } else File.WriteAllBytes(markerPath, markerBefore);
             }
         });
         Program.Run("buttons show pale teal on keyboard focus including the settings circle", () =>
