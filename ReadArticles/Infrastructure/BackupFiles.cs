@@ -52,7 +52,8 @@ public static class BackupFiles
         Directory.CreateDirectory(backupDirectory);
 
         string restoreTemporary = Path.Combine(sourceDirectory, "." + Path.GetFileName(source) + "." + Guid.NewGuid().ToString("N") + ".restore.tmp");
-        string backupTemporary = Path.Combine(backupDirectory, "." + Path.GetFileName(backup) + "." + Guid.NewGuid().ToString("N") + ".rollback.tmp");
+        string backupTemporary = Path.Combine(backupDirectory, "." + Path.GetFileName(backup) + "." + Guid.NewGuid().ToString("N") + ".current.tmp");
+        string previousBackupTemporary = Path.Combine(backupDirectory, "." + Path.GetFileName(backup) + "." + Guid.NewGuid().ToString("N") + ".previous.tmp");
         bool backupReplaced = false;
         try
         {
@@ -76,6 +77,13 @@ public static class BackupFiles
                 }
                 if (JsonFiles.Fingerprint(source) != JsonFiles.Fingerprint(backupTemporary))
                     throw new IOException("当前文件在恢复期间发生变化，未执行恢复。");
+
+                using (var input = new FileStream(backup, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var output = new FileStream(previousBackupTemporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    input.CopyTo(output);
+                    output.Flush(true);
+                }
                 File.Move(backupTemporary, backup, true);
                 backupReplaced = true;
             }
@@ -86,8 +94,8 @@ public static class BackupFiles
             }
             catch
             {
-                if (backupReplaced && File.Exists(backupTemporary))
-                    File.Move(backupTemporary, backup, true);
+                if (backupReplaced && File.Exists(previousBackupTemporary))
+                    File.Move(previousBackupTemporary, backup, true);
                 throw;
             }
         }
@@ -95,6 +103,7 @@ public static class BackupFiles
         {
             if (File.Exists(restoreTemporary)) File.Delete(restoreTemporary);
             if (File.Exists(backupTemporary)) File.Delete(backupTemporary);
+            if (File.Exists(previousBackupTemporary)) File.Delete(previousBackupTemporary);
         }
     }
 }
