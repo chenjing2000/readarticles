@@ -94,7 +94,7 @@ public sealed class VocabularyRepository
                 if (expectedFingerprint is null && actual is not null)
                 {
                     try { _ = Load(absolute); }
-                    catch (JsonException or InvalidDataException) { invalidCurrent = true; }
+                    catch (Exception error) when (error is JsonException or InvalidDataException) { invalidCurrent = true; }
                 }
                 if (!invalidCurrent)
                     throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再恢复。");
