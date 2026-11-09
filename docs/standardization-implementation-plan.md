@@ -34,7 +34,7 @@ ReadArticles/
 
 ## Backup policy
 
-- Settings: automatic backups with a bounded history (initial target: five valid versions).
+- Settings: exactly one latest valid pre-save backup.
 - Vocabulary: exactly one latest pre-save backup per source file. Identify a source by a stable SHA-256 derived from its normalized full path so same-named files in different folders cannot collide.
 - Before replacing a vocabulary source, verify that its backup is complete and matches the current source. If backup creation or verification fails, abort the source replacement.
 - Restore must preserve the current file before replacement and must never modify passage JSON.
@@ -53,9 +53,12 @@ ReadArticles/
 
 ### Phase 2 — Backup and recovery (P0)
 
-- Add settings backup history and recovery.
-- Add one-version-per-source vocabulary backup and recovery.
-- Test failed backup, external edits, interrupted writes, collisions, and recovery.
+- Settings: retain exactly one latest valid pre-save backup.
+- Vocabulary: retain exactly one latest valid pre-save backup per source file.
+- Use verified temporary copies and atomic replacement; abort source replacement if backup creation or verification fails.
+- Validate JSON before restoring settings or vocabulary.
+- During restore, preserve the current file as the new latest backup before replacing it with the previous backup.
+- Test failed backup, external edits, interrupted writes, same-name path collisions, and restore behavior.
 
 ### Phase 3 — Portable publishing (P0)
 
@@ -87,4 +90,4 @@ ReadArticles/
 
 ## Current implementation note
 
-Phase 1 is the first implementation target. Later-phase directories and behaviors must not be documented as already implemented until their code and tests have landed.
+Phase 1 is merged into main. Phase 2 is in progress on `feature/data-backup-recovery`; later-phase behaviors must not be documented as implemented until their code and tests have landed.
