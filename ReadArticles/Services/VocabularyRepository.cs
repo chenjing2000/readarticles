@@ -52,9 +52,47 @@ public sealed class VocabularyRepository
                 if (actual != expectedFingerprint) throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再编辑。");
             }
             CheckCurrent();
-            return JsonFiles.WriteAtomic(absolute, data, () => { CheckCurrent(); guard?.Dispose(); });
+            string backupPath = AppPaths.VocabularyBackupFile(absolute);
+            return JsonFiles.WriteAtomic(absolute, data, () =>
+            {
+                CheckCurrent();
+                if (File.Exists(absolute))
+                    BackupFiles.CreateVerifiedBackup(absolute, backupPath);
+                CheckCurrent();
+                guard?.Dispose();
+            });
         }
         finally { mutex.ReleaseMutex(); }
+    }
+
+    public void RestoreLatestBackup(string path, string? expectedFingerprint)
+    {
+        string absolute = Path.GetFullPath(path);
+        string lockName = @"Local\\ReadArticles.Vocabulary." + JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(absolute.ToUpperInvariant()));
+        using var mutex = new Mutex(false, lockName);
+        try { mutex.WaitOne(); }
+        catch (AbandonedMutexException) { }
+
+        try
+        {
+            string backupPath = AppPaths.VocabularyBackupFile(absolute);
+            var backup = Load(backupPath);
+            if (!backup.CanWrite)
+                throw new InvalidDataException("备份词汇表无效，不能恢复。");
+
+            using var guard = File.Exists(absolute)
+                ? new FileStream(absolute, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
+                : null;
+            string? actual = File.Exists(absolute) ? JsonFiles.Fingerprint(absolute) : null;
+            if (actual != expectedFingerprint)
+                throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再恢复。");
+
+            BackupFiles.RestoreLatestBackup(absolute, backupPath);
+        }
+        finally
+        {
+            mutex.ReleaseMutex();
+        }
     }
 
     public static VocabularyEntry NewEntry(string text)
