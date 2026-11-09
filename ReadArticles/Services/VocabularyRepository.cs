@@ -87,12 +87,32 @@ public sealed class VocabularyRepository
             if (!backup.CanWrite)
                 throw new InvalidDataException("备份词汇表无效，不能恢复。");
 
-            using var guard = File.Exists(absolute)
-                ? new FileStream(absolute, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
-                : null;
             string? actual = File.Exists(absolute) ? JsonFiles.Fingerprint(absolute) : null;
+            bool invalidCurrent = false;
             if (actual != expectedFingerprint)
-                throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再恢复。");
+            {
+                if (expectedFingerprint is null && actual is not null)
+                {
+                    try { _ = Load(absolute); }
+                    catch (JsonException or InvalidDataException) { invalidCurrent = true; }
+                }
+                if (!invalidCurrent)
+                    throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再恢复。");
+            }
+
+            if (invalidCurrent)
+            {
+                string corruptPath = absolute + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
+                File.Move(absolute, corruptPath);
+            }
+            else
+            {
+                using var guard = File.Exists(absolute)
+                    ? new FileStream(absolute, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
+                    : null;
+                BackupFiles.RestoreLatestBackup(absolute, backupPath);
+                return;
+            }
 
             BackupFiles.RestoreLatestBackup(absolute, backupPath);
         }
