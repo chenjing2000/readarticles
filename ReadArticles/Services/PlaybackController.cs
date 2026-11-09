@@ -82,6 +82,7 @@ public sealed class PlaybackController
     {
         if (token != request || State == PlaybackState.Stopped) return;
         Stop();
+        AppLogger.Default.Warning("AudioPlaybackFailed");
         Message?.Invoke($"音频文件无法播放：{error}");
     }
 
