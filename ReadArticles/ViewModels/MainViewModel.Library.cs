@@ -21,24 +21,31 @@ public sealed partial class MainViewModel
 
     public async Task<bool> OpenLibraryAsync(string root)
     {
+        Dispatcher ui = Dispatcher.CurrentDispatcher;
         long session = ++librarySession;
         CancelAllDirectoryScans();
         try
         {
-            // Root enumeration never runs on the WPF UI thread.
+            // Only filesystem discovery runs on the worker thread. Binding and
+            // collection updates always return to the owning UI Dispatcher,
+            // including under the STA test runner without a SynchronizationContext.
             var prepared = await Task.Run(() => libraryRepository.Load(root));
-            if (navigationClosed || session != librarySession) return false;
-            CommitLibrary(prepared);
-            return true;
+            return await ui.InvokeAsync(() =>
+            {
+                if (navigationClosed || session != librarySession) return false;
+                CommitLibrary(prepared);
+                return true;
+            });
         }
         catch (Exception error) when (error is ArgumentException or IOException or
             InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
         {
-            if (session == librarySession)
+            await ui.InvokeAsync(() =>
             {
+                if (session != librarySession || navigationClosed) return;
                 AppLogger.Default.Warning("LibraryOpenFailed", error);
                 Notify("LibraryOpenFailed", "无法打开图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
-            }
+            });
             return false;
         }
     }
