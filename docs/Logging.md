@@ -27,3 +27,7 @@ These limits are best-effort when files are locked or the directory is not writa
 ## Support bundle
 
 When reporting a problem, share the relevant log file(s) from `userdata/logs/` and the application version. Review logs before sharing them. The logger avoids learning content and absolute media paths, but diagnostic method names and exception types are still included.
+
+## Phase 5 events
+
+Backup restore diagnostics use fixed event IDs `BackupRestoreFailed`, `BackupRollbackFailed`, and `RecoveryFilePreserved`. Directory scan failures use fixed warning IDs such as `DirectoryScanFailed` and `DirectoryScanIncomplete`. User-controlled paths and document contents must never be embedded in log event identifiers or arbitrary log messages.
