@@ -118,6 +118,36 @@ internal static class WindowChecks
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
+        Program.Run("toast enters from above and exits downward", () =>
+        {
+            var window = new ReadArticles.MainWindow(false)
+                { Left = -10000, Top = -10000, ShowActivated = false };
+            try
+            {
+                window.Show();
+                WpfTestHelpers.Pump();
+                var service = window.ViewModel.Notifications;
+                var host = (ReadArticles.Controls.ToastHost)window.FindName("NotificationHost");
+                var item = service.Publish("motion-test", "Motion direction test",
+                    ReadArticles.Infrastructure.NotificationSeverity.Info)!;
+                WpfTestHelpers.Pump(60);
+                var card = FindToastCard(host, "Motion direction test")!;
+                Program.Check(card is not null);
+                var transform = (TranslateTransform)card.RenderTransform;
+                Program.Check(transform.Y < 0);
+                Program.Check(card.Opacity < 1);
+                WpfTestHelpers.Pump(300);
+                Program.Check(Math.Abs(transform.Y) < 0.1 && Math.Abs(card.Opacity - 1) < 0.01);
+                var close = WpfTestHelpers.Descendants(card)
+                    .OfType<Button>().Single(button => AutomationProperties.GetName(button) == "关闭消息");
+                close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WpfTestHelpers.Pump(60);
+                Program.Check(transform.Y > 0 && card.Opacity < 1);
+                WpfTestHelpers.Wait(() => !service.Messages.Any(n => n.Id == item.Id));
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
         Program.Run("floating notifications do not shrink reader panes or playback toolbar", () =>
         {
             var window = new ReadArticles.MainWindow(false) { Left = -10000, Top = -10000, ShowActivated = false };
