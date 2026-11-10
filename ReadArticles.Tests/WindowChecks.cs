@@ -1,6 +1,10 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Documents;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Automation;
 
 internal static class WindowChecks
 {
@@ -36,45 +40,158 @@ internal static class WindowChecks
                 Program.Check(!reader.IsSelectionAddVisible);
             });
         });
-        Program.Run("reader status occupies space only while a message is present and expires at six seconds", () =>
+        Program.Run("toast hover pauses expiry, transient fades, and errors persist until closed", () =>
+        {
+            var window = new ReadArticles.MainWindow(false)
+            {
+                Left = -10000, Top = -10000, ShowActivated = false
+            };
+            try
+            {
+                window.Show();
+                WpfTestHelpers.Pump();
+                var service = window.ViewModel.Notifications;
+                var host = (ReadArticles.Controls.ToastHost)window.FindName("NotificationHost");
+                var transient = service.Publish("toast-hover-test", "Hover pause test",
+                    ReadArticles.Infrastructure.NotificationSeverity.Info)!;
+                WpfTestHelpers.Pump(4000);
+                var card = FindToastCard(host, "Hover pause test");
+                Program.Check(card is not null);
+                card!.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
+                    { RoutedEvent = UIElement.MouseEnterEvent });
+                WpfTestHelpers.Pump(1200);
+                Program.Check(service.Messages.Any(n => n.Id == transient.Id));
+                card.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
+                    { RoutedEvent = UIElement.MouseLeaveEvent });
+                WpfTestHelpers.Pump(300);
+                Program.Check(service.Messages.Any(n => n.Id == transient.Id));
+                WpfTestHelpers.Pump(1000);
+                Program.Check(!service.Messages.Any(n => n.Id == transient.Id));
+
+                var error = service.Publish("toast-error-test", "Persistent error test",
+                    ReadArticles.Infrastructure.NotificationSeverity.Error)!;
+                WpfTestHelpers.Pump(5000);
+                Program.Check(service.Messages.Any(n => n.Id == error.Id));
+                var errorCard = FindToastCard(host, "Persistent error test");
+                Program.Check(errorCard is not null);
+                var close = WpfTestHelpers.Descendants(errorCard!)
+                    .OfType<Button>().Single(button =>
+                        AutomationProperties.GetName(button) == "关闭消息");
+                close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WpfTestHelpers.Wait(() => !service.Messages.Any(n => n.Id == error.Id));
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
+        Program.Run("toast cards use newest-first order fixed two-DIP gaps and 360-DIP width", () =>
+        {
+            var window = new ReadArticles.MainWindow(false)
+                { Left = -10000, Top = -10000, ShowActivated = false, Width = 1500, Height = 920 };
+            try
+            {
+                window.Show();
+                WpfTestHelpers.Pump();
+                window.UpdateLayout();
+                var service = window.ViewModel.Notifications;
+                var host = (ReadArticles.Controls.ToastHost)window.FindName("NotificationHost");
+                host.UpdateLayout();
+                service.Publish("layout-1", "First toast", ReadArticles.Infrastructure.NotificationSeverity.Info);
+                service.Publish("layout-2", "Second toast", ReadArticles.Infrastructure.NotificationSeverity.Warning);
+                service.Publish("layout-3", "Third toast", ReadArticles.Infrastructure.NotificationSeverity.Error);
+                WpfTestHelpers.Pump(350);
+                host.UpdateLayout();
+                var first = FindToastCard(host, "First toast")
+                    ?? throw new InvalidOperationException("First toast card was not created.");
+                var second = FindToastCard(host, "Second toast")
+                    ?? throw new InvalidOperationException("Second toast card was not created.");
+                var third = FindToastCard(host, "Third toast")
+                    ?? throw new InvalidOperationException("Third toast card was not created.");
+                Console.WriteLine($"  Toast width diagnostics: host={host.ActualWidth:F2}; cards={first.ActualWidth:F2}/{second.ActualWidth:F2}/{third.ActualWidth:F2}; configured={first.Width:F2}/{second.Width:F2}/{third.Width:F2}");
+                Program.Check(Math.Abs(first.ActualWidth - 360) < 0.5 &&
+                    Math.Abs(second.ActualWidth - 360) < 0.5 && Math.Abs(third.ActualWidth - 360) < 0.5);
+                Program.Check(Math.Abs(third.Margin.Bottom - 2) < 0.01);
+                Program.Check(Math.Abs(second.Margin.Bottom - 2) < 0.01);
+                Program.Check(Math.Abs(first.Margin.Bottom) < 0.01);
+                double firstY = first.TranslatePoint(new Point(), host).Y;
+                double secondY = second.TranslatePoint(new Point(), host).Y;
+                double thirdY = third.TranslatePoint(new Point(), host).Y;
+                Program.Check(thirdY < secondY && secondY < firstY);
+                Program.Check(Math.Abs((secondY - thirdY) - (third.ActualHeight + 2)) < 1.5);
+                Program.Check(Math.Abs((firstY - secondY) - (second.ActualHeight + 2)) < 1.5);
+                Program.Check(Math.Abs(firstY + first.ActualHeight - host.ActualHeight) < 1.5);
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
+        Program.Run("toast enters from above and exits downward", () =>
+        {
+            var window = new ReadArticles.MainWindow(false)
+                { Left = -10000, Top = -10000, ShowActivated = false };
+            try
+            {
+                window.Show();
+                WpfTestHelpers.Pump();
+                var service = window.ViewModel.Notifications;
+                var host = (ReadArticles.Controls.ToastHost)window.FindName("NotificationHost");
+                var item = service.Publish("motion-test", "Motion direction test",
+                    ReadArticles.Infrastructure.NotificationSeverity.Info)!;
+                WpfTestHelpers.Pump(60);
+                var card = FindToastCard(host, "Motion direction test")
+                    ?? throw new InvalidOperationException("Motion test toast card was not created.");
+                var transform = (TranslateTransform)card.RenderTransform;
+                Program.Check(transform.Y < 0);
+                Program.Check(card.Opacity < 1);
+                WpfTestHelpers.Pump(300);
+                Program.Check(Math.Abs(transform.Y) < 0.1 && Math.Abs(card.Opacity - 1) < 0.01);
+                var close = WpfTestHelpers.Descendants(card)
+                    .OfType<Button>().Single(button => AutomationProperties.GetName(button) == "关闭消息");
+                close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WpfTestHelpers.Pump(60);
+                Program.Check(transform.Y > 0 && card.Opacity < 1);
+                WpfTestHelpers.Wait(() => !service.Messages.Any(n => n.Id == item.Id));
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
+        Program.Run("floating notifications do not shrink reader panes or playback toolbar", () =>
         {
             var window = new ReadArticles.MainWindow(false) { Left = -10000, Top = -10000, ShowActivated = false };
             try
             {
                 window.Show();
                 var layout = (System.Windows.Controls.Grid)window.Content;
-                var status = layout.Children.OfType<System.Windows.Controls.TextBlock>().Single(child => System.Windows.Controls.Grid.GetRow(child) == 1);
-                var panels = layout.Children.OfType<FrameworkElement>().Where(child => System.Windows.Controls.Grid.GetRow(child) == 0 && child is not System.Windows.Controls.GridSplitter).ToArray();
-                Program.Check(panels.Length == 3);
-                window.ViewModel.Status = "";
-                WpfTestHelpers.Pump(); window.UpdateLayout();
-                Program.Check(status.Visibility == Visibility.Collapsed && layout.RowDefinitions[1].ActualHeight == 0);
-                var expandedHeights = panels.Select(panel => panel.ActualHeight).ToArray();
-                window.ViewModel.Status = "first";
-                WpfTestHelpers.Pump(); window.UpdateLayout();
-                Program.Check(status.Visibility == Visibility.Visible && layout.RowDefinitions[1].ActualHeight > 0);
-                var messageHeights = panels.Select(panel => panel.ActualHeight).ToArray();
-                Program.Check(messageHeights.Where((height, index) => height < expandedHeights[index]).Count() == 3);
-                WpfTestHelpers.Pump(3000);
-                window.ViewModel.Status = "second";
-                var elapsed = Stopwatch.StartNew();
-                WpfTestHelpers.Pump(3300);
-                if (elapsed.Elapsed.TotalSeconds < 5.9 && window.ViewModel.Status != "second")
-                    throw new Exception($"Status cleared early at {elapsed.Elapsed.TotalSeconds:F2}s: '{window.ViewModel.Status}'");
-                while (window.ViewModel.Status == "second" && elapsed.Elapsed.TotalSeconds < 8)
-                    WpfTestHelpers.Pump(50);
-                if (window.ViewModel.Status != "" || elapsed.Elapsed.TotalSeconds < 5.9)
-                    throw new Exception($"Status after {elapsed.Elapsed.TotalSeconds:F2}s: '{window.ViewModel.Status}'");
-                WpfTestHelpers.Pump(); window.UpdateLayout();
-                Program.Check(status.Visibility == Visibility.Collapsed && layout.RowDefinitions[1].ActualHeight == 0);
-                Program.Check(panels.Where((panel, index) => Math.Abs(panel.ActualHeight - expandedHeights[index]) < 0.01).Count() == 3);
-            }
-            finally
-            {
-                window.Close();
+                var panels = layout.Children.OfType<FrameworkElement>()
+                    .Where(child => System.Windows.Controls.Grid.GetRow(child) == 0 &&
+                        child is not System.Windows.Controls.GridSplitter).ToArray();
+                Program.Check(panels.Length == 3 && layout.RowDefinitions.Count == 1);
                 WpfTestHelpers.Pump();
+                window.UpdateLayout();
+                var before = panels.Select(panel => panel.ActualHeight).ToArray();
+                var notifications = window.ViewModel.Notifications;
+                notifications.Publish("test-info", "Notification test", ReadArticles.Infrastructure.NotificationSeverity.Info);
+                notifications.Publish("test-error", "Persistent test error", ReadArticles.Infrastructure.NotificationSeverity.Error);
+                WpfTestHelpers.Pump();
+                window.UpdateLayout();
+                Program.Check(notifications.Visible.Count == 2);
+                Program.Check(panels.Select((panel, index) => Math.Abs(panel.ActualHeight - before[index]) < 0.01).All(x => x));
+                Program.Check(window.FindName("NotificationHost") is ReadArticles.Controls.ToastHost);
+                notifications.Dismiss(notifications.Messages[0].Id);
+                Program.Check(notifications.Visible.Count == 1 &&
+                    notifications.Visible[0].Severity == ReadArticles.Infrastructure.NotificationSeverity.Error);
             }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
         });
+    }
+
+    private static Border? FindToastCard(DependencyObject host, string message)
+    {
+        var text = WpfTestHelpers.Descendants(host).OfType<TextBlock>()
+            .FirstOrDefault(item => item.Text == message);
+        if (text is null) return null;
+        DependencyObject? current = text;
+        while (current is not null && current is not Border)
+            current = VisualTreeHelper.GetParent(current);
+        return current as Border;
     }
 
     private static void WithReader(Action<ReadArticles.Rendering.ParagraphReader> check)

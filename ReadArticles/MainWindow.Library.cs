@@ -15,10 +15,15 @@ public partial class MainWindow
 
     public IReadOnlyList<ParagraphReader> Readers => readers;
 
-    public void RestoreContent(string? library = null)
+    public async void RestoreContent(string? library = null) =>
+        await RestoreContentAsync(library);
+
+    // The task-returning entrypoint makes startup recovery deterministically
+    // observable without changing the fire-and-forget application startup API.
+    public Task<bool> RestoreContentAsync(string? library = null)
     {
         library ??= settings.Library;
-        if (library is not null) ViewModel.OpenLibrary(library);
+        return library is null ? Task.FromResult(false) : ViewModel.OpenLibraryAsync(library);
     }
 
     public bool SelectPassage(string path)
@@ -27,7 +32,19 @@ public partial class MainWindow
         var node = MainViewModel.AllLeaves(ViewModel.Books).FirstOrDefault(n => string.Equals(n.PassagePath, full, StringComparison.OrdinalIgnoreCase));
         if (node is null)
         {
-            ViewModel.Status = "文章不在当前图书馆中。";
+            // Programmatic selection can target a valid passage whose ancestors
+            // have not been expanded. Do not scan the entire library for it.
+            bool insideBook = ViewModel.Books.Any(book =>
+            {
+                if (book.DirectoryPath is null) return false;
+                string relative = Path.GetRelativePath(book.DirectoryPath, full);
+                return relative != "." && !Path.IsPathRooted(relative) &&
+                    relative != ".." &&
+                    !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+            });
+            if (insideBook && File.Exists(full))
+                return ViewModel.OpenArticle(full);
+            ViewModel.Notify("PassageNotInLibrary", "文章不在当前图书馆中。", ReadArticles.Infrastructure.NotificationSeverity.Warning);
             return false;
         }
         bool opened = ViewModel.OpenArticle(node.PassagePath!);
@@ -83,14 +100,68 @@ public partial class MainWindow
         RefreshPlayback();
     }
 
+    private bool restoringTreeSelection;
+
     private void TreeSelectionChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        if (e.NewValue is NavigationNode { PassagePath: not null } node && node.PassagePath != ViewModel.Article?.FilePath) ViewModel.OpenArticle(node.PassagePath);
+        if (restoringTreeSelection || e.NewValue is not NavigationNode { PassagePath: not null } node)
+            return;
+        if (SamePassage(node.PassagePath, ViewModel.Article?.FilePath)) return;
+        if (ViewModel.OpenArticle(node.PassagePath)) return;
+
+        // Restore the committed article only if its tree container already exists.
+        restoringTreeSelection = true;
+        try
+        {
+            string? committed = ViewModel.Article?.FilePath;
+            var previous = MainViewModel.AllLeaves(ViewModel.Books)
+                .FirstOrDefault(item => SamePassage(item.PassagePath, committed));
+            if (previous is not null && SelectTreeNode(LibraryTree, previous))
+                return;
+            var selected = FindTreeContainer(LibraryTree, node);
+            if (selected is not null) selected.IsSelected = false;
+        }
+        finally { restoringTreeSelection = false; }
     }
 
-    private void LibraryClicked(object sender, RoutedEventArgs e)
+    private static bool SamePassage(string? a, string? b) =>
+        a is not null && b is not null &&
+        string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+
+    private static TreeViewItem? FindTreeContainer(ItemsControl parent, NavigationNode target)
+    {
+        foreach (var item in parent.Items)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromItem(item) is not TreeViewItem container) continue;
+            if (ReferenceEquals(item, target)) return container;
+            if (!container.IsExpanded) continue;
+            var nested = FindTreeContainer(container, target);
+            if (nested is not null) return nested;
+        }
+        return null;
+    }
+
+    private async void TreeExpanded(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is TreeViewItem { DataContext: NavigationNode node })
+        {
+            node.IsExpanded = true;
+            await ViewModel.ExpandDirectoryAsync(node);
+        }
+    }
+
+    private void TreeCollapsed(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is TreeViewItem { DataContext: NavigationNode node })
+        {
+            node.IsExpanded = false;
+            ViewModel.CollapseDirectory(node);
+        }
+    }
+
+    private async void LibraryClicked(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog { Title = "选择包含 Book 文件夹的图书馆", InitialDirectory = ViewModel.LibraryRoot ?? "" };
-        if (dialog.ShowDialog(this) == true) ViewModel.OpenLibrary(dialog.FolderName);
+        if (dialog.ShowDialog(this) == true) await ViewModel.OpenLibraryAsync(dialog.FolderName);
     }
 }

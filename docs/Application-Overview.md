@@ -127,3 +127,9 @@ Program-computed window dimensions, column widths and limits, scrollbar width, a
 Audio filenames are inferred without JSON paths: word files are `audio/<stem>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`; sentence files are `audio_sentences/<sid>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`. Derive stems by trimming, invariant lowercasing, replacing non-ASCII `a-z`/`0-9` characters with `_`, collapsing underscores, and trimming underscores. First entries reserve nonempty stems in `words` order regardless of recordings; later collisions and empty stems retain text with all audio disabled. Spelling uniqueness is unchanged. Blank articles are identified by valid body `[[n]]` placeholders and disable sentence audio.
 
 For each pronunciation target prefer MP3 by existence, otherwise WAV. Whole-article playback sorts sibling filenames as before, selecting the first MP3 or, only if none exists, the first WAV. Decoding failure never retries WAV or the next file. Old audio directories, naming rules, indexes, and JSON paths are not fallback sources; resources are not migrated. See [Library Layout](Library-Layout.md) for the full contract.
+
+## Phase 5 service boundaries
+
+`NotificationService` stores notification severity, deduplication and persistent-error state independently of WPF controls. `ToastHost` owns WPF visuals, animations, hover-pause and dismissal lifecycle. The middle reading pane hosts the overlay without allocating a status row.
+
+`LibraryRepository.Load` discovers only book directories at the library root, while `ScanDirectoryLevel` enumerates one level without opening passage content. `MainViewModel` coordinates background scans and marshals collection updates to the WPF Dispatcher, guarded by library-session and node-generation tokens. Closing the window or collapsing a folder invalidates pending work.

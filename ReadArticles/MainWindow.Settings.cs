@@ -61,7 +61,7 @@ public partial class MainWindow
         {
             AppLogger.Default.Error("SettingsSaveFailed", error);
             string message = "无法保存配置文件：" + error.Message;
-            if (IsLoaded) Dispatcher.BeginInvoke(() => ViewModel.Status = message);
+            if (IsLoaded) Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsSaveFailed", "无法保存配置文件，请检查程序目录权限。", NotificationSeverity.Error));
             else MessageBox.Show(message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }

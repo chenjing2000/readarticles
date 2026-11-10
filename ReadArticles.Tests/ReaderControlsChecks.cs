@@ -368,7 +368,16 @@ internal static class ReaderControlsChecks
                 string path = Path.Combine(book, "Locked.json"); File.WriteAllText(path, "not JSON");
                 using var locked = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                 Program.Check(window.ViewModel.OpenLibrary(root));
-                Program.Check(window.ViewModel.Books.Count == 1 && MainLeaves(window).Single().Name == "Locked");
+                Program.Check(window.ViewModel.Books.Count == 1 &&
+                    !MainLeaves(window).Any() &&
+                    window.ViewModel.Books[0].LoadState == ReadArticles.Models.NodeLoadState.NotLoaded);
+                var bookNode = window.ViewModel.Books.Single();
+                var tree = (TreeView)window.FindName("LibraryTree");
+                tree.UpdateLayout();
+                var container = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(bookNode);
+                container.IsExpanded = true;
+                WpfTestHelpers.Wait(() => bookNode.LoadState == ReadArticles.Models.NodeLoadState.Loaded);
+                Program.Check(MainLeaves(window).Single().Name == "Locked");
                 Program.Check(window.ViewModel.Article is null && window.ViewModel.Words.Count == 0 && window.Readers.Count == 0);
             }
             finally

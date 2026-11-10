@@ -57,3 +57,9 @@ Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. All fixed tes
 
 
 - [Runtime logging](docs/Logging.md)
+
+## Phase 5 reader navigation and notifications
+
+- Reader messages appear as floating notifications at the bottom of the middle reading pane instead of a bottom status row. Errors remain until dismissed, and old errors can be opened through the overflow indicator.
+- The left book tree is lazy: opening a library discovers only its immediate book folders; expanding a folder reads only its direct children. Empty intermediary folders remain navigable.
+- Collapsing and re-expanding a folder refreshes that level without stopping current reading or playback.

@@ -19,6 +19,7 @@ internal static class ReaderWindowChecks
                 window.Show();
                 Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
                 var initialTree = (TreeView)window.FindName("LibraryTree");
+                WpfTestHelpers.ExpandAllDirectories(initialTree);
                 var initialLeaf = MainViewModel.AllLeaves(window.ViewModel.Books).Single(n => n.PassagePath == TestData.ArticlePath);
                 Program.Check(Select(initialTree, initialLeaf));
                 Program.Check(window.SelectPassage(TestData.ArticlePath));
@@ -40,6 +41,7 @@ internal static class ReaderWindowChecks
                 window.Show();
                 LoadArticle(window);
                 var tree = (TreeView)window.FindName("LibraryTree");
+                WpfTestHelpers.ExpandAllDirectories(tree);
                 var alternate = MainViewModel.AllLeaves(window.ViewModel.Books).First(n => n.PassagePath != TestData.ArticlePath);
                 Program.Check(Select(tree, alternate));
                 Layout(window);

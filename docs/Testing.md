@@ -72,3 +72,22 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 ## Ownership and maintenance
 
 Never edit `tests/TestData/` during a test run. When intentionally changing a fixture, update `tests/TestData/README.md` and the corresponding regression assertions in the same change. Do not commit generated screenshots, reports, logs, personal settings, or temporary media. Run tests sequentially because native WPF input and playback checks require exclusive desktop interaction.
+
+## Phase 5 targeted checks
+
+Run `dotnet run --project ReadArticles.Tests -c Release -- --notifications-only` for queue ordering, severity, deduplication and error overflow. Run `dotnet run --project ReadArticles.Tests -c Release -- --lazy-tree-only` for root-only and one-level scan behavior. The existing `--tree-only`, `--window-only`, `--backup-only` and `--content-only` suites remain relevant. Native WPF animation timing, hover, keyboard close and published EXE behavior still require an interactive Windows desktop in addition to hosted Core CI. Never test recovery fault cases against a real library.
+
+## Phase 5 reliability and interactive regression additions
+
+- `--window-only`: includes a real WPF ToastHost timing check. A transient message is hovered near its expiry threshold, must remain visible while hovered, then expires after the remaining active time. An Error must remain after the transient timeout and disappear only after its close action.
+- `--tree-only`: includes rapid collapse during a pending directory scan, successful retry after cancellation, library-session replacement while an old scan is pending, and failed article selection restoring the previously committed leaf.
+- `--backup-only`: includes a Windows file-sharing fault injection. The current source is held without delete sharing so the restore replacement fails after backup rotation; the test verifies the original source and previous valid backup are both restored byte-for-byte and temporary files are cleaned.
+- The fault-injection test uses an isolated temporary directory and never touches the user's library. The WPF timing test uses the test window and closes it in a finally block.
+
+## Toast layout and motion regression
+
+- `--notifications-only` verifies that message history remains chronological while the visible list is newest-first (newest at top, oldest at bottom), including the four-item visible limit.
+- `--window-only` verifies that new cards enter from above, dismissed cards exit downward, the default card width is 360 DIP, visible card gaps are 2 DIP, and the oldest visible card is anchored to the bottom of the host.
+- The host retains a 16 DIP bottom margin from the reading pane. Info, Warning and Error cards use distinct icon glyphs, foreground colors, backgrounds and font weights.
+- Info and Warning expire after their active display interval; hovering pauses the interval. Error notifications do not expire automatically. Exiting cards remain in the layout until their exit animation completes.
+- Animation sampling is performed on a real WPF window in the Windows UI suite. Hosted Core CI does not replace interactive desktop verification of perceived motion and rendering.

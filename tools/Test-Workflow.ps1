@@ -15,7 +15,7 @@ try {
     Write-Host 'PASS failed native commands reject the test run'
     $global:workflowForceFailure = $false
     $output = & $testScript -Suite Full *>&1 | Out-String
-    if ($output -notmatch 'Passed: 5; Failed: 0; Skipped: 0') { throw 'Full suite did not run from the unified test data directory.' }
+    if ($output -notmatch 'Passed: 6; Failed: 0; Skipped: 0') { throw 'Full suite did not run from the unified test data directory.' }
     Write-Host 'PASS Full suite runs from unified test data without external paths'
 }
 finally {
