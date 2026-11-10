@@ -73,6 +73,7 @@ public sealed partial class MainViewModel
         long generation = node.NextGeneration();
         long session = librarySession;
         var cts = new CancellationTokenSource();
+        CancellationToken token = cts.Token;
         if (directoryScans.Remove(node, out var previous)) { previous.Cancel(); previous.Dispose(); }
         directoryScans[node] = cts;
         node.LoadState = NodeLoadState.Loading;
@@ -80,9 +81,9 @@ public sealed partial class MainViewModel
         {
             DirectoryScanResult result = await Task.Run(() =>
             {
-                cts.Token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
                 return libraryRepository.ScanDirectoryLevel(node.DirectoryPath, node.BookRoot);
-            }, cts.Token);
+            }, token);
 
             if (navigationClosed || !node.IsExpanded || session != librarySession ||
                 generation != node.Generation || cts.IsCancellationRequested) return;
@@ -135,7 +136,7 @@ public sealed partial class MainViewModel
                 cts.Cancel();
                 cts.Dispose();
             }
-            if (current.LoadState is NodeLoadState.Loading or NodeLoadState.Failed)
+            if (!current.IsPassage && !current.IsPlaceholder)
                 current.LoadState = NodeLoadState.NotLoaded;
         }
     }
