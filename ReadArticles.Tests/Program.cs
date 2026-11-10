@@ -30,6 +30,7 @@ internal static class Program
                 BackupChecks.Run();
                 AppLoggerChecks.Run();
                 NotificationChecks.Run();
+                LazyTreeChecks.Run();
                 break;
             case "--rendering-only": MatchingChecks.Run(); RenderingChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
@@ -42,6 +43,7 @@ internal static class Program
             case "--backup-only": BackupChecks.Run(); break;
             case "--logging-only": AppLoggerChecks.Run(); break;
             case "--notifications-only": NotificationChecks.Run(); break;
+            case "--lazy-tree-only": LazyTreeChecks.Run(); break;
             case "--tree-only": TreeNavigationChecks.Run(); break;
             case "--source-only": SourceLibraryChecks.Run(); break;
             default:
