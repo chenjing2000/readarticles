@@ -24,7 +24,7 @@ public sealed class NotificationService
         // Repeated recoverable events should not flood the reading area.
         if (severity != NotificationSeverity.Error)
         {
-            var duplicate = messages.FirstOrDefault(item => item.Key == key && item.Severity == severity);
+            var duplicate = messages.FirstOrDefault(item => item.Key == key && item.Message == message && item.Severity == severity);
             if (duplicate is not null) return duplicate;
         }
         var notification = new NotificationItem(++nextId, key, message, severity);
