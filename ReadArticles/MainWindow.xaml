@@ -60,7 +60,7 @@
     </Style>
   </Window.Resources>
   <Grid Margin="10,12,10,8">
-    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid.RowDefinitions><RowDefinition Height="*"/></Grid.RowDefinitions>
     <Grid.ColumnDefinitions>
       <ColumnDefinition x:Name="LeftColumn" Width="310" MinWidth="200"/>
       <ColumnDefinition Width="8"/>
