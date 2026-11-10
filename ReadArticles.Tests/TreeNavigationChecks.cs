@@ -92,6 +92,7 @@ internal static class TreeNavigationChecks
                 bookItem.IsExpanded = true;
                 WpfTestHelpers.Wait(() => bookNode.LoadState == NodeLoadState.Loaded);
                 WpfTestHelpers.Pump();
+                bookItem.UpdateLayout();
                 var goodNode = bookNode.Children.Single(n => n.PassagePath == goodPath);
                 var badNode = bookNode.Children.Single(n => n.PassagePath == badPath);
                 var goodItem = (TreeViewItem)bookItem.ItemContainerGenerator.ContainerFromItem(goodNode);
