@@ -83,9 +83,45 @@ public partial class MainWindow
         RefreshPlayback();
     }
 
+    private bool restoringTreeSelection;
+
     private void TreeSelectionChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        if (e.NewValue is NavigationNode { PassagePath: not null } node && node.PassagePath != ViewModel.Article?.FilePath) ViewModel.OpenArticle(node.PassagePath);
+        if (restoringTreeSelection || e.NewValue is not NavigationNode { PassagePath: not null } node)
+            return;
+        if (SamePassage(node.PassagePath, ViewModel.Article?.FilePath)) return;
+        if (ViewModel.OpenArticle(node.PassagePath)) return;
+
+        // Restore the committed article only if its tree container already exists.
+        restoringTreeSelection = true;
+        try
+        {
+            string? committed = ViewModel.Article?.FilePath;
+            var previous = MainViewModel.AllLeaves(ViewModel.Books)
+                .FirstOrDefault(item => SamePassage(item.PassagePath, committed));
+            if (previous is not null && SelectTreeNode(LibraryTree, previous))
+                return;
+            var selected = FindTreeContainer(LibraryTree, node);
+            if (selected is not null) selected.IsSelected = false;
+        }
+        finally { restoringTreeSelection = false; }
+    }
+
+    private static bool SamePassage(string? a, string? b) =>
+        a is not null && b is not null &&
+        string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+
+    private static TreeViewItem? FindTreeContainer(ItemsControl parent, NavigationNode target)
+    {
+        foreach (var item in parent.Items)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromItem(item) is not TreeViewItem container) continue;
+            if (ReferenceEquals(item, target)) return container;
+            if (!container.IsExpanded) continue;
+            var nested = FindTreeContainer(container, target);
+            if (nested is not null) return nested;
+        }
+        return null;
     }
 
     private void LibraryClicked(object sender, RoutedEventArgs e)
