@@ -46,7 +46,7 @@ public sealed class PlaybackController
                 !File.Exists(item.Path) || new FileInfo(item.Path).Length == 0)
             {
                 AppLogger.Default.Warning("AudioFileUnavailable");
-                Message?.Invoke("缺少或无效 MP3/WAV：" + item.Path);
+                Message?.Invoke("缺少或无效 MP3/WAV 音频文件。");
                 return;
             }
         }
