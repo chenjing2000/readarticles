@@ -72,3 +72,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 ## Ownership and maintenance
 
 Never edit `tests/TestData/` during a test run. When intentionally changing a fixture, update `tests/TestData/README.md` and the corresponding regression assertions in the same change. Do not commit generated screenshots, reports, logs, personal settings, or temporary media. Run tests sequentially because native WPF input and playback checks require exclusive desktop interaction.
+
+## Phase 5 targeted checks
+
+Run `dotnet run --project ReadArticles.Tests -c Release -- --notifications-only` for queue ordering, severity, deduplication and error overflow. Run `dotnet run --project ReadArticles.Tests -c Release -- --lazy-tree-only` for root-only and one-level scan behavior. The existing `--tree-only`, `--window-only`, `--backup-only` and `--content-only` suites remain relevant. Native WPF animation timing, hover, keyboard close and published EXE behavior still require an interactive Windows desktop in addition to hosted Core CI. Never test recovery fault cases against a real library.
