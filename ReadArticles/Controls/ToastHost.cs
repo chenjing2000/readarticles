@@ -97,6 +97,10 @@ public sealed class ToastHost : Grid
             transform.BeginAnimation(TranslateTransform.YProperty,
                 new DoubleAnimation(16, TimeSpan.FromMilliseconds(milliseconds))
                 { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } });
+        if (visual.Card.RenderTransform is TranslateTransform transform)
+            transform.BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(16, TimeSpan.FromMilliseconds(milliseconds))
+                { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } });
     }
 
     private void Render()
@@ -150,16 +154,39 @@ public sealed class ToastHost : Grid
         {
             Text = item.Severity switch
             {
-                NotificationSeverity.Error => "⛔",
+                NotificationSeverity.Error => "⊗",
                 NotificationSeverity.Warning => "⚠",
                 _ => "ⓘ"
             },
-            FontSize = 15,
+            Foreground = new SolidColorBrush(item.Severity switch
+            {
+                NotificationSeverity.Error => Color.FromRgb(194, 60, 69),
+                NotificationSeverity.Warning => Color.FromRgb(168, 107, 22),
+                _ => Color.FromRgb(57, 118, 184)
+            }),
+            FontSize = 16,
+            FontWeight = item.Severity == NotificationSeverity.Error ? FontWeights.Bold : FontWeights.SemiBold,
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, 0, 8, 0)
         };
-        var content = new TextBlock { Text = item.Message, TextWrapping = TextWrapping.Wrap,
-            Foreground = new SolidColorBrush(Color.FromRgb(38, 45, 57)), VerticalAlignment = VerticalAlignment.Center };
+        var content = new TextBlock
+        {
+            Text = item.Message,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = new SolidColorBrush(item.Severity switch
+            {
+                NotificationSeverity.Error => Color.FromRgb(146, 47, 56),
+                NotificationSeverity.Warning => Color.FromRgb(116, 80, 29),
+                _ => Color.FromRgb(52, 70, 93)
+            }),
+            FontWeight = item.Severity switch
+            {
+                NotificationSeverity.Error => FontWeights.Bold,
+                NotificationSeverity.Warning => FontWeights.Medium,
+                _ => FontWeights.Normal
+            },
+            VerticalAlignment = VerticalAlignment.Center
+        };
         var close = new Button
         {
             Content = "×", Width = 28, Height = 28, FontSize = 16,
@@ -183,6 +210,12 @@ public sealed class ToastHost : Grid
             NotificationSeverity.Warning => Color.FromRgb(209, 168, 81),
             _ => Color.FromRgb(207, 215, 224)
         };
+        var background = item.Severity switch
+        {
+            NotificationSeverity.Error => Color.FromRgb(252, 235, 236),
+            NotificationSeverity.Warning => Color.FromRgb(255, 245, 223),
+            _ => Color.FromRgb(240, 244, 250)
+        };
         var card = new Border
         {
             Background = new SolidColorBrush(background),
@@ -192,7 +225,8 @@ public sealed class ToastHost : Grid
             Padding = new Thickness(12),
             Child = layout,
             Opacity = 0,
-            RenderTransform = new TranslateTransform()
+            RenderTransform = new TranslateTransform { Y = -16 },
+            Width = 360, MinWidth = 300, MaxWidth = 420
         };
         card.Effect = new System.Windows.Media.Effects.DropShadowEffect
         {
@@ -220,9 +254,14 @@ public sealed class ToastHost : Grid
 
     private void UpdateWidths()
     {
-        var width = Math.Min(360, Math.Max(0, ActualWidth - 16));
+        var available = Math.Max(0, ActualWidth - 32);
+        var width = Math.Min(360, available);
         foreach (var visual in visuals.Values)
-            visual.Card.Width = Math.Min(300, width);
+        {
+            visual.Card.Width = width;
+            visual.Card.MinWidth = Math.Min(300, width);
+            visual.Card.MaxWidth = 420;
+        }
     }
 
     private void AnimateReflow()
@@ -281,6 +320,7 @@ public sealed class ToastHost : Grid
         public Border Card { get; } = card;
         public Stopwatch Elapsed { get; } = elapsed;
         public bool Hovered { get; set; }
-        public bool Exiting { get; set; }\n        public bool IsEntering { get; set; }
+        public bool Exiting { get; set; }
+        public bool IsEntering { get; set; }\n        public bool IsEntering { get; set; }
     }
 }
