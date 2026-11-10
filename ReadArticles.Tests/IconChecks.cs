@@ -197,8 +197,9 @@ internal static class IconChecks
                 session = new ReadArticles.MainWindow { Left = -10000, Top = -10000, ShowActivated = false };
                 session.Show();
                 WpfTestHelpers.Pump();
-                session.RestoreContent();
-                WpfTestHelpers.Wait(() => session.ViewModel.Books.Count > 0);
+                var restore = session.RestoreContentAsync();
+                WpfTestHelpers.Wait(() => restore.IsCompleted);
+                Program.Check(restore.GetAwaiter().GetResult());
                 Program.Check(session.ViewModel.Books.Count > 0 && session.ViewModel.Books.All(book => !book.IsExpanded));
                 Program.Check(session.ViewModel.Article is null && session.ViewModel.Words.Count == 0 && session.Readers.Count == 0);
                 Program.Check(!session.ViewModel.HighlightsVisible);
