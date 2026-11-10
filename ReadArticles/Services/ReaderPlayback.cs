@@ -17,8 +17,8 @@ public sealed class ReaderPlayback
         this.pronunciationPlayer = pronunciationPlayer;
         articlePlayer.Changed += ArticleChanged;
         pronunciationPlayer.Changed += PronunciationChanged;
-        articlePlayer.Message += message => Message?.Invoke(message);
-        pronunciationPlayer.Message += message => Message?.Invoke(message);
+        articlePlayer.Message += message => Message?.Invoke(message, NotificationSeverity.Warning);
+        pronunciationPlayer.Message += message => Message?.Invoke(message, NotificationSeverity.Warning);
     }
 
     private void ArticleChanged()
@@ -35,7 +35,7 @@ public sealed class ReaderPlayback
     }
 
     public event Action? Changed;
-    public event Action<string>? Message;
+    public event Action<string, NotificationSeverity>? Message;
     private PlaybackController ActivePlayer => pronunciationPlayer.State != PlaybackState.Stopped ? pronunciationPlayer : articlePlayer;
     public PlaybackState State => ActivePlayer.State;
     public string Owner => ActivePlayer.Owner;
@@ -152,7 +152,7 @@ public sealed class ReaderPlayback
             // A missing sibling MP3 leaves pronunciation playing; failed pronunciation cancels its previous target.
             AppLogger.Default.Warning("PlaybackRequestFailed", error);
             if (stopOnFailure) pronunciationPlayer.Stop();
-            Message?.Invoke(error.Message);
+            Message?.Invoke(error.Message, error is FileNotFoundException ? NotificationSeverity.Warning : NotificationSeverity.Error);
         }
     }
 }
