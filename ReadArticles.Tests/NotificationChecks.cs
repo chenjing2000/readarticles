@@ -33,6 +33,29 @@ internal static class NotificationChecks
             Program.Check(service.Dismiss(oldest.Id));
             Program.Check(service.Messages.Count == 8 && service.OverflowErrors.Count == 4);
         });
+        Program.Run("errors are never coalesced and clear publishes one state change", () =>
+        {
+            var service = new NotificationService();
+            int changes = 0;
+            service.Changed += () => changes++;
+            var first = service.Publish("same-error", "The same failure", NotificationSeverity.Error);
+            var second = service.Publish("same-error", "The same failure", NotificationSeverity.Error);
+            Program.Check(first is not null && second is not null && first.Id != second.Id);
+            Program.Check(service.Messages.Count == 2 && changes == 2);
+            service.Clear();
+            Program.Check(service.Messages.Count == 0 && changes == 3);
+        });
+        Program.Run("transient deduplication requires identical key message and severity", () =>
+        {
+            var service = new NotificationService();
+            var first = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning);
+            var duplicate = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning);
+            var differentMessage = service.Publish("audio", "Missing US audio", NotificationSeverity.Warning);
+            var differentSeverity = service.Publish("audio", "Missing UK audio", NotificationSeverity.Info);
+            Program.Check(first?.Id == duplicate?.Id);
+            Program.Check(differentMessage?.Id != first?.Id && differentSeverity?.Id != first?.Id);
+            Program.Check(service.Messages.Count == 3);
+        });
         Program.Run("transient queue eviction prefers oldest information", () =>
         {
             var service = new NotificationService();
