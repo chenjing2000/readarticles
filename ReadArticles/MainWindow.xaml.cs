@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     {
         double volume = player.Volume;
         NotificationHost.Detach();
+        ViewModel.CloseNavigation();
         ClosePlayback();
         SaveSettings(volume);
     }
