@@ -119,6 +119,8 @@
         </TreeView.Resources>
         <TreeView.ItemContainerStyle>
           <Style TargetType="TreeViewItem">
+            <EventSetter Event="Expanded" Handler="TreeExpanded"/>
+            <EventSetter Event="Collapsed" Handler="TreeCollapsed"/>
             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
               <Setter.Value>
