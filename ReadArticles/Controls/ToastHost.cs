@@ -317,6 +317,6 @@ public sealed class ToastHost : Grid
         public Stopwatch Elapsed { get; } = elapsed;
         public bool Hovered { get; set; }
         public bool Exiting { get; set; }
-        public bool IsEntering { get; set; }\n        public bool IsEntering { get; set; }
+        public bool IsEntering { get; set; }
     }
 }
