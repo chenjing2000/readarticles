@@ -86,13 +86,15 @@ internal static class WindowChecks
         Program.Run("toast cards use newest-first order fixed two-DIP gaps and 360-DIP width", () =>
         {
             var window = new ReadArticles.MainWindow(false)
-                { Left = -10000, Top = -10000, ShowActivated = false };
+                { Left = -10000, Top = -10000, ShowActivated = false, Width = 1500, Height = 920 };
             try
             {
                 window.Show();
                 WpfTestHelpers.Pump();
+                window.UpdateLayout();
                 var service = window.ViewModel.Notifications;
                 var host = (ReadArticles.Controls.ToastHost)window.FindName("NotificationHost");
+                host.UpdateLayout();
                 service.Publish("layout-1", "First toast", ReadArticles.Infrastructure.NotificationSeverity.Info);
                 service.Publish("layout-2", "Second toast", ReadArticles.Infrastructure.NotificationSeverity.Warning);
                 service.Publish("layout-3", "Third toast", ReadArticles.Infrastructure.NotificationSeverity.Error);
@@ -102,8 +104,9 @@ internal static class WindowChecks
                 var second = FindToastCard(host, "Second toast")!;
                 var third = FindToastCard(host, "Third toast")!;
                 Program.Check(first is not null && second is not null && third is not null);
-                Program.Check(Math.Abs(first.Width - 360) < 0.01 &&
-                    Math.Abs(second.Width - 360) < 0.01 && Math.Abs(third.Width - 360) < 0.01);
+                Console.WriteLine($"  Toast width diagnostics: host={host.ActualWidth:F2}; cards={first.ActualWidth:F2}/{second.ActualWidth:F2}/{third.ActualWidth:F2}; configured={first.Width:F2}/{second.Width:F2}/{third.Width:F2}");
+                Program.Check(Math.Abs(first.ActualWidth - 360) < 0.5 &&
+                    Math.Abs(second.ActualWidth - 360) < 0.5 && Math.Abs(third.ActualWidth - 360) < 0.5);
                 Program.Check(Math.Abs(third.Margin.Bottom - 2) < 0.01);
                 Program.Check(Math.Abs(second.Margin.Bottom - 2) < 0.01);
                 Program.Check(Math.Abs(first.Margin.Bottom) < 0.01);
