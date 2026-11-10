@@ -22,6 +22,8 @@ public sealed partial class MainViewModel
         if (workspace.Library.Warnings.Count > 0)
             AppLogger.Default.Warning("LibraryLoadedWithWarnings");
         Status = string.Join("  ", workspace.Library.Warnings);
+        if (workspace.Library.Warnings.Count > 0)
+            Notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);
     });
 
     public bool OpenArticle(string path) => Handle(() =>
@@ -40,6 +42,8 @@ public sealed partial class MainViewModel
         if (Article!.Warnings.Count > 0)
             AppLogger.Default.Warning("ArticleLoadedWithWarnings");
         Status = string.Join("  ", Article.Warnings);
+        if (Article.Warnings.Count > 0)
+            Notify("ArticleLoadedWithWarnings", "文章已打开，但部分附属数据存在问题。", NotificationSeverity.Warning);
     });
 
     private string ReadUser(string path)
