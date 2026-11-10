@@ -15,10 +15,10 @@ public partial class MainWindow
 
     public IReadOnlyList<ParagraphReader> Readers => readers;
 
-    public void RestoreContent(string? library = null)
+    public async void RestoreContent(string? library = null)
     {
         library ??= settings.Library;
-        if (library is not null) ViewModel.OpenLibrary(library);
+        if (library is not null) await ViewModel.OpenLibraryAsync(library);
     }
 
     public bool SelectPassage(string path)
@@ -27,6 +27,18 @@ public partial class MainWindow
         var node = MainViewModel.AllLeaves(ViewModel.Books).FirstOrDefault(n => string.Equals(n.PassagePath, full, StringComparison.OrdinalIgnoreCase));
         if (node is null)
         {
+            // Programmatic selection can target a valid passage whose ancestors
+            // have not been expanded. Do not scan the entire library for it.
+            bool insideBook = ViewModel.Books.Any(book =>
+            {
+                if (book.DirectoryPath is null) return false;
+                string relative = Path.GetRelativePath(book.DirectoryPath, full);
+                return relative != "." && !Path.IsPathRooted(relative) &&
+                    relative != ".." &&
+                    !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+            });
+            if (insideBook && File.Exists(full))
+                return ViewModel.OpenArticle(full);
             ViewModel.Notify("PassageNotInLibrary", "文章不在当前图书馆中。", ReadArticles.Infrastructure.NotificationSeverity.Warning);
             return false;
         }
