@@ -83,3 +83,11 @@ Run `dotnet run --project ReadArticles.Tests -c Release -- --notifications-only`
 - `--tree-only`: includes rapid collapse during a pending directory scan, successful retry after cancellation, library-session replacement while an old scan is pending, and failed article selection restoring the previously committed leaf.
 - `--backup-only`: includes a Windows file-sharing fault injection. The current source is held without delete sharing so the restore replacement fails after backup rotation; the test verifies the original source and previous valid backup are both restored byte-for-byte and temporary files are cleaned.
 - The fault-injection test uses an isolated temporary directory and never touches the user's library. The WPF timing test uses the test window and closes it in a finally block.
+
+## Toast layout and motion regression
+
+- `--notifications-only` verifies that message history remains chronological while the visible list is newest-first (newest at top, oldest at bottom), including the four-item visible limit.
+- `--window-only` verifies that new cards enter from above, dismissed cards exit downward, the default card width is 360 DIP, visible card gaps are 2 DIP, and the oldest visible card is anchored to the bottom of the host.
+- The host retains a 16 DIP bottom margin from the reading pane. Info, Warning and Error cards use distinct icon glyphs, foreground colors, backgrounds and font weights.
+- Info and Warning expire after their active display interval; hovering pauses the interval. Error notifications do not expire automatically. Exiting cards remain in the layout until their exit animation completes.
+- Animation sampling is performed on a real WPF window in the Windows UI suite. Hosted Core CI does not replace interactive desktop verification of perceived motion and rendering.
