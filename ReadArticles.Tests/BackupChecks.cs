@@ -189,8 +189,8 @@ internal static class BackupChecks
             {
                 string source = Path.Combine(root, "source.json");
                 string backup = Path.Combine(root, "source.bak");
-                File.WriteAllText(source, "{\\"version\\":2}");
-                File.WriteAllText(backup, "{\\"version\\":1}");
+                File.WriteAllText(source, """{"version":2}""");
+                File.WriteAllText(backup, """{"version":1}""");
                 string sourceBefore = JsonFiles.Fingerprint(source);
                 string backupBefore = JsonFiles.Fingerprint(backup);
                 bool failed = false;
