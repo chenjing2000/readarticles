@@ -1,10 +1,75 @@
 using System.Windows.Controls;
+using System.IO;
 using ReadArticles.Models;
 
 internal static class TreeNavigationChecks
 {
     internal static void Run()
     {
+        Program.Run("collapse cancels an in-flight scan and a later expansion retries", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-tree-cancel-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(root, "book.json"), "marker");
+                File.WriteAllText(Path.Combine(root, "Article.json"), "{}");
+                window.Show();
+                var node = new NavigationNode("Book", root, null, Array.Empty<NavigationNode>(), root);
+                node.IsExpanded = true;
+                Task pending = window.ViewModel.ExpandDirectoryAsync(node);
+                node.IsExpanded = false;
+                window.ViewModel.CollapseDirectory(node);
+                WpfTestHelpers.Wait(() => pending.IsCompleted);
+                pending.GetAwaiter().GetResult();
+                Program.Check(node.LoadState == NodeLoadState.NotLoaded);
+                Program.Check(!node.Children.Any(child => child.IsPassage));
+
+                node.IsExpanded = true;
+                Task retry = window.ViewModel.ExpandDirectoryAsync(node);
+                WpfTestHelpers.Wait(() => retry.IsCompleted);
+                retry.GetAwaiter().GetResult();
+                Program.Check(node.LoadState == NodeLoadState.Loaded);
+                Program.Check(node.Children.Any(child => child.Name == "Article" && child.IsPassage));
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                Directory.Delete(root, true);
+            }
+        });
+
+        Program.Run("switching libraries invalidates results from the previous library session", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-tree-session-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(root, "book.json"), "marker");
+                File.WriteAllText(Path.Combine(root, "Article.json"), "{}");
+                window.Show();
+                var stale = new NavigationNode("Old book", root, null, Array.Empty<NavigationNode>(), root)
+                    { IsExpanded = true };
+                Task pending = window.ViewModel.ExpandDirectoryAsync(stale);
+                Task<bool> replacement = window.ViewModel.OpenLibraryAsync(TestData.LibraryRoot);
+                WpfTestHelpers.Wait(() => pending.IsCompleted && replacement.IsCompleted);
+                pending.GetAwaiter().GetResult();
+                Program.Check(replacement.GetAwaiter().GetResult());
+                Program.Check(window.ViewModel.Books.Count == 1);
+                Program.Check(stale.LoadState != NodeLoadState.Loaded);
+                Program.Check(!stale.Children.Any(child => child.IsPassage));
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                Directory.Delete(root, true);
+            }
+        });
+
         Program.Run("tree expands one level at a time and collapse invalidates descendants", () =>
         {
             var window = new ReadArticles.MainWindow(false);
