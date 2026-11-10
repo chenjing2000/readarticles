@@ -100,21 +100,31 @@ public sealed class VocabularyRepository
                     throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再恢复。");
             }
 
-            if (invalidCurrent)
+            if (!invalidCurrent)
             {
-                string corruptPath = absolute + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
-                File.Move(absolute, corruptPath);
-            }
-            else
-            {
-                // The repository mutex protects this application's writers. Do not keep
-                // the source file open while the backup service atomically replaces it:
-                // Windows can reject the rename even when the handle allows delete sharing.
                 BackupFiles.RestoreLatestBackup(absolute, backupPath);
                 return;
             }
 
-            BackupFiles.RestoreLatestBackup(absolute, backupPath);
+            // Keep the original corrupt bytes at their expected path until all
+            // recovery inputs are staged; copy rather than moving the source.
+            string corruptPath = absolute + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") +
+                "." + Guid.NewGuid().ToString("N") + ".corrupt";
+            using (var input = new FileStream(absolute, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var output = new FileStream(corruptPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                input.CopyTo(output);
+                output.Flush(true);
+            }
+            if (JsonFiles.Fingerprint(corruptPath) != actual ||
+                JsonFiles.Fingerprint(absolute) != actual)
+                throw new IOException("损坏文件保护副本校验失败，恢复已取消。");
+
+            AppLogger.Default.Warning("RecoveryFilePreserved");
+            // A corrupt source must never become the sole normal .bak file.
+            // Restore keeps the verified previous backup while the corrupt
+            // original remains available separately as a recovery artifact.
+            BackupFiles.RestoreLatestBackup(absolute, backupPath, keepExistingBackup: true);
         }
         finally
         {
