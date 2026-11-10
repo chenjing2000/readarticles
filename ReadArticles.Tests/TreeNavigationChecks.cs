@@ -70,6 +70,49 @@ internal static class TreeNavigationChecks
             }
         });
 
+        Program.Run("failed article selection restores the previously committed tree leaf", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-selection-rollback-" + Guid.NewGuid().ToString("N"));
+            string book = Path.Combine(root, "Book");
+            Directory.CreateDirectory(book);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(book, "book.json"), "marker");
+                string goodPath = Path.Combine(book, "Good.json");
+                string badPath = Path.Combine(book, "Bad.json");
+                File.Copy(TestData.ArticlePath, goodPath);
+                File.WriteAllText(badPath, "{ invalid article");
+                window.Show();
+                Program.Check(window.ViewModel.OpenLibrary(root));
+                WpfTestHelpers.Pump();
+                var tree = (TreeView)window.FindName("LibraryTree");
+                var bookNode = window.ViewModel.Books.Single();
+                var bookItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(bookNode);
+                bookItem.IsExpanded = true;
+                WpfTestHelpers.Wait(() => bookNode.LoadState == NodeLoadState.Loaded);
+                WpfTestHelpers.Pump();
+                var goodNode = bookNode.Children.Single(n => n.PassagePath == goodPath);
+                var badNode = bookNode.Children.Single(n => n.PassagePath == badPath);
+                var goodItem = (TreeViewItem)bookItem.ItemContainerGenerator.ContainerFromItem(goodNode);
+                var badItem = (TreeViewItem)bookItem.ItemContainerGenerator.ContainerFromItem(badNode);
+                goodItem.IsSelected = true;
+                WpfTestHelpers.Pump();
+                Program.Check(window.ViewModel.Article?.FilePath == goodPath);
+                badItem.IsSelected = true;
+                WpfTestHelpers.Pump();
+                Program.Check(window.ViewModel.Article?.FilePath == goodPath);
+                Program.Check(ReferenceEquals(tree.SelectedItem, goodNode));
+                Program.Check(goodItem.IsSelected && !badItem.IsSelected);
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                Directory.Delete(root, true);
+            }
+        });
+
         Program.Run("tree expands one level at a time and collapse invalidates descendants", () =>
         {
             var window = new ReadArticles.MainWindow(false);
