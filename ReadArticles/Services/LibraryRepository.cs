@@ -15,9 +15,10 @@ public sealed class LibraryRepository
         var books = new List<NavigationNode>();
         try
         {
+            bool rootHasJsonFile = Directory.EnumerateFiles(absolute).Any(IsJsonFile);
             foreach (var child in Directory.EnumerateDirectories(absolute))
             {
-                if (ShouldSkip(child, warnings)) continue;
+                if (ShouldHideDirectory(child, rootHasJsonFile) || ShouldSkip(child, warnings)) continue;
                 try
                 {
                     if (!File.Exists(Path.Combine(child, "book.json"))) continue;
@@ -45,12 +46,15 @@ public sealed class LibraryRepository
         var nodes = new List<NavigationNode>();
         var warnings = new List<string>();
         bool complete = true;
-        // Separate enumerators allow sibling directories to survive a file
-        // enumeration failure (and vice versa). A faulted enumerator is never resumed.
+        bool hasJsonFile = false;
+        // Enumerate direct files once. JSON presence is based only on the extension;
+        // companion and metadata JSON files also activate the audio-folder filter.
         try
         {
-            foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
+            foreach (var file in Directory.EnumerateFiles(directory))
             {
+                if (!IsJsonFile(file)) continue;
+                hasJsonFile = true;
                 if (ShouldSkip(file, warnings)) continue;
                 string name = Path.GetFileName(file);
                 if (name.Equals("book.json", StringComparison.OrdinalIgnoreCase) ||
@@ -77,7 +81,7 @@ public sealed class LibraryRepository
         {
             foreach (var child in Directory.EnumerateDirectories(directory))
             {
-                if (ShouldSkip(child, warnings)) continue;
+                if (ShouldHideDirectory(child, hasJsonFile) || ShouldSkip(child, warnings)) continue;
                 try
                 {
                     nodes.Add(new NavigationNode(Path.GetFileName(child), bookRoot,
@@ -97,6 +101,16 @@ public sealed class LibraryRepository
         var ordered = nodes.OrderBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(n => n.IsPassage).ToList();
         return new DirectoryScanResult(ordered, warnings, complete);
+    }
+
+    private static bool IsJsonFile(string path) =>
+        Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ShouldHideDirectory(string path, bool parentHasJsonFile)
+    {
+        string name = Path.GetFileName(path);
+        return name.Equals("cache", StringComparison.OrdinalIgnoreCase) ||
+            (parentHasJsonFile && name.Contains("audio", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool ShouldSkip(string path, List<string> warnings)
