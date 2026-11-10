@@ -100,10 +100,14 @@ internal static class LazyTreeChecks
                 var jsonEntries = repository.ScanDirectoryLevel(withJson, withJson).Entries;
                 var nonJsonEntries = repository.ScanDirectoryLevel(withoutJson, withoutJson).Entries;
 
-                Program.Check(jsonEntries.Select(n => n.Name).OrderBy(n => n).SequenceEqual(
-                    new[] { "cache_backup", "images", "my_cache" }.OrderBy(n => n)));
-                Program.Check(nonJsonEntries.Select(n => n.Name).OrderBy(n => n).SequenceEqual(
-                    new[] { "audio", "audios", "cache_backup", "images" }.OrderBy(n => n)));
+                Program.Check(jsonEntries.Count(n => n.IsPassage) == 1 &&
+                    jsonEntries.Single(n => n.IsPassage).Name == "metadata");
+                Program.Check(jsonEntries.Where(n => !n.IsPassage).Select(n => n.Name)
+                    .OrderBy(n => n).SequenceEqual(
+                        new[] { "cache_backup", "images", "my_cache" }.OrderBy(n => n)));
+                Program.Check(nonJsonEntries.Where(n => !n.IsPassage).Select(n => n.Name)
+                    .OrderBy(n => n).SequenceEqual(
+                        new[] { "audio", "audios", "cache_backup", "images" }.OrderBy(n => n)));
             });
         });
         Program.Run("root-level cache and audio folders are filtered when applicable", () =>
