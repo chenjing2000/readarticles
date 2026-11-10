@@ -67,7 +67,11 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer)
     {
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
-        playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);
+        playback.Message += (message, severity) =>
+        {
+            Status = message; // Keep legacy test-facing state until all assertions migrate.
+            Notify("PlaybackFailure", message, severity);
+        };
         playback.Changed += () =>
         {
             PlaybackChanged?.Invoke();
