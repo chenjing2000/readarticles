@@ -52,7 +52,7 @@ try {
         }
     }
     else {
-        foreach ($category in @('--content-only', '--rendering-only', '--tree-only', '--editing-only')) {
+        foreach ($category in @('--content-only', '--rendering-only', '--tree-only', '--editing-only', '--notifications-only', '--lazy-tree-only')) {
             Invoke-TestCheck $category { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', $category) }
         }
         if ($Suite -eq 'UI') {
