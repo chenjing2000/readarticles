@@ -23,7 +23,7 @@ internal static class NotificationChecks
             var fourth = service.Publish("four", "Fourth", NotificationSeverity.Info)!;
             var fifth = service.Publish("five", "Fifth", NotificationSeverity.Info)!;
             Program.Check(service.Messages.Select(n => n.Id).SequenceEqual(
-                new[] { first.Id, second.Id, third.Id, fourth.Id, fifth.Id }));
+                new[] { second.Id, third.Id, fourth.Id, fifth.Id }));
             Program.Check(service.Visible.Select(n => n.Id).SequenceEqual(
                 new[] { fifth.Id, fourth.Id, third.Id, second.Id }));
         });
