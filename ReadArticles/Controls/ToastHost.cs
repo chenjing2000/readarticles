@@ -115,14 +115,15 @@ public sealed class ToastHost : Grid
             visuals.Remove(id);
 
         stack.Children.Clear();
-        foreach (var item in visible)
+        for (int index = 0; index < visible.Count; index++)
         {
+            var item = visible[index];
             if (!visuals.TryGetValue(item.Id, out var visual))
             {
                 visual = CreateVisual(item);
                 visuals[item.Id] = visual;
             }
-            visual.Card.Margin = new Thickness(0, 0, 0, 2);
+            visual.Card.Margin = new Thickness(0, 0, 0, index == visible.Count - 1 ? 0 : 2);
             stack.Children.Add(visual.Card);
         }
         int hiddenErrors = service.OverflowErrors.Count;
