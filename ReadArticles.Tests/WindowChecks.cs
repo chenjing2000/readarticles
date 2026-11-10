@@ -63,9 +63,9 @@ internal static class WindowChecks
                 Program.Check(service.Messages.Any(n => n.Id == transient.Id));
                 card.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
                     { RoutedEvent = Mouse.MouseLeave });
-                WpfTestHelpers.Pump(1200);
+                WpfTestHelpers.Pump(300);
                 Program.Check(service.Messages.Any(n => n.Id == transient.Id));
-                WpfTestHelpers.Pump(4000);
+                WpfTestHelpers.Pump(1000);
                 Program.Check(!service.Messages.Any(n => n.Id == transient.Id));
 
                 var error = service.Publish("toast-error-test", "Persistent error test",
