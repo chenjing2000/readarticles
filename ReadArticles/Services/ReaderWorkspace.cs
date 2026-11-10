@@ -7,6 +7,10 @@ public sealed class ReaderWorkspace
     public void OpenLibrary(string root)
     {
         var prepared = new LibraryRepository().Load(root);
+        CommitLibrary(prepared);
+    }
+    public void CommitLibrary(LibrarySnapshot prepared)
+    {
         Library = prepared;
         Article = null;
     }
