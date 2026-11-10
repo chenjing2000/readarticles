@@ -15,10 +15,15 @@ public partial class MainWindow
 
     public IReadOnlyList<ParagraphReader> Readers => readers;
 
-    public async void RestoreContent(string? library = null)
+    public async void RestoreContent(string? library = null) =>
+        await RestoreContentAsync(library);
+
+    // The task-returning entrypoint makes startup recovery deterministically
+    // observable without changing the fire-and-forget application startup API.
+    public Task<bool> RestoreContentAsync(string? library = null)
     {
         library ??= settings.Library;
-        if (library is not null) await ViewModel.OpenLibraryAsync(library);
+        return library is null ? Task.FromResult(false) : ViewModel.OpenLibraryAsync(library);
     }
 
     public bool SelectPassage(string path)
