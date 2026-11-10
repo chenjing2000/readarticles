@@ -76,3 +76,10 @@ Never edit `tests/TestData/` during a test run. When intentionally changing a fi
 ## Phase 5 targeted checks
 
 Run `dotnet run --project ReadArticles.Tests -c Release -- --notifications-only` for queue ordering, severity, deduplication and error overflow. Run `dotnet run --project ReadArticles.Tests -c Release -- --lazy-tree-only` for root-only and one-level scan behavior. The existing `--tree-only`, `--window-only`, `--backup-only` and `--content-only` suites remain relevant. Native WPF animation timing, hover, keyboard close and published EXE behavior still require an interactive Windows desktop in addition to hosted Core CI. Never test recovery fault cases against a real library.
+
+## Phase 5 reliability and interactive regression additions
+
+- `--window-only`: includes a real WPF ToastHost timing check. A transient message is hovered near its expiry threshold, must remain visible while hovered, then expires after the remaining active time. An Error must remain after the transient timeout and disappear only after its close action.
+- `--tree-only`: includes rapid collapse during a pending directory scan, successful retry after cancellation, library-session replacement while an old scan is pending, and failed article selection restoring the previously committed leaf.
+- `--backup-only`: includes a Windows file-sharing fault injection. The current source is held without delete sharing so the restore replacement fails after backup rotation; the test verifies the original source and previous valid backup are both restored byte-for-byte and temporary files are cleaned.
+- The fault-injection test uses an isolated temporary directory and never touches the user's library. The WPF timing test uses the test window and closes it in a finally block.
