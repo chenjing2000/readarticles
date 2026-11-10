@@ -37,3 +37,10 @@
 - 业务和控件检查之外，用真实库验证媒体匹配、播放切换、词汇保存和实际声卡输出。见[测试说明](Testing.md)。
 
 [项目说明](../README.md) · [专属检查](../docs/skills/project-code-review/SKILL.md)
+
+## Phase 5 navigation and notification invariants
+
+- The bottom status row is removed. Middle-pane floating Toasts classify Info, Warning and Error; only the first two auto-expire, while all unacknowledged errors remain accessible.
+- Library discovery is strictly one level at a time and directory enumeration occurs away from the WPF Dispatcher. Directory collapse invalidates pending work but must not interrupt reading or audio.
+- A failed article switch preserves the previously committed passage and vocabulary, and the UI must not display a false selected passage.
+- Failed backup restoration may retain exceptional rescue copies. Never delete the only valid version of a source, backup or staged recovery copy.
