@@ -36,44 +36,33 @@ internal static class WindowChecks
                 Program.Check(!reader.IsSelectionAddVisible);
             });
         });
-        Program.Run("reader status occupies space only while a message is present and expires at six seconds", () =>
+        Program.Run("floating notifications do not shrink reader panes or playback toolbar", () =>
         {
             var window = new ReadArticles.MainWindow(false) { Left = -10000, Top = -10000, ShowActivated = false };
             try
             {
                 window.Show();
                 var layout = (System.Windows.Controls.Grid)window.Content;
-                var status = layout.Children.OfType<System.Windows.Controls.TextBlock>().Single(child => System.Windows.Controls.Grid.GetRow(child) == 1);
-                var panels = layout.Children.OfType<FrameworkElement>().Where(child => System.Windows.Controls.Grid.GetRow(child) == 0 && child is not System.Windows.Controls.GridSplitter).ToArray();
-                Program.Check(panels.Length == 3);
-                window.ViewModel.Status = "";
-                WpfTestHelpers.Pump(); window.UpdateLayout();
-                Program.Check(status.Visibility == Visibility.Collapsed && layout.RowDefinitions[1].ActualHeight == 0);
-                var expandedHeights = panels.Select(panel => panel.ActualHeight).ToArray();
-                window.ViewModel.Status = "first";
-                WpfTestHelpers.Pump(); window.UpdateLayout();
-                Program.Check(status.Visibility == Visibility.Visible && layout.RowDefinitions[1].ActualHeight > 0);
-                var messageHeights = panels.Select(panel => panel.ActualHeight).ToArray();
-                Program.Check(messageHeights.Where((height, index) => height < expandedHeights[index]).Count() == 3);
-                WpfTestHelpers.Pump(3000);
-                window.ViewModel.Status = "second";
-                var elapsed = Stopwatch.StartNew();
-                WpfTestHelpers.Pump(3300);
-                if (elapsed.Elapsed.TotalSeconds < 5.9 && window.ViewModel.Status != "second")
-                    throw new Exception($"Status cleared early at {elapsed.Elapsed.TotalSeconds:F2}s: '{window.ViewModel.Status}'");
-                while (window.ViewModel.Status == "second" && elapsed.Elapsed.TotalSeconds < 8)
-                    WpfTestHelpers.Pump(50);
-                if (window.ViewModel.Status != "" || elapsed.Elapsed.TotalSeconds < 5.9)
-                    throw new Exception($"Status after {elapsed.Elapsed.TotalSeconds:F2}s: '{window.ViewModel.Status}'");
-                WpfTestHelpers.Pump(); window.UpdateLayout();
-                Program.Check(status.Visibility == Visibility.Collapsed && layout.RowDefinitions[1].ActualHeight == 0);
-                Program.Check(panels.Where((panel, index) => Math.Abs(panel.ActualHeight - expandedHeights[index]) < 0.01).Count() == 3);
-            }
-            finally
-            {
-                window.Close();
+                var panels = layout.Children.OfType<FrameworkElement>()
+                    .Where(child => System.Windows.Controls.Grid.GetRow(child) == 0 &&
+                        child is not System.Windows.Controls.GridSplitter).ToArray();
+                Program.Check(panels.Length == 3 && layout.RowDefinitions.Count == 1);
                 WpfTestHelpers.Pump();
+                window.UpdateLayout();
+                var before = panels.Select(panel => panel.ActualHeight).ToArray();
+                var notifications = window.ViewModel.Notifications;
+                notifications.Publish("test-info", "Notification test", ReadArticles.Infrastructure.NotificationSeverity.Info);
+                notifications.Publish("test-error", "Persistent test error", ReadArticles.Infrastructure.NotificationSeverity.Error);
+                WpfTestHelpers.Pump();
+                window.UpdateLayout();
+                Program.Check(notifications.Visible.Count == 2);
+                Program.Check(panels.Select((panel, index) => Math.Abs(panel.ActualHeight - before[index]) < 0.01).All(x => x));
+                Program.Check(window.FindName("NotificationHost") is ReadArticles.Controls.ToastHost);
+                notifications.Dismiss(notifications.Messages[0].Id);
+                Program.Check(notifications.Visible.Count == 1 &&
+                    notifications.Visible[0].Severity == ReadArticles.Infrastructure.NotificationSeverity.Error);
             }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
         });
     }
 
