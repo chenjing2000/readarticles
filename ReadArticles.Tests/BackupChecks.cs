@@ -181,6 +181,33 @@ internal static class BackupChecks
             }
         });
 
+        Program.Run("failed restore rolls the previous valid backup back without changing source", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-restore-rollback-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                string source = Path.Combine(root, "source.json");
+                string backup = Path.Combine(root, "source.bak");
+                File.WriteAllText(source, "{\\"version\\":2}");
+                File.WriteAllText(backup, "{\\"version\\":1}");
+                string sourceBefore = JsonFiles.Fingerprint(source);
+                string backupBefore = JsonFiles.Fingerprint(backup);
+                bool failed = false;
+                using (var blocker = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    try { BackupFiles.RestoreLatestBackup(source, backup); }
+                    catch (IOException) { failed = true; }
+                    catch (UnauthorizedAccessException) { failed = true; }
+                }
+                Program.Check(failed);
+                Program.Check(JsonFiles.Fingerprint(source) == sourceBefore);
+                Program.Check(JsonFiles.Fingerprint(backup) == backupBefore);
+                Program.Check(Directory.GetFiles(root, "*.tmp", SearchOption.AllDirectories).Length == 0);
+            }
+            finally { Directory.Delete(root, true); }
+        });
+
         Program.Run("failed backup leaves the source file unchanged", () =>
         {
             string root = Path.Combine(Path.GetTempPath(), "ReadArticles-backup-failure-" + Guid.NewGuid().ToString("N"));
