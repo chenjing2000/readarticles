@@ -97,10 +97,6 @@ public sealed class ToastHost : Grid
             transform.BeginAnimation(TranslateTransform.YProperty,
                 new DoubleAnimation(16, TimeSpan.FromMilliseconds(milliseconds))
                 { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } });
-        if (visual.Card.RenderTransform is TranslateTransform transform)
-            transform.BeginAnimation(TranslateTransform.YProperty,
-                new DoubleAnimation(16, TimeSpan.FromMilliseconds(milliseconds))
-                { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } });
     }
 
     private void Render()
