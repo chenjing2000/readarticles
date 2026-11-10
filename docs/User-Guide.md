@@ -58,3 +58,9 @@ Use [Testing](Testing.md) for test and acceptance commands, [Publishing](Publish
 For content authoring, use [Image to Passage](skills/image_to_passage/SKILL.md), [Passage Segmentation](skills/passage_segment/SKILL.md), and [Vocabulary Preparation](Vocabulary-Preparation.md), then follow [Library Layout](Library-Layout.md).
 
 The Portable profile places temporary compiled output inside obj/publish-build instead of creating a separate release copy under bin. Only dist is the release directory; artifacts and old staging releases can be removed. Building or running tests can still create bin and obj caches. Do not delete dist or its settings while cleaning caches. LeftWidth and RightWidth are rounded in configuration, and FontSize is stored directly as an integer DIP value.
+
+## Floating messages and lazy navigation
+
+Messages appear above the middle pane's playback bar. Informational and warning notices fade away after approximately five seconds, with the timer paused while hovered. Errors remain until closed. Each message has a close button; an overflow indicator retains additional unacknowledged errors.
+
+Opening a library lists only books. Use the plus button to expand one level at a time; clicking folder text merely selects it. A folder may be expandable even when it contains no direct JSON file. Collapse and re-expand to refresh added, deleted or renamed files. Collapsing a directory does not unload the current passage or stop audio.
