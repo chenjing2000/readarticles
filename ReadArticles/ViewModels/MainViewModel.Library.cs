@@ -190,10 +190,18 @@ public sealed partial class MainViewModel
 
     private string ReadUser(string path)
     {
-        var leaf = AllLeaves(Books).FirstOrDefault(n =>
-            string.Equals(n.PassagePath, path, StringComparison.OrdinalIgnoreCase));
-        if (leaf is null) return "User: —";
-        return new UserRepository().ReadUser(leaf.BookRoot);
+        // Book ownership is available from the root-only snapshot; do not
+        // recursively materialize directory nodes merely to resolve userdata.
+        string full = Path.GetFullPath(path);
+        var book = Books.FirstOrDefault(n =>
+        {
+            if (n.DirectoryPath is null) return false;
+            string relative = Path.GetRelativePath(n.DirectoryPath, full);
+            return relative != "." && !Path.IsPathRooted(relative) &&
+                relative != ".." &&
+                !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+        });
+        return book is null ? "User: —" : new UserRepository().ReadUser(book.BookRoot);
     }
 
     public static IEnumerable<NavigationNode> AllLeaves(IEnumerable<NavigationNode> nodes)
