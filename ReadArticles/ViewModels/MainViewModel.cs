@@ -89,7 +89,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         catch (Exception error) when (error is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException)
         {
             AppLogger.Default.Warning("UserOperationFailed", error);
-            Notify("UserOperationFailed", error.Message, NotificationSeverity.Error);
+            Notify("UserOperationFailed", "操作失败，请检查文章或词汇文件及访问权限。", NotificationSeverity.Error);
             Status = error.Message;
             return false;
         }
