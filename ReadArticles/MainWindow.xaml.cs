@@ -24,7 +24,7 @@ public partial class MainWindow : Window
         ViewModel.ArticleChanged += RenderArticle;
         ViewModel.VocabularyChanged += RefreshVocabularyHighlights;
         InitializePlayback();
-        InitializeStatus();
+        NotificationHost.Attach(ViewModel.Notifications);
         ViewModel.PropertyChanged += SettingsChanged;
         Closing += WindowClosing;
         Closed += WindowClosed;
@@ -33,14 +33,14 @@ public partial class MainWindow : Window
         if (settingsWarning != null)
         {
             AppLogger.Default.Warning("SettingsLoadWarning");
-            Dispatcher.BeginInvoke(() => ViewModel.Status = settingsWarning);
+            Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsLoadWarning", settingsWarning, NotificationSeverity.Warning));
         }
     }
 
     private void WindowClosed(object? sender, EventArgs e)
     {
         double volume = player.Volume;
-        CloseStatus();
+        NotificationHost.Detach();
         ClosePlayback();
         SaveSettings(volume);
     }
