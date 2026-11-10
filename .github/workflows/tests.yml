@@ -26,6 +26,9 @@ jobs:
       - name: Run Core regression suite
         shell: powershell
         run: .\tools\Test.ps1 -Suite Core
+      - name: Check startup restoration and icon interaction
+        shell: powershell
+        run: dotnet run --project ReadArticles.Tests -c Release -- --icons-only
       - name: Publish actual portable release
         shell: powershell
         run: .\tools\Publish.ps1
