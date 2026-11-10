@@ -1,6 +1,10 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Documents;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Automation;
 
 internal static class WindowChecks
 {
@@ -36,6 +40,49 @@ internal static class WindowChecks
                 Program.Check(!reader.IsSelectionAddVisible);
             });
         });
+        Program.Run("toast hover pauses expiry, transient fades, and errors persist until closed", () =>
+        {
+            var window = new ReadArticles.MainWindow(false)
+            {
+                Left = -10000, Top = -10000, ShowActivated = false
+            };
+            try
+            {
+                window.Show();
+                WpfTestHelpers.Pump();
+                var service = window.ViewModel.Notifications;
+                var host = (ReadArticles.Controls.ToastHost)window.FindName("NotificationHost");
+                var transient = service.Publish("toast-hover-test", "Hover pause test",
+                    ReadArticles.Infrastructure.NotificationSeverity.Info)!;
+                WpfTestHelpers.Pump(4000);
+                var card = FindToastCard(host, "Hover pause test");
+                Program.Check(card is not null);
+                card!.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
+                    { RoutedEvent = Mouse.MouseEnter });
+                WpfTestHelpers.Pump(1200);
+                Program.Check(service.Messages.Any(n => n.Id == transient.Id));
+                card.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
+                    { RoutedEvent = Mouse.MouseLeave });
+                WpfTestHelpers.Pump(1200);
+                Program.Check(service.Messages.Any(n => n.Id == transient.Id));
+                WpfTestHelpers.Pump(4000);
+                Program.Check(!service.Messages.Any(n => n.Id == transient.Id));
+
+                var error = service.Publish("toast-error-test", "Persistent error test",
+                    ReadArticles.Infrastructure.NotificationSeverity.Error)!;
+                WpfTestHelpers.Pump(5000);
+                Program.Check(service.Messages.Any(n => n.Id == error.Id));
+                var errorCard = FindToastCard(host, "Persistent error test");
+                Program.Check(errorCard is not null);
+                var close = WpfTestHelpers.Descendants(errorCard!)
+                    .OfType<Button>().Single(button =>
+                        AutomationProperties.GetName(button) == "关闭消息");
+                close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WpfTestHelpers.Wait(() => !service.Messages.Any(n => n.Id == error.Id));
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
         Program.Run("floating notifications do not shrink reader panes or playback toolbar", () =>
         {
             var window = new ReadArticles.MainWindow(false) { Left = -10000, Top = -10000, ShowActivated = false };
@@ -64,6 +111,17 @@ internal static class WindowChecks
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
+    }
+
+    private static Border? FindToastCard(DependencyObject host, string message)
+    {
+        var text = WpfTestHelpers.Descendants(host).OfType<TextBlock>()
+            .FirstOrDefault(item => item.Text == message);
+        if (text is null) return null;
+        DependencyObject? current = text;
+        while (current is not null && current is not Border)
+            current = VisualTreeHelper.GetParent(current);
+        return current as Border;
     }
 
     private static void WithReader(Action<ReadArticles.Rendering.ParagraphReader> check)
