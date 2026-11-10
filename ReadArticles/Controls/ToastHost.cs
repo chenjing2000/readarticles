@@ -48,7 +48,6 @@ public sealed class ToastHost : Grid
     {
         disposed = true;
         timer.Stop();
-        timer.Tick -= TimerTick;
         if (service is not null) service.Changed -= ServiceChanged;
         service = null;
         foreach (var item in visuals.Values) item.Card.BeginAnimation(OpacityProperty, null);
