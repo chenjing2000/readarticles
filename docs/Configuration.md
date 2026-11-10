@@ -20,3 +20,7 @@ The configuration file remains `userdata/config/settings.json` even if the EXE i
 A damaged JSON configuration is preserved as a timestamped `.corrupt` file. The application attempts to restore the latest valid settings backup before falling back to defaults, with a warning. Read/write failures are reported; the application uses in-memory settings and does not silently move the configuration elsewhere. Put the EXE in a writable folder.
 
 Install the Windows x64 .NET 10 **Windows Desktop Runtime**, 10.0.11 or a later compatible patch. The SDK is not required to run the release. If the required runtime is missing, the native .NET application host presents the installation prompt before WPF starts; the application cannot show its own WPF dialog at that stage. This missing-runtime prompt should be checked on a clean Windows machine.
+
+## Backup recovery failure safety
+
+Restore stages and fingerprints recovery input before replacement, retains the previous backup while a rollback may still be needed, and preserves rescue artifacts if rollback fails. Corrupt vocabulary source bytes are copied and verified before restoration rather than moving the source away prematurely. Ordinary backup rotation still keeps one latest `.bak` per source; exceptional `.corrupt`, `.current.tmp`, `.previous.tmp` and `.restore.tmp` artifacts are not ordinary backups and may require manual recovery.
