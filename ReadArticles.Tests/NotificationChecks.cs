@@ -4,15 +4,28 @@ internal static class NotificationChecks
 {
     internal static void Run()
     {
-        Program.Run("notifications classify severity and display newest at bottom", () =>
+        Program.Run("notifications classify severity and display newest at top", () =>
         {
             var service = new NotificationService();
             service.Publish("info", "Connected", NotificationSeverity.Info);
             service.Publish("warning", "Missing sentence recording", NotificationSeverity.Warning);
             service.Publish("error", "Invalid passage", NotificationSeverity.Error);
             Program.Check(service.Visible.Count == 3);
-            Program.Check(service.Visible[0].Severity == NotificationSeverity.Info);
-            Program.Check(service.Visible[2].Severity == NotificationSeverity.Error);
+            Program.Check(service.Visible[0].Severity == NotificationSeverity.Error);
+            Program.Check(service.Visible[2].Severity == NotificationSeverity.Info);
+        });
+        Program.Run("visible notifications are newest-first while history remains chronological", () =>
+        {
+            var service = new NotificationService();
+            var first = service.Publish("one", "First", NotificationSeverity.Info)!;
+            var second = service.Publish("two", "Second", NotificationSeverity.Warning)!;
+            var third = service.Publish("three", "Third", NotificationSeverity.Info)!;
+            var fourth = service.Publish("four", "Fourth", NotificationSeverity.Info)!;
+            var fifth = service.Publish("five", "Fifth", NotificationSeverity.Info)!;
+            Program.Check(service.Messages.Select(n => n.Id).SequenceEqual(
+                new[] { first.Id, second.Id, third.Id, fourth.Id, fifth.Id }));
+            Program.Check(service.Visible.Select(n => n.Id).SequenceEqual(
+                new[] { fifth.Id, fourth.Id, third.Id, second.Id }));
         });
         Program.Run("duplicate transient warnings coalesce", () =>
         {
