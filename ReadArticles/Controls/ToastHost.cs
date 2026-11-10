@@ -93,6 +93,10 @@ public sealed class ToastHost : Grid
             if (!disposed) service?.Dismiss(id);
         };
         visual.Card.BeginAnimation(OpacityProperty, fade);
+        if (visual.Card.RenderTransform is TranslateTransform transform)
+            transform.BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(16, TimeSpan.FromMilliseconds(milliseconds))
+                { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } });
     }
 
     private void Render()
@@ -118,7 +122,7 @@ public sealed class ToastHost : Grid
                 visual = CreateVisual(item);
                 visuals[item.Id] = visual;
             }
-            visual.Card.Margin = new Thickness(0, 0, 0, stack.Children.Count == 0 ? 0 : 8);
+            visual.Card.Margin = new Thickness(0, 0, 0, 2);
             stack.Children.Add(visual.Card);
         }
         int hiddenErrors = service.OverflowErrors.Count;
@@ -128,7 +132,7 @@ public sealed class ToastHost : Grid
             {
                 Content = $"还有 {hiddenErrors} 条错误",
                 Padding = new Thickness(10, 5, 10, 5),
-                Margin = new Thickness(0, 8, 0, 0),
+                Margin = new Thickness(0, 0, 0, 2),
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             button.Click += (_, _) => ShowOverflow();
@@ -180,7 +184,7 @@ public sealed class ToastHost : Grid
         };
         var card = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(252, 252, 253)),
+            Background = new SolidColorBrush(background),
             BorderBrush = new SolidColorBrush(borderColor),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
@@ -200,7 +204,16 @@ public sealed class ToastHost : Grid
             visual.Hovered = false;
             if (!visual.Exiting) visual.Elapsed.Start();
         };
-        card.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250)));
+        visual.IsEntering = true;
+        var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        fadeIn.Completed += (_, _) => visual.IsEntering = false;
+        card.BeginAnimation(OpacityProperty, fadeIn);
+        ((TranslateTransform)card.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
+            new DoubleAnimation(-16, 0, TimeSpan.FromMilliseconds(250))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
         return visual;
     }
 
@@ -216,7 +229,7 @@ public sealed class ToastHost : Grid
         if (disposed) return;
         foreach (var pair in visuals)
         {
-            if (!previousPositions.TryGetValue(pair.Key, out Point old) || !pair.Value.Card.IsLoaded) continue;
+            if (pair.Value.IsEntering || !previousPositions.TryGetValue(pair.Key, out Point old) || !pair.Value.Card.IsLoaded) continue;
             var card = pair.Value.Card;
             double delta = old.Y - card.TranslatePoint(new Point(), this).Y;
             if (Math.Abs(delta) < 1) continue;
@@ -267,6 +280,6 @@ public sealed class ToastHost : Grid
         public Border Card { get; } = card;
         public Stopwatch Elapsed { get; } = elapsed;
         public bool Hovered { get; set; }
-        public bool Exiting { get; set; }
+        public bool Exiting { get; set; }\n        public bool IsEntering { get; set; }
     }
 }
