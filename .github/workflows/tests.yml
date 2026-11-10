@@ -26,18 +26,9 @@ jobs:
       - name: Run Core regression suite
         shell: powershell
         run: .\tools\Test.ps1 -Suite Core
-      - name: Check startup restoration and icon interaction
+      - name: Run complete UI regression suite with isolated test workspace
         shell: powershell
-        run: dotnet run --project ReadArticles.Tests -c Release -- --icons-only
-      - name: Check floating notification interactions
-        shell: powershell
-        run: dotnet run --project ReadArticles.Tests -c Release -- --window-only
-      - name: Check navigation cancellation and selection rollback
-        shell: powershell
-        run: dotnet run --project ReadArticles.Tests -c Release -- --tree-only
-      - name: Check backup restore failure recovery
-        shell: powershell
-        run: dotnet run --project ReadArticles.Tests -c Release -- --backup-only
+        run: .\\tools\\Test.ps1 -Suite UI
       - name: Publish actual portable release
         shell: powershell
         run: .\tools\Publish.ps1
