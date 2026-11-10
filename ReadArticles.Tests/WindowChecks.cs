@@ -58,11 +58,11 @@ internal static class WindowChecks
                 var card = FindToastCard(host, "Hover pause test");
                 Program.Check(card is not null);
                 card!.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
-                    { RoutedEvent = Mouse.MouseEnter });
+                    { RoutedEvent = UIElement.MouseEnterEvent });
                 WpfTestHelpers.Pump(1200);
                 Program.Check(service.Messages.Any(n => n.Id == transient.Id));
                 card.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount)
-                    { RoutedEvent = Mouse.MouseLeave });
+                    { RoutedEvent = UIElement.MouseLeaveEvent });
                 WpfTestHelpers.Pump(300);
                 Program.Check(service.Messages.Any(n => n.Id == transient.Id));
                 WpfTestHelpers.Pump(1000);
