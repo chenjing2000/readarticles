@@ -15,6 +15,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     private readonly ReaderWorkspace workspace = new ReaderWorkspace();
     private readonly ReaderPlayback playback;
     private string status = "";
+    public NotificationService Notifications { get; } = new();
+    public void Notify(string key, string message, NotificationSeverity severity) => Notifications.Publish(key, message, severity);
     private string accent = "uk";
     private bool highlightsVisible;
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -65,7 +67,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer)
     {
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
-        playback.Message += message => Status = message;
+        playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);
         playback.Changed += () =>
         {
             PlaybackChanged?.Invoke();
@@ -83,6 +85,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         catch (Exception error) when (error is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException)
         {
             AppLogger.Default.Warning("UserOperationFailed", error);
+            Notify("UserOperationFailed", error.Message, NotificationSeverity.Error);
             Status = error.Message;
             return false;
         }
