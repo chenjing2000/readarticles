@@ -127,13 +127,19 @@ public partial class MainWindow
     private async void TreeExpanded(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is TreeViewItem { DataContext: NavigationNode node })
+        {
+            node.IsExpanded = true;
             await ViewModel.ExpandDirectoryAsync(node);
+        }
     }
 
     private void TreeCollapsed(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is TreeViewItem { DataContext: NavigationNode node })
+        {
+            node.IsExpanded = false;
             ViewModel.CollapseDirectory(node);
+        }
     }
 
     private async void LibraryClicked(object sender, RoutedEventArgs e)
