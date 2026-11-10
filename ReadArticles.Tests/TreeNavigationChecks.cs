@@ -43,6 +43,8 @@ internal static class TreeNavigationChecks
                 Program.Check(bookNode.Children.Any(n => n.Name == "2026-09-26"));
                 Program.Check(!bookNode.Children.Any(n => n.LoadState == NodeLoadState.Loaded));
 
+                Program.Check(window.SelectPassage(TestData.ArticlePath));
+                WpfTestHelpers.Pump(); window.UpdateLayout();
                 var scroll = WpfTestHelpers.Descendants((ListBox)window.FindName("VocabularyList"))
                     .OfType<System.Windows.Controls.Primitives.ScrollBar>()
                     .First(s => s.Orientation == Orientation.Vertical);
