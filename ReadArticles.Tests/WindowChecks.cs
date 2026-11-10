@@ -83,6 +83,41 @@ internal static class WindowChecks
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
+        Program.Run("toast cards use newest-first order fixed two-DIP gaps and 360-DIP width", () =>
+        {
+            var window = new ReadArticles.MainWindow(false)
+                { Left = -10000, Top = -10000, ShowActivated = false };
+            try
+            {
+                window.Show();
+                WpfTestHelpers.Pump();
+                var service = window.ViewModel.Notifications;
+                var host = (ReadArticles.Controls.ToastHost)window.FindName("NotificationHost");
+                service.Publish("layout-1", "First toast", ReadArticles.Infrastructure.NotificationSeverity.Info);
+                service.Publish("layout-2", "Second toast", ReadArticles.Infrastructure.NotificationSeverity.Warning);
+                service.Publish("layout-3", "Third toast", ReadArticles.Infrastructure.NotificationSeverity.Error);
+                WpfTestHelpers.Pump(350);
+                host.UpdateLayout();
+                var first = FindToastCard(host, "First toast")!;
+                var second = FindToastCard(host, "Second toast")!;
+                var third = FindToastCard(host, "Third toast")!;
+                Program.Check(first is not null && second is not null && third is not null);
+                Program.Check(Math.Abs(first.Width - 360) < 0.01 &&
+                    Math.Abs(second.Width - 360) < 0.01 && Math.Abs(third.Width - 360) < 0.01);
+                Program.Check(Math.Abs(third.Margin.Bottom - 2) < 0.01);
+                Program.Check(Math.Abs(second.Margin.Bottom - 2) < 0.01);
+                Program.Check(Math.Abs(first.Margin.Bottom) < 0.01);
+                double firstY = first.TranslatePoint(new Point(), host).Y;
+                double secondY = second.TranslatePoint(new Point(), host).Y;
+                double thirdY = third.TranslatePoint(new Point(), host).Y;
+                Program.Check(thirdY < secondY && secondY < firstY);
+                Program.Check(Math.Abs((secondY - thirdY) - (third.ActualHeight + 2)) < 1.5);
+                Program.Check(Math.Abs((firstY - secondY) - (second.ActualHeight + 2)) < 1.5);
+                Program.Check(Math.Abs(firstY + first.ActualHeight - host.ActualHeight) < 1.5);
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
         Program.Run("floating notifications do not shrink reader panes or playback toolbar", () =>
         {
             var window = new ReadArticles.MainWindow(false) { Left = -10000, Top = -10000, ShowActivated = false };
