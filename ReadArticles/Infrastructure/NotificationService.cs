@@ -12,7 +12,8 @@ public sealed class NotificationService
     private readonly List<NotificationItem> messages = new();
     private long nextId;
     public ReadOnlyCollection<NotificationItem> Messages => messages.AsReadOnly();
-    public IReadOnlyList<NotificationItem> Visible => messages.TakeLast(4).ToArray();
+    // The host renders top-to-bottom: newest first, oldest last (bottom anchored).
+    public IReadOnlyList<NotificationItem> Visible => messages.TakeLast(4).Reverse().ToArray();
     public IReadOnlyList<NotificationItem> OverflowErrors =>
         messages.Where(m => m.Severity == NotificationSeverity.Error && !Visible.Any(v => v.Id == m.Id)).ToArray();
     public event Action? Changed;
