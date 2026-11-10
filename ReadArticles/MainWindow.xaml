@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:ReadArticles.Models"
         xmlns:icons="clr-namespace:ReadArticles.Infrastructure"
+        xmlns:controls="clr-namespace:ReadArticles.Controls"
         Title="ReadArticles" Width="1500" Height="920" MinWidth="1050" MinHeight="620" PreviewKeyDown="PlaybackKeyDown"
         Background="#F3F3F3" FontFamily="Segoe UI" FontSize="11pt" Icon="{x:Static icons:UiIcons.AppIcon}">
   <Window.Resources>
@@ -151,6 +152,7 @@
           <StackPanel x:Name="ParagraphHost"/>
         </StackPanel>
       </ScrollViewer>
+      <controls:ToastHost x:Name="NotificationHost" Grid.Row="0" Panel.ZIndex="5"/>
       <Border x:Name="PassageToolbar" Grid.Row="1" Height="48" Margin="0,8,0,0" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Window}}">
         <Grid x:Name="PassageControls">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -213,17 +215,6 @@
         </ListBox.ItemTemplate>
       </ListBox>
     </DockPanel>
-    <TextBlock Grid.Row="1" Grid.ColumnSpan="5" Text="{Binding Status}" Foreground="#666666"
-               Margin="1,8,1,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}">
-      <TextBlock.Style>
-        <Style TargetType="TextBlock">
-          <Style.Triggers>
-            <DataTrigger Binding="{Binding Status}" Value="">
-              <Setter Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-          </Style.Triggers>
-        </Style>
-      </TextBlock.Style>
-    </TextBlock>
+
   </Grid>
 </Window>
