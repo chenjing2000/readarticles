@@ -27,7 +27,7 @@ public partial class MainWindow
         var node = MainViewModel.AllLeaves(ViewModel.Books).FirstOrDefault(n => string.Equals(n.PassagePath, full, StringComparison.OrdinalIgnoreCase));
         if (node is null)
         {
-            ViewModel.Status = "文章不在当前图书馆中。";
+            ViewModel.Notify("PassageNotInLibrary", "文章不在当前图书馆中。", ReadArticles.Infrastructure.NotificationSeverity.Warning);
             return false;
         }
         bool opened = ViewModel.OpenArticle(node.PassagePath!);
