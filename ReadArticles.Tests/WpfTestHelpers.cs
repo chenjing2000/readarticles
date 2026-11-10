@@ -38,5 +38,29 @@ internal static class WpfTestHelpers
         }
     }
 
+    // Explicitly materialize only the branches needed by legacy UI assertions.
+    // Production navigation remains strictly lazy.
+    internal static void ExpandAllDirectories(System.Windows.Controls.ItemsControl parent)
+    {
+        parent.UpdateLayout();
+        foreach (var item in parent.Items)
+        {
+            if (item is not ReadArticles.Models.NavigationNode node || node.IsPassage || node.IsPlaceholder)
+                continue;
+            var container = parent.ItemContainerGenerator.ContainerFromItem(item)
+                as System.Windows.Controls.TreeViewItem;
+            if (container is null)
+                throw new Exception("Directory tree container was not generated.");
+            container.IsExpanded = true;
+            Wait(() => node.LoadState is ReadArticles.Models.NodeLoadState.Loaded
+                or ReadArticles.Models.NodeLoadState.Failed);
+            if (node.LoadState != ReadArticles.Models.NodeLoadState.Loaded)
+                throw new Exception("Directory could not be loaded in UI fixture.");
+            Pump();
+            container.UpdateLayout();
+            ExpandAllDirectories(container);
+        }
+    }
+
     internal static bool IsIcon(ImageSource actual, ImageSource expected) => ReferenceEquals(actual, expected);
 }
