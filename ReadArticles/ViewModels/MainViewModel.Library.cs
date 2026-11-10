@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows.Threading;
 using ReadArticles.Infrastructure;
 using ReadArticles.Models;
 using ReadArticles.Services;
@@ -70,6 +71,9 @@ public sealed partial class MainViewModel
             node.DirectoryPath is null || !node.IsExpanded) return;
         if (node.LoadState == NodeLoadState.Loading) return;
         if (node.LoadState == NodeLoadState.Loaded) return;
+        // The test runner does not install a WPF SynchronizationContext.
+        // Capture the actual owning dispatcher before the background scan.
+        Dispatcher ui = Dispatcher.CurrentDispatcher;
         long generation = node.NextGeneration();
         long session = librarySession;
         var cts = new CancellationTokenSource();
@@ -85,44 +89,53 @@ public sealed partial class MainViewModel
                 return libraryRepository.ScanDirectoryLevel(node.DirectoryPath, node.BookRoot);
             }, token);
 
-            if (navigationClosed || !node.IsExpanded || session != librarySession ||
-                generation != node.Generation || cts.IsCancellationRequested) return;
-            if (result.IsComplete)
+            await ui.InvokeAsync(() =>
             {
-                node.LastSuccessfulSnapshot = result.Entries.ToArray();
-                node.ReplaceChildren(result.Entries, NodeLoadState.Loaded);
-            }
-            else
-            {
-                if (node.LastSuccessfulSnapshot is not null)
-                    node.ReplaceChildren(node.LastSuccessfulSnapshot, NodeLoadState.Failed);
+                if (navigationClosed || !node.IsExpanded || session != librarySession ||
+                    generation != node.Generation || token.IsCancellationRequested) return;
+                if (result.IsComplete)
+                {
+                    node.LastSuccessfulSnapshot = result.Entries.ToArray();
+                    node.ReplaceChildren(result.Entries, NodeLoadState.Loaded);
+                }
                 else
-                    node.ReplaceChildren(result.Entries, NodeLoadState.Failed);
-            }
-            if (result.Warnings.Count != 0)
-            {
-                AppLogger.Default.Warning("DirectoryScanIncomplete");
-                Notify("DirectoryScanIncomplete", "部分目录项无法读取，可折叠后重新展开重试。",
-                    NotificationSeverity.Warning);
-            }
+                {
+                    if (node.LastSuccessfulSnapshot is not null)
+                        node.ReplaceChildren(node.LastSuccessfulSnapshot, NodeLoadState.Failed);
+                    else
+                        node.ReplaceChildren(result.Entries, NodeLoadState.Failed);
+                }
+                if (result.Warnings.Count != 0)
+                {
+                    AppLogger.Default.Warning("DirectoryScanIncomplete");
+                    Notify("DirectoryScanIncomplete", "部分目录项无法读取，可折叠后重新展开重试。",
+                        NotificationSeverity.Warning);
+                }
+            });
         }
         catch (OperationCanceledException) { }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            if (!navigationClosed && session == librarySession && generation == node.Generation)
+            await ui.InvokeAsync(() =>
             {
-                node.LoadState = NodeLoadState.Failed;
-                if (node.LastSuccessfulSnapshot is not null)
-                    node.ReplaceChildren(node.LastSuccessfulSnapshot, NodeLoadState.Failed);
-                AppLogger.Default.Warning("DirectoryScanFailed", error);
-                Notify("DirectoryScanFailed", "目录扫描失败，可重新展开重试。", NotificationSeverity.Warning);
-            }
+                if (!navigationClosed && session == librarySession && generation == node.Generation)
+                {
+                    node.LoadState = NodeLoadState.Failed;
+                    if (node.LastSuccessfulSnapshot is not null)
+                        node.ReplaceChildren(node.LastSuccessfulSnapshot, NodeLoadState.Failed);
+                    AppLogger.Default.Warning("DirectoryScanFailed", error);
+                    Notify("DirectoryScanFailed", "目录扫描失败，可重新展开重试。", NotificationSeverity.Warning);
+                }
+            });
         }
         finally
         {
-            if (directoryScans.TryGetValue(node, out var current) && ReferenceEquals(current, cts))
-                directoryScans.Remove(node);
-            cts.Dispose();
+            await ui.InvokeAsync(() =>
+            {
+                if (directoryScans.TryGetValue(node, out var current) && ReferenceEquals(current, cts))
+                    directoryScans.Remove(node);
+                cts.Dispose();
+            });
         }
     }
 
