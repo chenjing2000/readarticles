@@ -77,7 +77,7 @@ public partial class MainWindow
     {
         if (!ViewModel.CanWriteVocabulary)
         {
-            ViewModel.Status = "请先打开有效文章和词汇表。";
+            ViewModel.Notify("VocabularyUnavailable", "请先打开有效文章和词汇表。", NotificationSeverity.Warning);
             return;
         }
         var dialog = new OpenFileDialog { Filter = "Vocabulary JSON|*.json", CheckFileExists = true };
