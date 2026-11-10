@@ -124,9 +124,21 @@ public partial class MainWindow
         return null;
     }
 
-    private void LibraryClicked(object sender, RoutedEventArgs e)
+    private async void TreeExpanded(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is TreeViewItem { DataContext: NavigationNode node })
+            await ViewModel.ExpandDirectoryAsync(node);
+    }
+
+    private void TreeCollapsed(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is TreeViewItem { DataContext: NavigationNode node })
+            ViewModel.CollapseDirectory(node);
+    }
+
+    private async void LibraryClicked(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog { Title = "选择包含 Book 文件夹的图书馆", InitialDirectory = ViewModel.LibraryRoot ?? "" };
-        if (dialog.ShowDialog(this) == true) ViewModel.OpenLibrary(dialog.FolderName);
+        if (dialog.ShowDialog(this) == true) await ViewModel.OpenLibraryAsync(dialog.FolderName);
     }
 }
