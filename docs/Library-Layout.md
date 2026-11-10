@@ -112,3 +112,9 @@ Derived audio paths stay within the passage directory. Paths escaping that direc
 `dist/ReadArticles.settings.json` belongs beside the executable, not in a book. It stores application preferences and is initialized on first startup. The single-file release contains all application assemblies; distribute only `dist/ReadArticles.exe`, without the .NET runtime. Keep the existing settings file during updates.
 
 Source images and the original Python ZIP are preparation/reference material. ReadArticles does not convert them when a library is opened.
+
+## 7. Lazy navigation and refresh
+
+The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's direct JSON passage candidates and immediate subdirectories. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Passage JSON is parsed only when opened, and sentence audio is checked only when requested for playback.
+
+Collapsing invalidates pending scans; reopening refreshes that directory. When a refresh fails, the last successful snapshot is retained where available and a warning is shown. Hidden and dot-prefixed entries, reparse points, `userdata`, `__pycache__`, `book.json`, `*.vocabulary.json`, and `*.exercise.json` are excluded.
