@@ -59,11 +59,19 @@ internal static class ContentChecks
             Program.Check(article.Vocabulary.Data.Words.Count == 120 && article.Segments.Last().Sid == "s062");
             Program.Check(article.Vocabulary.Data.Words[0].Word == "be stuck in" && article.Vocabulary.Data.Words[0].Meanings[0].Text.Contains("困在"));
         });
-        Program.Run("recursive real navigation and marker-only book.json", () =>
+        Program.Run("lazy root discovery and explicit one-level traversal", () =>
         {
-            var library = new LibraryRepository().Load(TestData.LibraryRoot);
+            var repo = new LibraryRepository();
+            var library = repo.Load(TestData.LibraryRoot);
             Program.Check(library.Books.Count == 1 && library.Books[0].Name == "The Economist");
-            Program.Check(TestData.Leaves(library.Books).Count() == 2 && TestData.Leaves(library.Books).Any(n => n.PassagePath == TestData.ArticlePath));
+            Program.Check(!TestData.Leaves(library.Books).Any());
+            var dates = repo.ScanDirectoryLevel(library.Books[0].DirectoryPath!, library.Books[0].BookRoot);
+            Program.Check(dates.IsComplete && dates.Entries.Any(n => n.Name == "2026-09-26"));
+            var date = dates.Entries.Single(n => n.Name == "2026-09-26");
+            var folders = repo.ScanDirectoryLevel(date.DirectoryPath!, date.BookRoot);
+            var folder = folders.Entries.Single(n => n.Name == "When America walks away");
+            var article = repo.ScanDirectoryLevel(folder.DirectoryPath!, folder.BookRoot);
+            Program.Check(article.Entries.Any(n => n.PassagePath == TestData.ArticlePath));
         });
         Program.Run("segment audio uses audio_sentences with exact SID/accent", () =>
         {
@@ -175,7 +183,9 @@ internal static class ContentChecks
                 File.Copy(passage, Path.Combine(book, ignored, "Ignored.json"));
             }
             var result = new LibraryRepository().Load(Path.GetDirectoryName(book)!);
-            Program.Check(result.Books.Count == 1 && TestData.Leaves(result.Books).Count() == 1);
+            Program.Check(result.Books.Count == 1 && !TestData.Leaves(result.Books).Any());
+            var direct = new LibraryRepository().ScanDirectoryLevel(book, book);
+            Program.Check(direct.Entries.Count(n => n.IsPassage) == 1);
             Program.Check(File.ReadAllText(Path.Combine(book, "book.json")) == "not-json");
             File.WriteAllText(Path.Combine(book, "userdata", "xiaoxin.json"), "null");
             string user = Path.Combine(book, "userdata", "xiaoxin");
