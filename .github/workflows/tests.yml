@@ -29,6 +29,15 @@ jobs:
       - name: Check startup restoration and icon interaction
         shell: powershell
         run: dotnet run --project ReadArticles.Tests -c Release -- --icons-only
+      - name: Check floating notification interactions
+        shell: powershell
+        run: dotnet run --project ReadArticles.Tests -c Release -- --window-only
+      - name: Check navigation cancellation and selection rollback
+        shell: powershell
+        run: dotnet run --project ReadArticles.Tests -c Release -- --tree-only
+      - name: Check backup restore failure recovery
+        shell: powershell
+        run: dotnet run --project ReadArticles.Tests -c Release -- --backup-only
       - name: Publish actual portable release
         shell: powershell
         run: .\tools\Publish.ps1
