@@ -100,10 +100,12 @@ internal static class WindowChecks
                 service.Publish("layout-3", "Third toast", ReadArticles.Infrastructure.NotificationSeverity.Error);
                 WpfTestHelpers.Pump(350);
                 host.UpdateLayout();
-                var first = FindToastCard(host, "First toast")!;
-                var second = FindToastCard(host, "Second toast")!;
-                var third = FindToastCard(host, "Third toast")!;
-                Program.Check(first is not null && second is not null && third is not null);
+                var first = FindToastCard(host, "First toast")
+                    ?? throw new InvalidOperationException("First toast card was not created.");
+                var second = FindToastCard(host, "Second toast")
+                    ?? throw new InvalidOperationException("Second toast card was not created.");
+                var third = FindToastCard(host, "Third toast")
+                    ?? throw new InvalidOperationException("Third toast card was not created.");
                 Console.WriteLine($"  Toast width diagnostics: host={host.ActualWidth:F2}; cards={first.ActualWidth:F2}/{second.ActualWidth:F2}/{third.ActualWidth:F2}; configured={first.Width:F2}/{second.Width:F2}/{third.Width:F2}");
                 Program.Check(Math.Abs(first.ActualWidth - 360) < 0.5 &&
                     Math.Abs(second.ActualWidth - 360) < 0.5 && Math.Abs(third.ActualWidth - 360) < 0.5);
@@ -134,8 +136,8 @@ internal static class WindowChecks
                 var item = service.Publish("motion-test", "Motion direction test",
                     ReadArticles.Infrastructure.NotificationSeverity.Info)!;
                 WpfTestHelpers.Pump(60);
-                var card = FindToastCard(host, "Motion direction test")!;
-                Program.Check(card is not null);
+                var card = FindToastCard(host, "Motion direction test")
+                    ?? throw new InvalidOperationException("Motion test toast card was not created.");
                 var transform = (TranslateTransform)card.RenderTransform;
                 Program.Check(transform.Y < 0);
                 Program.Check(card.Opacity < 1);
