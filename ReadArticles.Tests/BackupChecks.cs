@@ -42,6 +42,25 @@ internal static class BackupChecks
                 Program.Check(warning == null && restored.Volume == 0.4 && restored.Accent == "us");
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
 
+                // If settings become corrupt while the app is open, saving must not
+                // overwrite the damaged source or destroy the last valid backup.
+                byte[] savedSettings = File.ReadAllBytes(settingsPath);
+                string backupFingerprint = JsonFiles.Fingerprint(backupPath);
+                File.WriteAllText(settingsPath, "{ invalid json");
+                string corruptFingerprint = JsonFiles.Fingerprint(settingsPath);
+                try
+                {
+                    try
+                    {
+                        new ReaderSettings { Volume = 0.9 }.Save();
+                        throw new Exception("Corrupt settings were overwritten.");
+                    }
+                    catch (System.Text.Json.JsonException) { }
+                    Program.Check(JsonFiles.Fingerprint(settingsPath) == corruptFingerprint);
+                    Program.Check(JsonFiles.Fingerprint(backupPath) == backupFingerprint);
+                }
+                finally { File.WriteAllBytes(settingsPath, savedSettings); }
+
                 var corruptFilesBefore = Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt");
                 File.WriteAllText(settingsPath, "{ invalid json");
                 var recovered = ReaderSettings.Load(out warning);

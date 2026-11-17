@@ -57,11 +57,11 @@ public partial class MainWindow
         {
             settings.Save();
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
             AppLogger.Default.Error("SettingsSaveFailed", error);
             string message = "无法保存配置文件：" + error.Message;
-            if (IsLoaded) Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsSaveFailed", "无法保存配置文件，请检查程序目录权限。", NotificationSeverity.Error));
+            if (IsLoaded) Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsSaveFailed", "无法保存配置文件，请检查配置文件内容及目录权限。", NotificationSeverity.Error));
             else MessageBox.Show(message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
