@@ -279,15 +279,18 @@ internal static class ScriptChecks
                 Console.WriteLine($"  Wrapped sweep pixels: first early={firstEarly}, last early={lastEarly}, last late={lastLate}");
                 Program.Check(firstEarly > 0 && lastEarly == 0 && lastLate > 0);
 
-                // Check real highlighted pixels in the vocabulary's glyph
-                // rectangles, allowing the word to wrap across visual lines.
+                // Highlights live in the reader's adorner layer, which is a
+                // sibling rather than a child of the RichTextBox visual. Render
+                // the containing window so the bitmap includes that layer.
                 reader.SetScriptPosition(null);
                 reader.SetVocabulary(["beta"], true);
                 WpfTestHelpers.Pump();
-                byte[] withBackground = CapturePixels(reader, out int width, out int height);
+                Program.Check(AdornerLayer.GetAdornerLayer(reader)?.GetAdorners(reader)?
+                    .Any(a => !a.IsHitTestVisible) == true);
+                byte[] withBackground = CapturePixels(host, out int width, out int height);
                 reader.SetVocabulary(["beta"], false);
                 WpfTestHelpers.Pump();
-                byte[] withoutBackground = CapturePixels(reader, out int sameWidth, out int sameHeight);
+                byte[] withoutBackground = CapturePixels(host, out int sameWidth, out int sameHeight);
                 Program.Check(width == sameWidth && height == sameHeight);
                 var range = reader.Ranges[0];
                 int changes = 0;
@@ -297,9 +300,11 @@ internal static class ScriptChecks
                     Rect finish = reader.PositionAt(range, offset + 1).GetCharacterRect(LogicalDirection.Backward);
                     if (start.IsEmpty || finish.IsEmpty ||
                         Math.Abs(start.Top - finish.Top) >= 1 || finish.Left <= start.Left) continue;
+                    Point topLeft = reader.TranslatePoint(start.TopLeft, host);
+                    Point bottomRight = reader.TranslatePoint(new Point(finish.Left, start.Bottom), host);
                     changes += ChangedPixels(withBackground, withoutBackground, width, height,
-                        (int)start.Left, (int)start.Top, (int)Math.Ceiling(finish.Left),
-                        (int)Math.Ceiling(start.Bottom));
+                        (int)topLeft.X, (int)topLeft.Y, (int)Math.Ceiling(bottomRight.X),
+                        (int)Math.Ceiling(bottomRight.Y));
                 }
                 Console.WriteLine($"  Script vocabulary highlight changed pixels: {changes}");
                 Program.Check(changes > 0);
@@ -362,13 +367,13 @@ internal static class ScriptChecks
         return changes;
     }
 
-    private static byte[] CapturePixels(ParagraphReader reader, out int width, out int height)
+    private static byte[] CapturePixels(FrameworkElement element, out int width, out int height)
     {
-        reader.UpdateLayout();
-        width = (int)Math.Ceiling(reader.ActualWidth);
-        height = (int)Math.Ceiling(reader.ActualHeight);
+        element.UpdateLayout();
+        width = (int)Math.Ceiling(element.ActualWidth);
+        height = (int)Math.Ceiling(element.ActualHeight);
         var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(reader);
+        bitmap.Render(element);
         var pixels = new byte[width * height * 4];
         bitmap.CopyPixels(pixels, width * 4, 0);
         return pixels;
