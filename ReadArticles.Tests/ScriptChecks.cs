@@ -183,7 +183,8 @@ internal static class ScriptChecks
         {
             var sentence = new ScriptSentence("euro-zone is one timed unit",
                 [new ScriptTimedUnit("euro-zone", 29.226, 29.706, 0)]);
-            var reader = Reader([sentence], ["euro-zone"]) { Width = 650 };
+            var reader = Reader([sentence], ["euro-zone"]);
+            reader.Width = 650;
             var host = new Window
             {
                 Content = reader, Width = 750, Height = 220,
