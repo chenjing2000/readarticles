@@ -54,6 +54,9 @@ public partial class MainWindow
             ReadAllButton.ToolTip = "播放文章音频";
         }
         System.Windows.Automation.AutomationProperties.SetName(ReadAllButton, (string)ReadAllButton.ToolTip);
+        // One existing timer; use finer updates only for playing Script text.
+        progressTimer.Interval = scriptMode && ViewModel.Playback.IsArticlePlaying
+            ? TimeSpan.FromMilliseconds(33) : TimeSpan.FromMilliseconds(100);
         if (!ViewModel.Playback.IsArticleActive)
         {
             progressTimer.Stop();
@@ -96,6 +99,7 @@ public partial class MainWindow
         if (draggingProgress && active)
         {
             UpdatePlaybackTime();
+            UpdateScriptColors();
             return;
         }
         updatingProgress = true;
@@ -109,6 +113,7 @@ public partial class MainWindow
             updatingProgress = false;
         }
         UpdatePlaybackTime();
+        UpdateScriptColors();
     }
 
     private void ProgressChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -117,6 +122,7 @@ public partial class MainWindow
         {
             ViewModel.Playback.SeekArticle(e.NewValue);
             UpdatePlaybackTime();
+            UpdateScriptColors();
         }
     }
 
