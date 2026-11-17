@@ -78,7 +78,7 @@ internal static class AudioChecks
                 model.ToggleArticleAudio();
                 Program.Check(pronunciationController.State == PlaybackState.Stopped && model.Playback.IsArticlePlaying);
                 model.PlayWord(new VocabularyEntry { Word = "missing" }, "uk");
-                Program.Check(model.Playback.IsArticlePlaying && model.Status.Contains("音频资格"));
+                Program.Check(model.Playback.IsArticlePlaying && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("音频资格")));
                 model.PlayWord(entry, "uk");
                 model.Stop();
                 Program.Check(articleController.State == PlaybackState.Stopped && pronunciationController.State == PlaybackState.Stopped);
@@ -196,9 +196,9 @@ internal static class AudioChecks
                 Program.Check(model.OpenArticle(passage));
                 pronunciation.Play(new AudioItem(first), "word:uk:life");
                 model.ToggleArticleAudio();
-                Program.Check(pronunciation.Owner == "word:uk:life" && pronunciation.State == PlaybackState.Playing && model.Status.Contains("MP3"));
+                Program.Check(pronunciation.Owner == "word:uk:life" && pronunciation.State == PlaybackState.Playing && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("MP3")));
                 model.PlaySegment("s001");
-                Program.Check(pronunciation.State == PlaybackState.Stopped && model.Status == "句子 s001 的英音录音文件缺失。");
+                Program.Check(pronunciation.State == PlaybackState.Stopped && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message == "句子 s001 的英音录音文件缺失。"));
             });
             Program.Run("missing MP3 leaves the player stopped and reports a warning", () =>
             {
@@ -263,7 +263,7 @@ internal static class AudioChecks
                 };
                 model.PlayWord(invalid, "uk");
                 Program.Check(pronunciation.State == PlaybackState.Stopped && pronunciation.Owner == "" && pronunciation.CurrentSid is null);
-                Program.Check(pronunciationPlayer.Played.Count == 1 && model.Status.Contains("音频资格"));
+                Program.Check(pronunciationPlayer.Played.Count == 1 && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("音频资格")));
                 pronunciationPlayer.Complete(stale);
                 pronunciationPlayer.Fail(stale);
                 Program.Check(pronunciation.State == PlaybackState.Stopped && pronunciationPlayer.Played.Count == 1);
