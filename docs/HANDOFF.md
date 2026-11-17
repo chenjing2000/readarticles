@@ -40,3 +40,9 @@ For a release, also run `.\tools\Publish.ps1` and `.\tools\Test-PublishedApp.ps1
 - `Publish.ps1` retains previous EXE copies without automatic pruning; this is a deferred maintenance choice, not an established bug.
 
 Start any new task by checking the current branch and `git status`, reading the relevant contract, and defining the specific change and acceptance criteria.
+
+## Pending Script reading feature (branch only)
+
+A new `feature/script-reading-mode` branch implements on-demand `<name>.script.json` toggling through a music icon. The Script format now **requires** `filetype: "script"` and string `title` (empty allowed); `paragraphs/text/timed_units` stay as defined in the Script handoff. The renderer reuses `ParagraphReader`, preserving independent vocabulary backgrounds and article-clock foreground coloring. No Passage/Script equality check or sentence pronunciation mapping is performed. The Script is loaded only upon user action; Source JSONs remain read-only. This branch is **not merged**. Windows build, UI/Full, rendered gradient crossing line breaks, and real audio acceptance remain to be run before merge; do not infer acceptance from these commits.
+
+Feature tests are in `ReadArticles.Tests/ScriptChecks.cs` and available through `--script-only`. Windows PowerShell: `dotnet build ReadArticles -c Release` and `.\\tools\\Test.ps1 -Suite Core`, `-Suite UI`, `-Suite Full`. Follow project-contract and obtain explicit approval before merging the PR to main.
