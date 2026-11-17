@@ -92,6 +92,14 @@ Run `dotnet run --project ReadArticles.Tests -c Release -- --notifications-only`
 - Info and Warning expire after their active display interval; hovering pauses the interval. Error notifications do not expire automatically. Exiting cards remain in the layout until their exit animation completes.
 - Animation sampling is performed on a real WPF window in the Windows UI suite. Hosted Core CI does not replace interactive desktop verification of perceived motion and rendering.
 
+## Script timed-unit sweep regression
+
+A Script `timed_units` entry is the **indivisible foreground animation unit**. For example, `["euro-zone",29.226,29.706]` must render as one complete WPF text Run and one gradient: at 29.346, 29.466, and 29.586 seconds its entire visual width must be 25%, 50%, and 75% red respectively. Neither the hyphen nor a vocabulary match may start a new gradient. The same applies to a timed unit containing multiple words (for example, `"economic growth"`).
+
+Vocabulary highlighting uses independent background drawing and must still highlight a vocabulary entry that is shorter than, or spans across, Script timed-unit boundaries. Inspect selected vocabulary, highlight toggle, document stability during playback, seek backwards, and viewport resizing. Check that no redraw of the full FlowDocument occurs on audio timer ticks.
+
+Hosted Core checks cover Run identity, shared gradient brush/stops and background range logic. A Windows UI check verifies the single-line absolute-width gradient after layout. **Visual acceptance** still requires manual review of the colored pixels for hyphenated words and wrapped long phrases; one-line checks do not establish cross-line sweep correctness.
+
 ## Script reading companion acceptance
 
 Run `dotnet run --project ReadArticles.Tests -c Release -- --script-only` on a Windows desktop to exercise the Script parser, time-dependent Run foreground, missing companion behavior and mode switch. Core includes Script parsing and renderer logic; the window interaction check belongs to the UI/window category. Run Core, UI and Full before reviewing the feature for merge.
