@@ -205,6 +205,19 @@ internal static class ScriptChecks
                     (last.Left - first.Left)) < 1);
                 Program.Check(ReferenceEquals(reader.GetTextForeground(0, 0),
                     reader.GetTextForeground(0, 8)));
+
+                // Rebuilding for a vocabulary edit and reflowing a font size
+                // must not leave the newly created Run on the pre-layout brush.
+                reader.SetVocabulary(["euro-zone", "is"], true);
+                WpfTestHelpers.Pump();
+                reader.SetScriptPosition(29.466);
+                Program.Check(((LinearGradientBrush)reader.GetTextForeground(0, 0)).MappingMode ==
+                    BrushMappingMode.Absolute);
+                reader.FontSize = 28;
+                WpfTestHelpers.Pump();
+                reader.SetScriptPosition(29.466);
+                Program.Check(((LinearGradientBrush)reader.GetTextForeground(0, 0)).MappingMode ==
+                    BrushMappingMode.Absolute);
             }
             finally { host.Close(); WpfTestHelpers.Pump(); }
         });
