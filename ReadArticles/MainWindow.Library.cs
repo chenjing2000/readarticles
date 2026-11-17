@@ -82,10 +82,11 @@ public partial class MainWindow
         if (scriptMode)
         {
             double offset = passageScrollOffset;
+            double leavingOffset = PassageScroll.VerticalOffset;
             try
             {
                 ShowContent(null, offset);
-                scriptScrollOffset = PassageScroll.VerticalOffset;
+                scriptScrollOffset = leavingOffset;
             }
             catch (Exception error) when (error is InvalidOperationException or ArgumentException)
             {
