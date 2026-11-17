@@ -91,3 +91,11 @@ Run `dotnet run --project ReadArticles.Tests -c Release -- --notifications-only`
 - The host retains a 16 DIP bottom margin from the reading pane. Info, Warning and Error cards use distinct icon glyphs, foreground colors, backgrounds and font weights.
 - Info and Warning expire after their active display interval; hovering pauses the interval. Error notifications do not expire automatically. Exiting cards remain in the layout until their exit animation completes.
 - Animation sampling is performed on a real WPF window in the Windows UI suite. Hosted Core CI does not replace interactive desktop verification of perceived motion and rendering.
+
+## Script reading companion acceptance
+
+Run `dotnet run --project ReadArticles.Tests -c Release -- --script-only` on a Windows desktop to exercise the Script parser, time-dependent Run foreground, missing companion behavior and mode switch. Core includes Script parsing and renderer logic; the window interaction check belongs to the UI/window category. Run Core, UI and Full before reviewing the feature for merge.
+
+Manual checks with a **working copy** of the article library: add `<name>.script.json` beside an existing Passage, with the new required `filetype` and `title` fields. Verify the music icon changes state, empty titles hide the title, the original vocabulary list is unchanged, and the Script text is not compared with Passage. Start whole-article audio; confirm cumulative left-to-right foreground color, pause, seek backward/forward, switching views while playing, and clearing on stop/end. Confirm that vocabulary background highlighting and multiword focus survive time-boundary splits, including a wrapped line. Script right-click must not request sentence pronunciation. Also test missing/malformed files, null time units, and removal of Script without altering original Passage, audio, or vocabulary. Do not add private or copyrighted articles to checked-in fixtures.
+
+This change's interactive visual and actual audio synchronization are not verified merely by successful automated checks; they require the Windows UI/Full suites and a real audio listening test before merge.
