@@ -131,7 +131,7 @@ internal static class ContentChecks
             }
             catch (InvalidDataException error)
             {
-                Program.Check(error.Message.Contains("正文片段", StringComparison.Ordinal));
+                Program.Check(error.Message.Contains("非空数组", StringComparison.Ordinal));
             }
             Program.Check(ReferenceEquals(previous, workspace.Article));
         });
