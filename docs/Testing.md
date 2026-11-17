@@ -98,7 +98,7 @@ A Script `timed_units` entry is the **indivisible foreground animation unit**. F
 
 Vocabulary highlighting uses independent background drawing and must still highlight a vocabulary entry that is shorter than, or spans across, Script timed-unit boundaries. Inspect selected vocabulary, highlight toggle, document stability during playback, seek backwards, and viewport resizing. Check that no redraw of the full FlowDocument occurs on audio timer ticks.
 
-Hosted Core checks cover Run identity, shared gradient brush/stops and background range logic. Windows UI checks verify the single-line absolute-width gradient, the wrapped unit's single DrawingBrush, and an actual bitmap difference for Script vocabulary highlighting. **Visual acceptance** still requires reviewing the rendered pixels and listening with real audio, especially for wrapped timed units, because brush-shape assertions alone do not prove perceptual sweep correctness.
+Hosted Core checks cover Run identity, shared gradient brush/stops and background range logic. Windows UI checks verify the single-line absolute-width gradient, the wrapped unit's single DrawingBrush, bitmap changes progressing from its first visual line to its last, and actual rendered-pixel differences for Script vocabulary highlighting. **Visual acceptance** still requires reviewing the rendered pixels and listening with real audio, especially for wrapped timed units, because brush-shape assertions alone do not prove perceptual sweep correctness.
 
 ## Script reading companion acceptance
 
