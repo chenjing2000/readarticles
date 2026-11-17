@@ -122,6 +122,10 @@ internal static class ScriptChecks
             Program.Check(!reader.RequestSegmentPlayback(reader.Ranges[0].Start));
         }));
 
+    }
+
+    internal static void RunUi()
+    {
         Program.Run("Script toggle keeps Passage on failure and restores it after switching", () => InTemp((_, passage) =>
         {
             using var window = new ScriptWindow(passage);
