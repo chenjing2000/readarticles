@@ -14,7 +14,6 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
 {
     private readonly ReaderWorkspace workspace = new ReaderWorkspace();
     private readonly ReaderPlayback playback;
-    private string status = "";
     public NotificationService Notifications { get; } = new();
     public void Notify(string key, string message, NotificationSeverity severity) => Notifications.Publish(key, message, severity);
     private string accent = "uk";
@@ -34,15 +33,6 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public PlaybackState PlaybackState => playback.State;
     public bool CanWriteVocabulary => Article?.Vocabulary.CanWrite == true;
     public string CurrentUser { get; private set; } = "User: —";
-    public string Status
-    {
-        get => status;
-        set
-        {
-            status = value;
-            Changed();
-        }
-    }
     public string Accent
     {
         get => accent;
@@ -67,11 +57,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer)
     {
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
-        playback.Message += (message, severity) =>
-        {
-            Status = message; // Keep legacy test-facing state until all assertions migrate.
-            Notify("PlaybackFailure", message, severity);
-        };
+        playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);
         playback.Changed += () =>
         {
             PlaybackChanged?.Invoke();
@@ -90,7 +76,6 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         {
             AppLogger.Default.Warning("UserOperationFailed", error);
             Notify("UserOperationFailed", "操作失败，请检查文章或词汇文件及访问权限。", NotificationSeverity.Error);
-            Status = error.Message;
             return false;
         }
     }

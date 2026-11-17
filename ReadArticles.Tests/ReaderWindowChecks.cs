@@ -63,9 +63,9 @@ internal static class ReaderWindowChecks
                     foreach (var range in reader.Ranges)
                         Program.Check(reader.FindSegment(reader.PositionAt(range, 2))?.Segment.Sid == range.Segment.Sid);
                 Program.Check(window.ViewModel.CanPlaySegment("s011") && window.ViewModel.CanPlaySegment("s001"));
-                Program.Check(window.ViewModel.Status == "");
+                Program.Check(window.ViewModel.Notifications.Messages.Count == 0);
                 window.ViewModel.PlaySegment("s011");
-                Program.Check(window.ViewModel.Status == "句子 s011 的英音录音文件缺失。");
+                Program.Check(window.ViewModel.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message == "句子 s011 的英音录音文件缺失。"));
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });

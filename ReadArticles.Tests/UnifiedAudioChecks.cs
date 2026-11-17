@@ -90,7 +90,7 @@ internal static class UnifiedAudioChecks
                 Program.Check(!model.Words[1].CanPlayUk && !model.Words[1].CanPlayUs);
                 Program.Check(!model.Words[2].CanPlayUk && !model.Words[2].CanPlayUs);
                 model.PlayWord(entries[1], "uk");
-                Program.Check(model.PlaybackState == PlaybackState.Stopped && model.Status.Contains("音频资格"));
+                Program.Check(model.PlaybackState == PlaybackState.Stopped && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("音频资格")));
                 var formerFirst = entries[0]; var formerSecond = entries[1];
                 model.PlayWord(formerFirst, "uk");
                 Program.Check(model.PlaybackState == PlaybackState.Playing);

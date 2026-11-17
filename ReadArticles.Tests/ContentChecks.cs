@@ -46,7 +46,7 @@ internal static class ContentChecks
             var model = new MainViewModel(new PlaybackController(first), new PlaybackController(second));
             var stale = VocabularyRepository.NewEntry("stale word");
             model.DeleteWord(stale);
-            Program.Check(model.Article == null && model.Status == "");
+            Program.Check(model.Article == null && model.Notifications.Messages.Count == 0);
             Program.Check(model.OpenArticle(TestData.ArticlePath));
             string before = JsonFiles.Fingerprint(model.Article!.VocabularyPath)!;
             model.DeleteWord(stale);
@@ -226,37 +226,50 @@ internal static class ContentChecks
             using var player = new WpfAudioPlayer();
             using var pronunciationPlayer = new WpfAudioPlayer();
             var model = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
-            Program.Check(model.Status == "");
-            Program.Check(model.OpenLibrary(TestData.LibraryRoot) && model.Status == "");
+            Program.Check(model.Notifications.Messages.Count == 0);
+            Program.Check(model.OpenLibrary(TestData.LibraryRoot) && model.Notifications.Messages.Count == 0);
             File.WriteAllText(passage, "{\"filetype\":\"passage\",\"next_sid\":2,\"paragraphs\":[{\"paragraph\":[{\"sid\":\"s001\",\"text\":\"Character [[1]] matters.\"}]}]}");
-            Program.Check(model.OpenArticle(passage) && model.Status == "");
+            Program.Check(model.OpenArticle(passage) && model.Notifications.Messages.Count == 0);
             model.AddSelection(new PassageSelection("s001", "alpha", 0, 5));
-            Program.Check(model.Words.Count == 1 && model.Status == "");
+            Program.Check(model.Words.Count == 1 && model.Notifications.Messages.Count == 0);
             model.AddSelection(new PassageSelection("s001", "beta", 0, 4));
-            Program.Check(model.Words.Count == 2 && model.Status == "");
+            Program.Check(model.Words.Count == 2 && model.Notifications.Messages.Count == 0);
             model.MoveWord(model.Words[1].Entry, -1);
-            Program.Check(model.Words[0].Word == "beta" && model.Status == "");
+            Program.Check(model.Words[0].Word == "beta" && model.Notifications.Messages.Count == 0);
             model.DeleteWord(model.Words[0].Entry);
-            Program.Check(model.Words.Count == 1 && model.Status == "");
+            Program.Check(model.Words.Count == 1 && model.Notifications.Messages.Count == 0);
             model.AddSelection(new PassageSelection("s001", "alpha", 0, 5));
-            Program.Check(model.Words.Count == 1 && model.Status.Contains("已存在"));
-            model.Status = "";
+            Program.Check(model.Words.Count == 1 && model.Notifications.Messages.Any(n =>
+                n.Key == "DuplicateVocabulary" && n.Message.Contains("已存在") &&
+                n.Severity == NotificationSeverity.Warning));
+            var duplicateWarning = model.Notifications.Messages.Single(n => n.Key == "DuplicateVocabulary");
             model.ImportVocabulary(Path.ChangeExtension(TestData.ArticlePath, ".vocabulary.json"));
-            Program.Check(model.Words.Count == 120 && model.Status == "");
-            model.Status = "warning: earlier failure";
+            Program.Check(model.Words.Count == 120 &&
+                model.Notifications.Messages.Any(n => n.Id == duplicateWarning.Id));
             model.AddSelection(new PassageSelection("s001", "gamma", 0, 5));
-            Program.Check(model.Words.Count == 121 && model.Status == "warning: earlier failure");
+            Program.Check(model.Words.Count == 121 &&
+                model.Notifications.Messages.Any(n => n.Id == duplicateWarning.Id));
             File.AppendAllText(Path.ChangeExtension(passage, ".vocabulary.json"), " ");
             model.DeleteWord(model.Words[0].Entry);
-            Program.Check(model.Words.Count == 121 && model.Status != "" && model.Status != "warning: earlier failure");
-            Program.Check(model.OpenArticle(TestData.ArticlePath) && model.Status == "");
+            Program.Check(model.Words.Count == 121 && model.Notifications.Messages.Any(n =>
+                n.Key == "UserOperationFailed" && n.Severity == NotificationSeverity.Error));
+            var existingError = model.Notifications.Messages.Last(n => n.Key == "UserOperationFailed");
+            Program.Check(model.OpenArticle(TestData.ArticlePath) &&
+                model.Notifications.Messages.Any(n => n.Id == existingError.Id));
             model.PlaySegment("s011");
-            Program.Check(model.Status == "句子 s011 的英音录音文件缺失。");
+            Program.Check(model.Notifications.Messages.Any(n =>
+                n.Key == "PlaybackFailure" && n.Message == "句子 s011 的英音录音文件缺失。" &&
+                n.Severity == NotificationSeverity.Warning));
             model.Accent = "us";
             model.PlaySegment("s011");
-            Program.Check(model.Status == "句子 s011 的美音录音文件缺失。");
-            Program.Check(model.OpenLibrary(TestData.LibraryRoot) && model.Status == "");
-            Program.Check(!model.OpenArticle(Path.Combine(root, "Missing.json")) && model.Status != "");
+            Program.Check(model.Notifications.Messages.Any(n =>
+                n.Key == "PlaybackFailure" && n.Message == "句子 s011 的美音录音文件缺失。" &&
+                n.Severity == NotificationSeverity.Warning));
+            Program.Check(model.OpenLibrary(TestData.LibraryRoot) &&
+                model.Notifications.Messages.Any(n => n.Id == existingError.Id));
+            Program.Check(!model.OpenArticle(Path.Combine(root, "Missing.json")) &&
+                model.Notifications.Messages.Count(n => n.Key == "UserOperationFailed" &&
+                    n.Severity == NotificationSeverity.Error) == 2);
         });
         RunCopyTest("import and later edits preserve vocabulary metadata and notify once per commit", (root, passage) =>
         {

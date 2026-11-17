@@ -69,7 +69,6 @@ public sealed partial class MainViewModel
             AppLogger.Default.Warning("LibraryLoadedWithWarnings");
             Notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);
         }
-        Status = string.Join("  ", prepared.Warnings);
     }
 
     public async Task ExpandDirectoryAsync(NavigationNode node)
@@ -205,7 +204,6 @@ public sealed partial class MainViewModel
             Notify("ArticleLoadedWithWarnings", "文章已打开，但部分附属数据存在问题。",
                 NotificationSeverity.Warning);
         }
-        Status = string.Join("  ", Article.Warnings);
     });
 
     private string ReadUser(string path)

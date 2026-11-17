@@ -30,7 +30,6 @@ public sealed partial class MainViewModel
         if (article.Vocabulary.Data.Words.Any(w => w.Word.Equals(entry.Word, StringComparison.OrdinalIgnoreCase)))
         {
             Notify("DuplicateVocabulary", "词表中已存在：" + entry.Word, ReadArticles.Infrastructure.NotificationSeverity.Warning);
-            Status = "词表中已存在：" + entry.Word;
             return;
         }
         var entries = new List<VocabularyEntry>(article.Vocabulary.Data.Words);

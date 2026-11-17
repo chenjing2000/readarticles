@@ -353,7 +353,7 @@ internal static class ReaderControlsChecks
                 PressArrow(window, targets[0], Key.Left);
                 Program.Check(window.ViewModel.Owner.StartsWith("word:") && Math.Abs(pronunciationPlayer.Position.TotalSeconds - wordPosition) < 0.05);
                 PressArrow(window, targets[0], Key.Space);
-                Program.Check(window.ViewModel.Owner.StartsWith("word:") && window.ViewModel.Status.Contains("MP3"));
+                Program.Check(window.ViewModel.Owner.StartsWith("word:") && window.ViewModel.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("MP3")));
             }
             finally
             {
@@ -549,7 +549,7 @@ internal static class ReaderControlsChecks
                 string nested = Path.Combine(root, "nested"); Directory.CreateDirectory(nested);
                 File.Copy(sourceAudio, Path.Combine(nested, "00-ignored" + extension));
                 File.WriteAllText(Path.Combine(root, extension == ".mp3" ? "00-ignored.wav" : "00-ignored.ogg"), "ignored");
-                if (!window.ViewModel.OpenArticle(path)) throw new Exception(window.ViewModel.Status);
+                Program.Check(window.ViewModel.OpenArticle(path));
                 fixtureWord = window.ViewModel.Words[0].Entry;
                 var playButton = (Button)window.FindName("ReadAllButton");
                 var slider = (Slider)window.FindName("PlaybackProgress");
@@ -636,11 +636,11 @@ internal static class ReaderControlsChecks
                 Program.Check(window.ViewModel.OpenArticle(TestData.ArticlePath));
                 playButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Program.Check(window.ViewModel.PlaybackState == PlaybackState.Stopped &&
-                    window.ViewModel.Status.Contains("同级目录") && !player.IsOpen);
+                    window.ViewModel.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("同级目录")) && !player.IsOpen);
                 window.ViewModel.PlayWord(window.ViewModel.Words[0].Entry, "uk");
                 WpfTestHelpers.Wait(() => pronunciationPlayer.IsOpen);
                 playButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                Program.Check(window.ViewModel.PlaybackState == PlaybackState.Playing && window.ViewModel.Owner.StartsWith("word:") && window.ViewModel.Status.Contains("MP3"));
+                Program.Check(window.ViewModel.PlaybackState == PlaybackState.Playing && window.ViewModel.Owner.StartsWith("word:") && window.ViewModel.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("MP3")));
                 window.ViewModel.PlayWord(window.ViewModel.Words[0].Entry, "uk");
                 WpfTestHelpers.Wait(() => pronunciationPlayer.IsOpen);
                 ((Button)window.FindName("StopButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
