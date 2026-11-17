@@ -36,13 +36,13 @@ public sealed class ArticleRepository
         if (root.ValueKind != JsonValueKind.Object)
             throw new InvalidDataException("Script 根节点必须为对象。");
 
-        if (!root.TryGetProperty("filetype", out var type))
-            throw new InvalidDataException("Script 缺少必需字段 filetype。");
+        var missing = new List<string>();
+        if (!root.TryGetProperty("filetype", out var type)) missing.Add("filetype");
+        if (!root.TryGetProperty("title", out var title)) missing.Add("title");
+        if (missing.Count > 0)
+            throw new InvalidDataException("Script 缺少必需字段：" + string.Join("、", missing) + "。");
         if (type.ValueKind != JsonValueKind.String || type.GetString() != "script")
             throw new InvalidDataException("Script 的 filetype 必须为 \"script\"。");
-
-        if (!root.TryGetProperty("title", out var title))
-            throw new InvalidDataException("Script 缺少必需字段 title。");
         if (title.ValueKind != JsonValueKind.String)
             throw new InvalidDataException("Script 的 title 必须为字符串（可以为空）。");
 
