@@ -59,7 +59,8 @@ public sealed class LibraryRepository
                 string name = Path.GetFileName(file);
                 if (name.Equals("book.json", StringComparison.OrdinalIgnoreCase) ||
                     name.EndsWith(".vocabulary.json", StringComparison.OrdinalIgnoreCase) ||
-                    name.EndsWith(".exercise.json", StringComparison.OrdinalIgnoreCase)) continue;
+                    name.EndsWith(".exercise.json", StringComparison.OrdinalIgnoreCase) ||
+                    name.EndsWith(".script.json", StringComparison.OrdinalIgnoreCase)) continue;
                 try
                 {
                     nodes.Add(new NavigationNode(Path.GetFileNameWithoutExtension(file), bookRoot,
