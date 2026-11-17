@@ -2,7 +2,7 @@
 
 ## 1. Select the library root
 
-Select the directory containing your book directories, rather than a book directory itself. Only immediate child directories containing `book.json` are treated as books. Each recognized book is scanned recursively.
+Select the directory containing your book directories, rather than a book directory itself. Only immediate child directories containing `book.json` are treated as books. Book contents are discovered one directory level at a time as users expand the tree.
 
 Recommended layout:
 
@@ -28,7 +28,7 @@ Library/                              <- select this directory
 
 Date and article directories are conventions, not requirements. A passage may sit directly in the book directory or deeper within it. Separate article directories are useful because all passages sharing a directory also share its whole-article audio selection and relative audio locations.
 
-Opening a library reads directory names and discovers potential passage filenames. It does not parse passage or vocabulary JSON, open an article, or start audio. The tree starts collapsed. Expanding opens one level; collapsing a node recursively collapses its descendants.
+Opening a library discovers only immediate book directories and checks for `book.json`; it does not enumerate passages inside books, parse passage or vocabulary JSON, open an article, or start audio. The tree starts collapsed. Each expansion enumerates one directory level, and collapsing a node also collapses its descendants.
 
 ## 2. Required and optional files
 
@@ -51,7 +51,7 @@ A minimal marker can contain:
 {}
 ```
 
-An empty book with no discoverable passage filenames is omitted and reported as a warning. JSON validity is not checked during discovery, so a malformed potential passage can appear in the tree and fail only when selected.
+A book is listed whenever its immediate directory contains `book.json`, even if it currently has no passages. JSON validity is not checked during discovery, so a malformed potential passage can appear in the tree and fail only when selected.
 
 ## 3. Passage and vocabulary naming
 
@@ -101,7 +101,7 @@ Whole-article audio has its own player; sentence and vocabulary audio share a se
 
 ## 5. Excluded branches and safe paths
 
-The scanner excludes hidden files/directories, names beginning with `.`, directories named `userdata` or `__pycache__` regardless of letter case, and reparse points such as junctions or symbolic links. Inside a book, it excludes `book.json`, `*.vocabulary.json`, and `*.exercise.json` from passage leaves.
+The scanner excludes hidden files/directories, names beginning with `.`, directories named `userdata`, `__pycache__` or `cache` (case-insensitive exact names), and reparse points such as junctions or symbolic links. If a directory directly contains any `.json` file (case-insensitive extension), its immediate child directories whose names contain `audio` (case-insensitive substring) are also hidden. Without a directly contained JSON file, audio-named child directories remain visible. These are navigation-only filters: they do not delete directories or prevent audio/cache access. Inside a book, `book.json`, `*.vocabulary.json` and `*.exercise.json` are excluded from passage leaves.
 
 Other JSON files are treated as potential passages without inspecting their contents. Keep unrelated JSON outside scanned book branches.
 
@@ -109,7 +109,7 @@ Derived audio paths stay within the passage directory. Paths escaping that direc
 
 ## 6. Files outside the library
 
-`dist/ReadArticles.settings.json` belongs beside the executable, not in a book. It stores application preferences and is initialized on first startup. The single-file release contains all application assemblies; distribute only `dist/ReadArticles.exe`, without the .NET runtime. Keep the existing settings file during updates.
+Application settings live in `dist/ReadArticles/userdata/config/settings.json`, beside the published `dist/ReadArticles/ReadArticles.exe` in its `userdata/` directory. The legacy executable-sibling settings file is retained during migration rather than deleted. The portable release uses a framework-dependent single EXE and requires the compatible .NET 10 Windows Desktop Runtime x64 on the target machine. Keep `userdata/` and the rest of the application directory together during updates.
 
 Source images and the original Python ZIP are preparation/reference material. ReadArticles does not convert them when a library is opened.
 
@@ -117,4 +117,4 @@ Source images and the original Python ZIP are preparation/reference material. Re
 
 The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's direct JSON passage candidates and immediate subdirectories. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Passage JSON is parsed only when opened, and sentence audio is checked only when requested for playback.
 
-Collapsing invalidates pending scans; reopening refreshes that directory. When a refresh fails, the last successful snapshot is retained where available and a warning is shown. Hidden and dot-prefixed entries, reparse points, `userdata`, `__pycache__`, `book.json`, `*.vocabulary.json`, and `*.exercise.json` are excluded.
+Collapsing invalidates pending scans; reopening refreshes that directory. When a refresh fails, the last successful snapshot is retained where available and a warning is shown. Navigation excludes the files and folders described in [Excluded branches and safe paths](#5-excluded-branches-and-safe-paths); there is no recursive pre-scan.
