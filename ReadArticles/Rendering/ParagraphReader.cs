@@ -16,10 +16,11 @@ public sealed class ParagraphReader : RichTextBox
     private readonly VocabularyMatcher matcher = new VocabularyMatcher();
     private readonly Segment[] source;
     private readonly List<VisualRun> visualRuns = new List<VisualRun>();
-    private sealed class VisualRun(string sid, int offset, Run run, string? vocabularyKey,
+    private sealed class VisualRun(string sid, int sentenceIndex, int offset, Run run, string? vocabularyKey,
         ScriptTimedUnit? timedUnit = null, int unitOffset = 0)
     {
         public string Sid { get; } = sid;
+        public int SentenceIndex { get; } = sentenceIndex;
         public int Offset { get; } = offset;
         public Run Run { get; } = run;
         public string? VocabularyKey { get; } = vocabularyKey;
@@ -222,7 +223,7 @@ public sealed class ParagraphReader : RichTextBox
                     var run = new Run(text);
                     if (blank) { run.Foreground = Brush("BlankBrush"); run.FontWeight = FontWeights.SemiBold; }
                     span.Inlines.Add(run);
-                    visualRuns.Add(new VisualRun(segment.Sid, renderedOffset, run,
+                    visualRuns.Add(new VisualRun(segment.Sid, index, renderedOffset, run,
                         vocabularyKey, timedUnit, unitOffset));
                     renderedOffset += text.Length;
                 }
@@ -283,10 +284,9 @@ public sealed class ParagraphReader : RichTextBox
     public Brush GetTextForeground(int sentenceIndex, int textOffset)
     {
         if (scriptSentences is null) throw new InvalidOperationException("Not a Script reader.");
-        var range = Ranges[sentenceIndex];
         var run = visualRuns.First(v => v.Offset <= textOffset &&
             textOffset < v.Offset + v.Run.Text.Length &&
-            v.Sid == range.Segment.Sid);
+            v.SentenceIndex == sentenceIndex);
         return run.Run.Foreground;
     }
 
