@@ -254,41 +254,44 @@ internal static class ScriptChecks
                 Program.Check(drawing.ViewportUnits == BrushMappingMode.Absolute);
                 Program.Check(drawing.Drawing is DrawingGroup { Children.Count: >= 2 });
 
-                // A real bitmap must reveal red pixels on the first line before
-                // the last line begins, then on the last line near completion.
-                reader.SetScriptPosition(1.0);
-                byte[] uncolored = CapturePixels(reader, out int frameWidth, out int frameHeight);
+                // Compare actual red text pixels, not raw bitmap equality:
+                // changing the WPF foreground brush may affect antialiasing
+                // even where a wrapped line is still its original text color.
+                reader.SetVocabulary(["beta"], false);
+                WpfTestHelpers.Pump();
                 reader.SetScriptPosition(1.05);
-                byte[] early = CapturePixels(reader, out _, out _);
+                byte[] early = CapturePixels(reader, out int frameWidth, out int frameHeight);
                 reader.SetScriptPosition(1.95);
                 byte[] late = CapturePixels(reader, out _, out _);
-                Program.Check(ChangedPixels(uncolored, early, frameWidth, frameHeight,
+                Program.Check(RedPixels(early, frameWidth, frameHeight,
                     0, (int)first.Top, frameWidth, (int)first.Bottom) > 0);
-                Program.Check(ChangedPixels(uncolored, early, frameWidth, frameHeight,
+                Program.Check(RedPixels(early, frameWidth, frameHeight,
                     0, (int)last.Top, frameWidth, (int)last.Bottom) == 0);
-                Program.Check(ChangedPixels(uncolored, late, frameWidth, frameHeight,
+                Program.Check(RedPixels(late, frameWidth, frameHeight,
                     0, (int)last.Top, frameWidth, (int)last.Bottom) > 0);
 
-                // Compare actual rendered pixels with and without the highlight,
-                // not merely the brush returned by the lookup helper.
+                // Check real highlighted pixels in the vocabulary's glyph
+                // rectangles, allowing the word to wrap across visual lines.
                 reader.SetScriptPosition(null);
+                reader.SetVocabulary(["beta"], true);
+                WpfTestHelpers.Pump();
                 byte[] withBackground = CapturePixels(reader, out int width, out int height);
                 reader.SetVocabulary(["beta"], false);
                 WpfTestHelpers.Pump();
                 byte[] withoutBackground = CapturePixels(reader, out int sameWidth, out int sameHeight);
                 Program.Check(width == sameWidth && height == sameHeight);
                 var range = reader.Ranges[0];
-                Rect wordStart = reader.PositionAt(range, 6).GetCharacterRect(LogicalDirection.Forward);
-                Rect wordEnd = reader.PositionAt(range, 10).GetCharacterRect(LogicalDirection.Backward);
-                Program.Check(Math.Abs(wordStart.Top - wordEnd.Top) < 1);
                 int changes = 0;
-                for (int y = Math.Max(0, (int)wordStart.Top); y < Math.Min(height, (int)wordStart.Bottom); y++)
-                    for (int x = Math.Max(0, (int)wordStart.Left); x < Math.Min(width, (int)wordEnd.Left); x++)
-                    {
-                        int pixel = (y * width + x) * 4;
-                        if (withBackground.AsSpan(pixel, 4).SequenceEqual(withoutBackground.AsSpan(pixel, 4))) continue;
-                        changes++;
-                    }
+                for (int offset = 6; offset < 10; offset++)
+                {
+                    Rect start = reader.PositionAt(range, offset).GetCharacterRect(LogicalDirection.Forward);
+                    Rect finish = reader.PositionAt(range, offset + 1).GetCharacterRect(LogicalDirection.Backward);
+                    if (start.IsEmpty || finish.IsEmpty ||
+                        Math.Abs(start.Top - finish.Top) >= 1 || finish.Left <= start.Left) continue;
+                    changes += ChangedPixels(withBackground, withoutBackground, width, height,
+                        (int)start.Left, (int)start.Top, (int)Math.Ceiling(finish.Left),
+                        (int)Math.Ceiling(start.Bottom));
+                }
                 Program.Check(changes > 0);
             }
             finally { host.Close(); WpfTestHelpers.Pump(); }
@@ -320,6 +323,20 @@ internal static class ScriptChecks
             Program.Check(ReferenceEquals(icon.Source, UiIcons.ScriptOff));
             Program.Check(window.Instance.Readers[0].Ranges[0].Segment.Sid == "s001");
         }));
+    }
+
+    private static int RedPixels(byte[] pixels, int width, int height,
+        int left, int top, int right, int bottom)
+    {
+        int red = 0;
+        for (int y = Math.Clamp(top, 0, height); y < Math.Clamp(bottom, 0, height); y++)
+            for (int x = Math.Clamp(left, 0, width); x < Math.Clamp(right, 0, width); x++)
+            {
+                int pixel = (y * width + x) * 4;
+                int blue = pixels[pixel], green = pixels[pixel + 1], r = pixels[pixel + 2];
+                if (r > 110 && r - green > 45 && r - blue > 30) red++;
+            }
+        return red;
     }
 
     private static int ChangedPixels(byte[] before, byte[] after,
