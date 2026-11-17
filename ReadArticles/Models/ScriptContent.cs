@@ -15,6 +15,7 @@ public sealed record ScriptTimedUnit(string Text, double? Start, double? End, in
     public double Progress(double seconds)
     {
         if (!CanColor || !double.IsFinite(seconds)) return 0;
-        return Math.Clamp((seconds - Start!.Value) / (End!.Value - Start.Value), 0, 1);
+        double start = Start.GetValueOrDefault(), end = End.GetValueOrDefault();
+        return Math.Clamp((seconds - start) / (end - start), 0, 1);
     }
 }
