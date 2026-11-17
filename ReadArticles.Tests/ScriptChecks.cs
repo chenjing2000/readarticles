@@ -254,6 +254,21 @@ internal static class ScriptChecks
                 Program.Check(drawing.ViewportUnits == BrushMappingMode.Absolute);
                 Program.Check(drawing.Drawing is DrawingGroup { Children.Count: >= 2 });
 
+                // A real bitmap must reveal red pixels on the first line before
+                // the last line begins, then on the last line near completion.
+                reader.SetScriptPosition(1.0);
+                byte[] uncolored = CapturePixels(reader, out int frameWidth, out int frameHeight);
+                reader.SetScriptPosition(1.05);
+                byte[] early = CapturePixels(reader, out _, out _);
+                reader.SetScriptPosition(1.95);
+                byte[] late = CapturePixels(reader, out _, out _);
+                Program.Check(ChangedPixels(uncolored, early, frameWidth, frameHeight,
+                    0, (int)first.Top, frameWidth, (int)first.Bottom) > 0);
+                Program.Check(ChangedPixels(uncolored, early, frameWidth, frameHeight,
+                    0, (int)last.Top, frameWidth, (int)last.Bottom) == 0);
+                Program.Check(ChangedPixels(uncolored, late, frameWidth, frameHeight,
+                    0, (int)last.Top, frameWidth, (int)last.Bottom) > 0);
+
                 // Compare actual rendered pixels with and without the highlight,
                 // not merely the brush returned by the lookup helper.
                 reader.SetScriptPosition(null);
@@ -305,6 +320,19 @@ internal static class ScriptChecks
             Program.Check(ReferenceEquals(icon.Source, UiIcons.ScriptOff));
             Program.Check(window.Instance.Readers[0].Ranges[0].Segment.Sid == "s001");
         }));
+    }
+
+    private static int ChangedPixels(byte[] before, byte[] after,
+        int width, int height, int left, int top, int right, int bottom)
+    {
+        int changes = 0;
+        for (int y = Math.Clamp(top, 0, height); y < Math.Clamp(bottom, 0, height); y++)
+            for (int x = Math.Clamp(left, 0, width); x < Math.Clamp(right, 0, width); x++)
+            {
+                int pixel = (y * width + x) * 4;
+                if (!before.AsSpan(pixel, 4).SequenceEqual(after.AsSpan(pixel, 4))) changes++;
+            }
+        return changes;
     }
 
     private static byte[] CapturePixels(ParagraphReader reader, out int width, out int height)
