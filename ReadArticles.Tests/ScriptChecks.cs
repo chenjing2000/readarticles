@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using ReadArticles.Infrastructure;
 using ReadArticles.Models;
 using ReadArticles.Rendering;
@@ -222,6 +223,62 @@ internal static class ScriptChecks
             finally { host.Close(); WpfTestHelpers.Pump(); }
         });
 
+        Program.Run("wrapped Script unit shares one sweep and vocabulary background is visible", () =>
+        {
+            var sentence = new ScriptSentence("alpha beta gamma",
+                [new ScriptTimedUnit("alpha beta gamma", 1.0, 2.0, 0)]);
+            var reader = Reader([sentence], ["beta"]);
+            reader.Width = 160;
+            reader.FontSize = 26;
+            var host = new Window
+            {
+                Content = reader, Width = 230, Height = 280,
+                Left = -10000, Top = -10000, ShowActivated = false
+            };
+            try
+            {
+                host.Show();
+                WpfTestHelpers.Pump();
+                var run = ((Paragraph)reader.Document.Blocks.FirstBlock!).Inlines.OfType<Span>()
+                    .Single().Inlines.OfType<Run>().Single();
+                Rect first = run.ContentStart.GetCharacterRect(LogicalDirection.Forward);
+                Rect last = run.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
+                Program.Check(last.Top > first.Top + 1);
+                reader.SetScriptPosition(1.5);
+                var paint = reader.GetTextForeground(0, 0);
+                Program.Check(paint is DrawingBrush);
+                Program.Check(ReferenceEquals(paint, reader.GetTextForeground(0, 7)));
+                Program.Check(ReferenceEquals(paint, reader.GetTextForeground(0, 14)));
+                var drawing = (DrawingBrush)paint;
+                Program.Check(drawing.ViewboxUnits == BrushMappingMode.Absolute);
+                Program.Check(drawing.ViewportUnits == BrushMappingMode.Absolute);
+                Program.Check(drawing.Drawing is DrawingGroup { Children.Count: >= 2 });
+
+                // Compare actual rendered pixels with and without the highlight,
+                // not merely the brush returned by the lookup helper.
+                reader.SetScriptPosition(null);
+                byte[] withBackground = CapturePixels(reader, out int width, out int height);
+                reader.SetVocabulary(["beta"], false);
+                WpfTestHelpers.Pump();
+                byte[] withoutBackground = CapturePixels(reader, out int sameWidth, out int sameHeight);
+                Program.Check(width == sameWidth && height == sameHeight);
+                var range = reader.Ranges[0];
+                Rect wordStart = reader.PositionAt(range, 6).GetCharacterRect(LogicalDirection.Forward);
+                Rect wordEnd = reader.PositionAt(range, 10).GetCharacterRect(LogicalDirection.Backward);
+                Program.Check(Math.Abs(wordStart.Top - wordEnd.Top) < 1);
+                int changes = 0;
+                for (int y = Math.Max(0, (int)wordStart.Top); y < Math.Min(height, (int)wordStart.Bottom); y++)
+                    for (int x = Math.Max(0, (int)wordStart.Left); x < Math.Min(width, (int)wordEnd.Left); x++)
+                    {
+                        int pixel = (y * width + x) * 4;
+                        if (withBackground.AsSpan(pixel, 4).SequenceEqual(withoutBackground.AsSpan(pixel, 4))) continue;
+                        changes++;
+                    }
+                Program.Check(changes > 0);
+            }
+            finally { host.Close(); WpfTestHelpers.Pump(); }
+        });
+
         Program.Run("Script toggle keeps Passage on failure and restores it after switching", () => InTemp((_, passage) =>
         {
             using var window = new ScriptWindow(passage);
@@ -248,6 +305,18 @@ internal static class ScriptChecks
             Program.Check(ReferenceEquals(icon.Source, UiIcons.ScriptOff));
             Program.Check(window.Instance.Readers[0].Ranges[0].Segment.Sid == "s001");
         }));
+    }
+
+    private static byte[] CapturePixels(ParagraphReader reader, out int width, out int height)
+    {
+        reader.UpdateLayout();
+        width = (int)Math.Ceiling(reader.ActualWidth);
+        height = (int)Math.Ceiling(reader.ActualHeight);
+        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(reader);
+        var pixels = new byte[width * height * 4];
+        bitmap.CopyPixels(pixels, width * 4, 0);
+        return pixels;
     }
 
     private static ParagraphReader Reader(IReadOnlyList<ScriptSentence> sentences, IEnumerable<string> words) =>
