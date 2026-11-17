@@ -22,6 +22,7 @@ internal static class Program
                 WindowChecks.Run();
                 ContentChecks.Run();
                 ScriptChecks.Run();
+                ScriptChecks.RunUi();
                 ReaderWindowChecks.Run();
                 TreeNavigationChecks.Run();
                 RealMediaChecks.Run();
@@ -36,9 +37,9 @@ internal static class Program
             case "--rendering-only": MatchingChecks.Run(); RenderingChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
             case "--content-only": UnifiedAudioChecks.Run(); ContentChecks.Run(); ScriptChecks.Run(); break;
-            case "--script-only": ScriptChecks.Run(); break;
+            case "--script-only": ScriptChecks.Run(); ScriptChecks.RunUi(); break;
             case "--unified-audio-only": UnifiedAudioChecks.Run(); break;
-            case "--window-only": WindowChecks.Run(); ReaderWindowChecks.Run(); break;
+            case "--window-only": WindowChecks.Run(); ReaderWindowChecks.Run(); ScriptChecks.RunUi(); break;
             case "--editing-only": VocabularyEditingChecks.Run(); break;
             case "--icons-only": IconChecks.Run(); break;
             case "--controls-only": ReaderControlsChecks.Run(); BackupChecks.Run(); break;
