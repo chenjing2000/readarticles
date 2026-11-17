@@ -27,8 +27,9 @@ public sealed class ParagraphReader : RichTextBox
         public bool Vocabulary => VocabularyKey is not null;
         public ScriptTimedUnit? TimedUnit { get; } = timedUnit;
         public double LastRead { get; set; } = double.NaN;
-        public IReadOnlyList<Rect>? LayoutLines { get; set; }
+        public IReadOnlyList<ScriptVisualLine>? LayoutLines { get; set; }
     }
+    private sealed record ScriptVisualLine(int Start, int Count, Rect Bounds);
     private sealed record ScriptVocabularyRange(int SentenceIndex, int Start, int Length, string Key);
     private readonly List<ScriptVocabularyRange> scriptVocabularyRanges = new();
     private readonly IReadOnlyList<ScriptSentence>? scriptSentences;
@@ -274,20 +275,65 @@ public sealed class ParagraphReader : RichTextBox
             double fraction = seconds.HasValue ? unit.Progress(seconds.Value) : 0;
             if (Math.Abs(fraction - visual.LastRead) < 0.0001) continue;
             visual.LastRead = fraction;
-            if (fraction <= 0) visual.Run.ClearValue(TextElement.ForegroundProperty);
-            else if (fraction >= 1) visual.Run.Foreground = ScriptReadBrush;
+            if (fraction <= 0)
+            {
+                visual.Run.ClearValue(TextElement.TextEffectsProperty);
+                visual.Run.ClearValue(TextElement.ForegroundProperty);
+            }
+            else if (fraction >= 1)
+            {
+                visual.Run.ClearValue(TextElement.TextEffectsProperty);
+                visual.Run.Foreground = ScriptReadBrush;
+            }
             else
             {
                 Color baseColor = Foreground is SolidColorBrush solid ? solid.Color : Colors.Black;
                 var lines = visual.LayoutLines ??= GetTimedUnitLines(visual);
                 if (lines.Count > 1)
                 {
-                    // A wrapped timed unit is still one Run with one clock.
-                    // Sweep each visual line in reading order, using its actual
-                    // rendered width rather than assigning per-word times.
-                    visual.Run.Foreground = WrappedScriptBrush(lines, fraction, baseColor);
+                    // WPF renders a wrapped Run as multiple glyph runs. A
+                    // DrawingBrush on their shared Foreground repeats its mapping
+                    // and colors later lines too early. Apply a brush per visual
+                    // line using TextEffects; the Run and clock remain indivisible.
+                    double remaining = fraction * lines.Sum(line => line.Bounds.Width);
+                    var effects = new TextEffectCollection();
+                    foreach (var line in lines)
+                    {
+                        double width = Math.Clamp(remaining, 0, line.Bounds.Width);
+                        Brush color;
+                        if (width <= 0)
+                            color = new SolidColorBrush(baseColor);
+                        else if (width >= line.Bounds.Width)
+                            color = ScriptReadBrush;
+                        else
+                        {
+                            double local = width / line.Bounds.Width;
+                            var gradient = new LinearGradientBrush
+                            {
+                                MappingMode = BrushMappingMode.Absolute,
+                                StartPoint = new Point(line.Bounds.Left, 0),
+                                EndPoint = new Point(line.Bounds.Right, 0)
+                            };
+                            gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, 0));
+                            gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, local));
+                            gradient.GradientStops.Add(new GradientStop(baseColor, local));
+                            gradient.GradientStops.Add(new GradientStop(baseColor, 1));
+                            gradient.Freeze();
+                            color = gradient;
+                        }
+                        effects.Add(new TextEffect
+                        {
+                            PositionStart = line.Start,
+                            PositionCount = line.Count,
+                            Foreground = color
+                        });
+                        remaining -= line.Bounds.Width;
+                    }
+                    visual.Run.ClearValue(TextElement.ForegroundProperty);
+                    visual.Run.TextEffects = effects;
                     continue;
                 }
+                visual.Run.ClearValue(TextElement.TextEffectsProperty);
                 var gradient = new LinearGradientBrush();
                 Rect first = visual.Run.ContentStart.GetCharacterRect(LogicalDirection.Forward);
                 Rect last = visual.Run.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
@@ -313,11 +359,11 @@ public sealed class ParagraphReader : RichTextBox
         }
     }
 
-    // WPF may wrap inside one Run. Locate its visual lines without splitting
-    // the text, changing its selection offsets, or inventing timing boundaries.
-    private IReadOnlyList<Rect> GetTimedUnitLines(VisualRun visual)
+    // Locate visual lines and their text offsets without splitting the
+    // underlying Run. Effects use these offsets solely for painting.
+    private IReadOnlyList<ScriptVisualLine> GetTimedUnitLines(VisualRun visual)
     {
-        var lines = new List<Rect>();
+        var lines = new List<ScriptVisualLine>();
         var range = Ranges[visual.SentenceIndex];
         int startOffset = visual.Offset;
         for (int i = 0; i < visual.Run.Text.Length; i++)
@@ -328,43 +374,19 @@ public sealed class ParagraphReader : RichTextBox
                 .GetCharacterRect(LogicalDirection.Backward);
             if (!IsSingleLine(start, end) || end.Left <= start.Left) continue;
             var cell = new Rect(start.Left, start.Top, end.Left - start.Left, start.Height);
-            if (lines.Count > 0 && Math.Abs(lines[^1].Top - cell.Top) < 1)
-                lines[^1] = Rect.Union(lines[^1], cell);
+            if (lines.Count > 0 && Math.Abs(lines[^1].Bounds.Top - cell.Top) < 1)
+            {
+                var previous = lines[^1];
+                lines[^1] = previous with
+                {
+                    Count = i + 1 - previous.Start,
+                    Bounds = Rect.Union(previous.Bounds, cell)
+                };
+            }
             else
-                lines.Add(cell);
+                lines.Add(new ScriptVisualLine(i, 1, cell));
         }
         return lines;
-    }
-
-    private static DrawingBrush WrappedScriptBrush(IReadOnlyList<Rect> lines,
-        double fraction, Color baseColor)
-    {
-        Rect bounds = lines[0];
-        foreach (var line in lines.Skip(1)) bounds.Union(line);
-        var drawing = new DrawingGroup();
-        drawing.Children.Add(new GeometryDrawing(new SolidColorBrush(baseColor), null,
-            new RectangleGeometry(bounds)));
-
-        double remaining = fraction * lines.Sum(line => line.Width);
-        foreach (var line in lines)
-        {
-            double readWidth = Math.Clamp(remaining, 0, line.Width);
-            if (readWidth > 0)
-                drawing.Children.Add(new GeometryDrawing(ScriptReadBrush, null,
-                    new RectangleGeometry(new Rect(line.Left, line.Top, readWidth, line.Height))));
-            remaining -= line.Width;
-        }
-        var brush = new DrawingBrush(drawing)
-        {
-            ViewboxUnits = BrushMappingMode.Absolute,
-            ViewportUnits = BrushMappingMode.Absolute,
-            Viewbox = bounds,
-            Viewport = bounds,
-            Stretch = Stretch.Fill,
-            TileMode = TileMode.None
-        };
-        brush.Freeze();
-        return brush;
     }
 
     private static bool IsSingleLine(Rect first, Rect last) =>
