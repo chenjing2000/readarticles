@@ -17,7 +17,7 @@ public sealed class ParagraphReader : RichTextBox
     private readonly Segment[] source;
     private readonly List<VisualRun> visualRuns = new List<VisualRun>();
     private sealed class VisualRun(string sid, int sentenceIndex, int offset, Run run, string? vocabularyKey,
-        ScriptTimedUnit? timedUnit = null, int unitOffset = 0)
+        ScriptTimedUnit? timedUnit = null)
     {
         public string Sid { get; } = sid;
         public int SentenceIndex { get; } = sentenceIndex;
@@ -26,9 +26,10 @@ public sealed class ParagraphReader : RichTextBox
         public string? VocabularyKey { get; } = vocabularyKey;
         public bool Vocabulary => VocabularyKey is not null;
         public ScriptTimedUnit? TimedUnit { get; } = timedUnit;
-        public int UnitOffset { get; } = unitOffset;
         public double LastRead { get; set; } = double.NaN;
     }
+    private sealed record ScriptVocabularyRange(int SentenceIndex, int Start, int Length, string Key);
+    private readonly List<ScriptVocabularyRange> scriptVocabularyRanges = new();
     private readonly IReadOnlyList<ScriptSentence>? scriptSentences;
     private double? scriptSeconds;
     private static readonly SolidColorBrush ScriptReadBrush = FrozenScriptReadBrush();
@@ -87,6 +88,11 @@ public sealed class ParagraphReader : RichTextBox
         };
         MouseLeave += (_, _) => SetHoveredSegment(null);
         PreviewMouseLeftButtonUp += ReaderMouseLeftButtonUp;
+        if (scriptSentences is not null)
+        {
+            Loaded += (_, _) => RefreshScriptLayout();
+            SizeChanged += (_, _) => RefreshScriptLayout();
+        }
         BuildDocument();
     }
 
@@ -142,6 +148,7 @@ public sealed class ParagraphReader : RichTextBox
         try
         {
             visualRuns.Clear();
+            scriptVocabularyRanges.Clear();
             var paragraph = new Paragraph { Margin = new Thickness(0), LineHeight = Math.Round(FontSize * 1.7), TextIndent = FontSize * 2 };
             Document = new FlowDocument(paragraph) { PagePadding = new Thickness(0) };
             var ranges = new List<SegmentTextRange>();
@@ -187,44 +194,33 @@ public sealed class ParagraphReader : RichTextBox
 
                 void AddScriptText(string text, IReadOnlyList<ScriptTimedUnit> units)
                 {
-                    // Split at the union of vocabulary and timing boundaries,
-                    // but retain each complete vocabulary key for focus/background.
-                    var matches = matcher.Match(text, words);
-                    var located = units.Where(u => u.Offset >= 0 && u.Length > 0).ToArray();
-                    var bounds = new SortedSet<int> { 0, text.Length };
-                    foreach (var match in matches)
+                    // Vocabulary matches remain independent background ranges:
+                    // they never split a timed word into separate gradient Runs.
+                    foreach (var hit in matcher.Match(text, words))
+                        scriptVocabularyRanges.Add(new ScriptVocabularyRange(index, hit.Start, hit.Length, hit.Key));
+
+                    int cursor = 0;
+                    foreach (var unit in units)
                     {
-                        bounds.Add(match.Start);
-                        bounds.Add(match.Start + match.Length);
+                        // The producer owns text alignment. Invalid/overlapping
+                        // spans remain readable without introducing new timing.
+                        if (unit.Offset < cursor || unit.Offset + unit.Length > text.Length) continue;
+                        AddRun(text[cursor..unit.Offset]);
+                        AddRun(text.Substring(unit.Offset, unit.Length), timedUnit: unit);
+                        cursor = unit.Offset + unit.Length;
                     }
-                    foreach (var unit in located)
-                    {
-                        bounds.Add(unit.Offset);
-                        bounds.Add(unit.Offset + unit.Length);
-                    }
-                    var positions = bounds.ToArray();
-                    for (int part = 0; part < positions.Length - 1; part++)
-                    {
-                        int start = positions[part], end = positions[part + 1];
-                        if (start >= end) continue;
-                        var match = matches.FirstOrDefault(m => start >= m.Start && start < m.Start + m.Length);
-                        // When malformed source intervals overlap, prefer the latest start.
-                        var unit = located.Where(u => start >= u.Offset && start < u.Offset + u.Length)
-                            .OrderByDescending(u => u.Start ?? -1).FirstOrDefault();
-                        AddRun(text[start..end], match?.Key, false, unit,
-                            unit is null ? 0 : start - unit.Offset);
-                    }
+                    AddRun(text[cursor..]);
                 }
 
                 void AddRun(string text, string? vocabularyKey = null, bool blank = false,
-                    ScriptTimedUnit? timedUnit = null, int unitOffset = 0)
+                    ScriptTimedUnit? timedUnit = null)
                 {
                     if (text.Length == 0) return;
                     var run = new Run(text);
                     if (blank) { run.Foreground = Brush("BlankBrush"); run.FontWeight = FontWeights.SemiBold; }
                     span.Inlines.Add(run);
                     visualRuns.Add(new VisualRun(segment.Sid, index, renderedOffset, run,
-                        vocabularyKey, timedUnit, unitOffset));
+                        vocabularyKey, timedUnit));
                     renderedOffset += text.Length;
                 }
             }
@@ -247,8 +243,20 @@ public sealed class ParagraphReader : RichTextBox
         return Ranges.Count > 0 ? Ranges[^1].End : Document.ContentStart;
     }
 
-    // Recompute from the actual article clock, never from a history of played words.
-    // Unchanged runs retain their brushes; only the active timed unit usually changes.
+    private void RefreshScriptLayout()
+    {
+        foreach (var visual in visualRuns) visual.LastRead = double.NaN;
+        // Refresh absolute endpoints after WPF reflows the text.
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            if (scriptSentences is null) return;
+            SetScriptPosition(scriptSeconds);
+            InvalidateVisual();
+        }));
+    }
+
+    // One timed unit is one complete Run, irrespective of internal words
+    // or punctuation. Its gradient makes a single sweep across that Run.
     public void SetScriptPosition(double? seconds)
     {
         scriptSeconds = seconds;
@@ -257,8 +265,7 @@ public sealed class ParagraphReader : RichTextBox
         {
             var unit = visual.TimedUnit;
             if (unit?.CanColor != true) continue;
-            double totalRead = (seconds.HasValue ? unit.Progress(seconds.Value) : 0) * unit.Length;
-            double fraction = Math.Clamp((totalRead - visual.UnitOffset) / visual.Run.Text.Length, 0, 1);
+            double fraction = seconds.HasValue ? unit.Progress(seconds.Value) : 0;
             if (Math.Abs(fraction - visual.LastRead) < 0.0001) continue;
             visual.LastRead = fraction;
             if (fraction <= 0) visual.Run.ClearValue(TextElement.ForegroundProperty);
@@ -266,11 +273,23 @@ public sealed class ParagraphReader : RichTextBox
             else
             {
                 Color baseColor = Foreground is SolidColorBrush solid ? solid.Color : Colors.Black;
-                var gradient = new LinearGradientBrush
+                var gradient = new LinearGradientBrush();
+                // An absolute brush shares one horizontal coordinate space even
+                // if WPF produces separate glyph runs around a hyphen.
+                Rect first = visual.Run.ContentStart.GetCharacterRect(LogicalDirection.Forward);
+                Rect last = visual.Run.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
+                if (IsSingleLine(first, last) && last.Left > first.Left)
                 {
-                    StartPoint = new Point(0, 0.5),
-                    EndPoint = new Point(1, 0.5)
-                };
+                    gradient.MappingMode = BrushMappingMode.Absolute;
+                    gradient.StartPoint = new Point(first.Left, 0);
+                    gradient.EndPoint = new Point(last.Left, 0);
+                }
+                else
+                {
+                    // Before layout, retain a single-Run relative gradient.
+                    gradient.StartPoint = new Point(0, 0.5);
+                    gradient.EndPoint = new Point(1, 0.5);
+                }
                 gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, 0));
                 gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, fraction));
                 gradient.GradientStops.Add(new GradientStop(baseColor, fraction));
@@ -280,6 +299,10 @@ public sealed class ParagraphReader : RichTextBox
             }
         }
     }
+
+    private static bool IsSingleLine(Rect first, Rect last) =>
+        !first.IsEmpty && !last.IsEmpty &&
+        Math.Abs(first.Top - last.Top) < 1 && first.Height > 0 && last.Height > 0;
 
     public Brush GetTextForeground(int sentenceIndex, int textOffset)
     {
@@ -292,6 +315,11 @@ public sealed class ParagraphReader : RichTextBox
 
     private void ApplyStyles()
     {
+        if (scriptSentences is not null)
+        {
+            InvalidateVisual();
+            return;
+        }
         // Assign local Run properties: TextRange formatting can merge adjacent spans
         // and relocate retained boundary pointers, so it must not own visual states.
         foreach (var visual in visualRuns)
@@ -316,14 +344,66 @@ public sealed class ParagraphReader : RichTextBox
     }
     public bool FocusVocabulary(string word)
     {
+        if (scriptSentences is not null)
+        {
+            var match = scriptVocabularyRanges.FirstOrDefault(m =>
+                string.Equals(m.Key, word, StringComparison.OrdinalIgnoreCase));
+            if (match is null) return false;
+            focusedWord = word;
+            ApplyStyles();
+            Rect rect = PositionAt(Ranges[match.SentenceIndex], match.Start)
+                .GetCharacterRect(LogicalDirection.Forward);
+            if (!rect.IsEmpty) BringIntoView(rect);
+            return true;
+        }
         var visual = visualRuns.FirstOrDefault(v => v.Vocabulary &&
             string.Equals(v.VocabularyKey, word, StringComparison.OrdinalIgnoreCase));
         if (visual is null) return false;
         focusedWord = word;
         ApplyStyles();
-        Rect rect = visual.Run.ContentStart.GetCharacterRect(LogicalDirection.Forward);
-        if (!rect.IsEmpty) BringIntoView(rect);
+        Rect position = visual.Run.ContentStart.GetCharacterRect(LogicalDirection.Forward);
+        if (!position.IsEmpty) BringIntoView(position);
         return true;
+    }
+
+    public Brush GetScriptVocabularyBackground(int sentenceIndex, int textOffset)
+    {
+        if (scriptSentences is null) throw new InvalidOperationException("Not a Script reader.");
+        var match = scriptVocabularyRanges.FirstOrDefault(m => m.SentenceIndex == sentenceIndex &&
+            textOffset >= m.Start && textOffset < m.Start + m.Length);
+        if (!highlightsVisible || match is null) return Brushes.Transparent;
+        return Brush(string.Equals(focusedWord, match.Key, StringComparison.OrdinalIgnoreCase)
+            ? "SelectedVocabularyBrush" : "VocabularyHighlightBrush");
+    }
+
+    protected override void OnRender(DrawingContext drawingContext)
+    {
+        base.OnRender(drawingContext);
+        if (scriptSentences is null || !highlightsVisible) return;
+        foreach (var match in scriptVocabularyRanges)
+        {
+            if (match.SentenceIndex >= Ranges.Count) continue;
+            var range = Ranges[match.SentenceIndex];
+            Brush background = GetScriptVocabularyBackground(match.SentenceIndex, match.Start);
+            int endOffset = match.Start + match.Length;
+            Rect first = PositionAt(range, match.Start).GetCharacterRect(LogicalDirection.Forward);
+            Rect last = PositionAt(range, endOffset).GetCharacterRect(LogicalDirection.Backward);
+            if (IsSingleLine(first, last) && last.Left > first.Left)
+            {
+                drawingContext.DrawRectangle(background, null,
+                    new Rect(first.Left, first.Top, last.Left - first.Left, first.Height));
+                continue;
+            }
+            // Wrap-aware vocabulary backgrounds do not touch the timed Runs.
+            for (int offset = match.Start; offset < endOffset; offset++)
+            {
+                Rect start = PositionAt(range, offset).GetCharacterRect(LogicalDirection.Forward);
+                Rect finish = PositionAt(range, offset + 1).GetCharacterRect(LogicalDirection.Backward);
+                if (!IsSingleLine(start, finish) || finish.Left <= start.Left) continue;
+                drawingContext.DrawRectangle(background, null,
+                    new Rect(start.Left, start.Top, finish.Left - start.Left, start.Height));
+            }
+        }
     }
 
     // Count text characters across multiple Runs, skipping WPF element symbols.
