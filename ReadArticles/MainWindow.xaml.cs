@@ -39,10 +39,8 @@ public partial class MainWindow : Window
 
     private void WindowClosed(object? sender, EventArgs e)
     {
-        double volume = player.Volume;
         NotificationHost.Detach();
         ViewModel.CloseNavigation();
         ClosePlayback();
-        SaveSettings(volume);
     }
 }
