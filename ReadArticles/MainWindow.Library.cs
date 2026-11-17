@@ -74,6 +74,7 @@ public partial class MainWindow
     private bool scriptMode;
     private double passageScrollOffset;
     private double scriptScrollOffset;
+    private long contentRenderVersion;
 
     private void ScriptClicked(object sender, RoutedEventArgs e)
     {
@@ -186,10 +187,10 @@ public partial class MainWindow
         ScriptButton.ToolTip = scriptMode ? "切换到普通正文" : "切换到同步朗读正文";
         RefreshVocabularyHighlights();
         RefreshPlayback();
-        bool expectedScript = scriptMode;
+        long version = ++contentRenderVersion;
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
         {
-            if (scriptMode == expectedScript && ReferenceEquals(ViewModel.Article, article))
+            if (version == contentRenderVersion && ReferenceEquals(ViewModel.Article, article))
                 PassageScroll.ScrollToVerticalOffset(targetOffset);
         }));
     }
