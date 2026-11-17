@@ -16,7 +16,28 @@ public sealed class ParagraphReader : RichTextBox
     private readonly VocabularyMatcher matcher = new VocabularyMatcher();
     private readonly Segment[] source;
     private readonly List<VisualRun> visualRuns = new List<VisualRun>();
-    private sealed record VisualRun(string Sid, int Offset, Run Run, bool Vocabulary);
+    private sealed class VisualRun(string sid, int offset, Run run, string? vocabularyKey,
+        ScriptTimedUnit? timedUnit = null, int unitOffset = 0)
+    {
+        public string Sid { get; } = sid;
+        public int Offset { get; } = offset;
+        public Run Run { get; } = run;
+        public string? VocabularyKey { get; } = vocabularyKey;
+        public bool Vocabulary => VocabularyKey is not null;
+        public ScriptTimedUnit? TimedUnit { get; } = timedUnit;
+        public int UnitOffset { get; } = unitOffset;
+        public double LastRead { get; set; } = double.NaN;
+    }
+    private readonly IReadOnlyList<ScriptSentence>? scriptSentences;
+    private double? scriptSeconds;
+    private static readonly SolidColorBrush ScriptReadBrush = FrozenScriptReadBrush();
+
+    private static SolidColorBrush FrozenScriptReadBrush()
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(0xB8, 0x1A, 0x35));
+        brush.Freeze();
+        return brush;
+    }
     private string[] words;
     private bool highlightsVisible;
     private string? playingSid;
@@ -28,8 +49,11 @@ public sealed class ParagraphReader : RichTextBox
     public event Action<PassageSelection>? SelectionRequested;
     public event Action<string>? SegmentPlaybackRequested;
 
-    public ParagraphReader(IEnumerable<Segment> segments, IEnumerable<string> words, bool highlightsVisible = true)
+    // Script sentences are display-only: their segments have no real SID or sentence audio.
+    public ParagraphReader(IEnumerable<Segment> segments, IEnumerable<string> words,
+        bool highlightsVisible = true, IReadOnlyList<ScriptSentence>? scriptSentences = null)
     {
+        this.scriptSentences = scriptSentences;
         this.words = words.ToArray();
         this.highlightsVisible = highlightsVisible;
         IsReadOnly = true;
@@ -124,16 +148,27 @@ public sealed class ParagraphReader : RichTextBox
             {
                 var segment = source[index];
                 var span = new Span();
-                int cursor = 0, renderedOffset = 0;
-                foreach (Match match in Regex.Matches(segment.Text, @"\[\[(\d+)\]\]"))
+                int renderedOffset = 0;
+                if (scriptSentences is not null)
                 {
-                    AddText(segment.Text[cursor..match.Index]);
-                    AddRun($"____{match.Groups[1].Value}____", false, true);
-                    cursor = match.Index + match.Length;
+                    AddScriptText(segment.Text, scriptSentences[index].TimedUnits);
                 }
-                AddText(segment.Text[cursor..]);
-                // Match Python presentation spacing, with an explicit owning SID.
-                if (index < source.Length - 1) AddRun(" ", false);
+                else
+                {
+                    int cursor = 0;
+                    foreach (Match match in Regex.Matches(segment.Text, @"\[\[(\d+)\]\]"))
+                    {
+                        AddText(segment.Text[cursor..match.Index]);
+                        AddRun($"____{match.Groups[1].Value}____", null, true);
+                        cursor = match.Index + match.Length;
+                    }
+                    AddText(segment.Text[cursor..]);
+                }
+                // Script keeps the exact sentence text, including existing whitespace.
+                if (index < source.Length - 1 &&
+                    (scriptSentences is null ||
+                     (!char.IsWhiteSpace(segment.Text[^1]) && !char.IsWhiteSpace(source[index + 1].Text[0]))))
+                    AddRun(" ");
                 paragraph.Inlines.Add(span);
                 ranges.Add(new SegmentTextRange(segment, span.ContentStart, span.ContentEnd));
 
@@ -142,25 +177,60 @@ public sealed class ParagraphReader : RichTextBox
                     int offset = 0;
                     foreach (var hit in matcher.Match(text, words))
                     {
-                        AddRun(text[offset..hit.Start], false);
-                        AddRun(text.Substring(hit.Start, hit.Length), true);
+                        AddRun(text[offset..hit.Start]);
+                        AddRun(text.Substring(hit.Start, hit.Length), hit.Key);
                         offset = hit.Start + hit.Length;
                     }
-                    AddRun(text[offset..], false);
+                    AddRun(text[offset..]);
                 }
-                void AddRun(string text, bool vocabulary, bool blank = false)
+
+                void AddScriptText(string text, IReadOnlyList<ScriptTimedUnit> units)
+                {
+                    // Split at the union of vocabulary and timing boundaries,
+                    // but retain each complete vocabulary key for focus/background.
+                    var matches = matcher.Match(text, words);
+                    var located = units.Where(u => u.Offset >= 0 && u.Length > 0).ToArray();
+                    var bounds = new SortedSet<int> { 0, text.Length };
+                    foreach (var match in matches)
+                    {
+                        bounds.Add(match.Start);
+                        bounds.Add(match.Start + match.Length);
+                    }
+                    foreach (var unit in located)
+                    {
+                        bounds.Add(unit.Offset);
+                        bounds.Add(unit.Offset + unit.Length);
+                    }
+                    var positions = bounds.ToArray();
+                    for (int part = 0; part < positions.Length - 1; part++)
+                    {
+                        int start = positions[part], end = positions[part + 1];
+                        if (start >= end) continue;
+                        var match = matches.FirstOrDefault(m => start >= m.Start && start < m.Start + m.Length);
+                        // When malformed source intervals overlap, prefer the latest start.
+                        var unit = located.Where(u => start >= u.Offset && start < u.Offset + u.Length)
+                            .OrderByDescending(u => u.Start ?? -1).FirstOrDefault();
+                        AddRun(text[start..end], match?.Key, false, unit,
+                            unit is null ? 0 : start - unit.Offset);
+                    }
+                }
+
+                void AddRun(string text, string? vocabularyKey = null, bool blank = false,
+                    ScriptTimedUnit? timedUnit = null, int unitOffset = 0)
                 {
                     if (text.Length == 0) return;
                     var run = new Run(text);
                     if (blank) { run.Foreground = Brush("BlankBrush"); run.FontWeight = FontWeights.SemiBold; }
                     span.Inlines.Add(run);
-                    visualRuns.Add(new VisualRun(segment.Sid, renderedOffset, run, vocabulary));
+                    visualRuns.Add(new VisualRun(segment.Sid, renderedOffset, run,
+                        vocabularyKey, timedUnit, unitOffset));
                     renderedOffset += text.Length;
                 }
             }
             Ranges = ranges;
             Selection.Select(PositionInParagraph(selectionStart), PositionInParagraph(selectionEnd));
             ApplyStyles();
+            SetScriptPosition(scriptSeconds);
         }
         finally { formatting = false; }
     }
@@ -176,6 +246,50 @@ public sealed class ParagraphReader : RichTextBox
         return Ranges.Count > 0 ? Ranges[^1].End : Document.ContentStart;
     }
 
+    // Recompute from the actual article clock, never from a history of played words.
+    // Unchanged runs retain their brushes; only the active timed unit usually changes.
+    public void SetScriptPosition(double? seconds)
+    {
+        scriptSeconds = seconds;
+        if (scriptSentences is null) return;
+        foreach (var visual in visualRuns)
+        {
+            var unit = visual.TimedUnit;
+            if (unit?.CanColor != true) continue;
+            double totalRead = (seconds.HasValue ? unit.Progress(seconds.Value) : 0) * unit.Length;
+            double fraction = Math.Clamp((totalRead - visual.UnitOffset) / visual.Run.Text.Length, 0, 1);
+            if (Math.Abs(fraction - visual.LastRead) < 0.0001) continue;
+            visual.LastRead = fraction;
+            if (fraction <= 0) visual.Run.ClearValue(TextElement.ForegroundProperty);
+            else if (fraction >= 1) visual.Run.Foreground = ScriptReadBrush;
+            else
+            {
+                Color baseColor = Foreground is SolidColorBrush solid ? solid.Color : Colors.Black;
+                var gradient = new LinearGradientBrush
+                {
+                    StartPoint = new Point(0, 0.5),
+                    EndPoint = new Point(1, 0.5)
+                };
+                gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, 0));
+                gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, fraction));
+                gradient.GradientStops.Add(new GradientStop(baseColor, fraction));
+                gradient.GradientStops.Add(new GradientStop(baseColor, 1));
+                gradient.Freeze();
+                visual.Run.Foreground = gradient;
+            }
+        }
+    }
+
+    public Brush GetTextForeground(int sentenceIndex, int textOffset)
+    {
+        if (scriptSentences is null) throw new InvalidOperationException("Not a Script reader.");
+        var range = Ranges[sentenceIndex];
+        var run = visualRuns.First(v => v.Offset <= textOffset &&
+            textOffset < v.Offset + v.Run.Text.Length &&
+            v.Sid == range.Segment.Sid);
+        return run.Run.Foreground;
+    }
+
     private void ApplyStyles()
     {
         // Assign local Run properties: TextRange formatting can merge adjacent spans
@@ -186,7 +300,7 @@ public sealed class ParagraphReader : RichTextBox
                 visual.Run.Background = Brush("PlayingSegmentBrush");
             else if (visual.Sid == HoveredSid)
                 visual.Run.Background = Brush("SegmentHoverBrush");
-            else if (highlightsVisible && visual.Vocabulary && visual.Run.Text.Equals(focusedWord, StringComparison.OrdinalIgnoreCase))
+            else if (highlightsVisible && visual.Vocabulary && string.Equals(visual.VocabularyKey, focusedWord, StringComparison.OrdinalIgnoreCase))
                 visual.Run.Background = Brush("SelectedVocabularyBrush");
             else if (highlightsVisible && visual.Vocabulary)
                 visual.Run.Background = Brush("VocabularyHighlightBrush");
@@ -202,7 +316,8 @@ public sealed class ParagraphReader : RichTextBox
     }
     public bool FocusVocabulary(string word)
     {
-        var visual = visualRuns.FirstOrDefault(v => v.Vocabulary && v.Run.Text.Equals(word, StringComparison.OrdinalIgnoreCase));
+        var visual = visualRuns.FirstOrDefault(v => v.Vocabulary &&
+            string.Equals(v.VocabularyKey, word, StringComparison.OrdinalIgnoreCase));
         if (visual is null) return false;
         focusedWord = word;
         ApplyStyles();
