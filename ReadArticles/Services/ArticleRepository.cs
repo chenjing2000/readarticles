@@ -52,6 +52,7 @@ public sealed class ArticleRepository
             paragraphs.Add(segments.ToArray());
         }
         var all = paragraphs.SelectMany(p => p).ToArray();
+        if (all.Length == 0) throw new InvalidDataException("文章至少需要一个正文片段。");
         if (nextSid <= all.Max(s => int.Parse(s.Sid[1..]))) throw new InvalidDataException("next_sid 不大于已有 SID。");
         bool blank = placeholders.Any(n => n >= 1);
         foreach (var segment in all)

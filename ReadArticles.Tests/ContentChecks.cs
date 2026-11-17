@@ -115,6 +115,26 @@ internal static class ContentChecks
             ExpectInvalid(() => workspace.OpenArticle(passage));
             Program.Check(ReferenceEquals(previous, workspace.Article));
         });
+        RunCopyTest("empty passage segments are rejected with a data error and preserve the current article", (root, passage) =>
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(passage))!;
+            foreach (var paragraph in json["paragraphs"]!.AsArray())
+                paragraph!["paragraph"] = new System.Text.Json.Nodes.JsonArray();
+            File.WriteAllText(passage, json.ToJsonString());
+            var workspace = new ReaderWorkspace();
+            workspace.OpenArticle(TestData.ArticlePath);
+            var previous = workspace.Article;
+            try
+            {
+                workspace.OpenArticle(passage);
+                throw new Exception("Empty passage was accepted.");
+            }
+            catch (InvalidDataException error)
+            {
+                Program.Check(error.Message.Contains("正文片段", StringComparison.Ordinal));
+            }
+            Program.Check(ReferenceEquals(previous, workspace.Article));
+        });
         RunCopyTest("bad optional vocabulary preserves readable article and blocks overwrite", (root, passage) =>
         {
             File.WriteAllText(Path.Combine(root, "Test.vocabulary.json"), "broken");
