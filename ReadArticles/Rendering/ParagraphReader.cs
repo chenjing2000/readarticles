@@ -13,6 +13,8 @@ public sealed record SegmentTextRange(Segment Segment, TextPointer Start, TextPo
 public sealed class ParagraphReader : RichTextBox
 {
     private readonly SelectionAddAdorner selectionAdd;
+    private readonly ScriptVocabularyAdorner? scriptVocabularyAdorner;
+    private AdornerLayer? scriptVocabularyLayer;
     private readonly VocabularyMatcher matcher = new VocabularyMatcher();
     private readonly Segment[] source;
     private readonly List<VisualRun> visualRuns = new List<VisualRun>();
@@ -76,6 +78,12 @@ public sealed class ParagraphReader : RichTextBox
         source = segments.ToArray();
 
         selectionAdd = new SelectionAddAdorner(this);
+        if (scriptSentences is not null)
+        {
+            scriptVocabularyAdorner = new ScriptVocabularyAdorner(this);
+            Loaded += AttachScriptVocabulary;
+            Unloaded += DetachScriptVocabulary;
+        }
         SelectionChanged += ReaderSelectionChanged;
         PreviewMouseRightButtonDown += (_, e) =>
         {
@@ -258,7 +266,7 @@ public sealed class ParagraphReader : RichTextBox
         {
             if (scriptSentences is null) return;
             SetScriptPosition(scriptSeconds);
-            InvalidateVisual();
+            scriptVocabularyAdorner?.InvalidateVisual();
         }));
     }
 
@@ -406,7 +414,7 @@ public sealed class ParagraphReader : RichTextBox
     {
         if (scriptSentences is not null)
         {
-            InvalidateVisual();
+            scriptVocabularyAdorner?.InvalidateVisual();
             return;
         }
         // Assign local Run properties: TextRange formatting can merge adjacent spans
@@ -465,10 +473,45 @@ public sealed class ParagraphReader : RichTextBox
             ? "SelectedVocabularyBrush" : "VocabularyHighlightBrush");
     }
 
-    protected override void OnRender(DrawingContext drawingContext)
+    private void AttachScriptVocabulary(object sender, RoutedEventArgs e)
     {
-        base.OnRender(drawingContext);
+        if (scriptVocabularyAdorner is null || scriptVocabularyLayer is not null) return;
+        var layer = AdornerLayer.GetAdornerLayer(this);
+        if (layer is null) return;
+        scriptVocabularyLayer = layer;
+        layer.Add(scriptVocabularyAdorner);
+    }
+
+    private void DetachScriptVocabulary(object sender, RoutedEventArgs e)
+    {
+        if (scriptVocabularyLayer is null || scriptVocabularyAdorner is null) return;
+        scriptVocabularyLayer.Remove(scriptVocabularyAdorner);
+        scriptVocabularyLayer = null;
+    }
+
+    private sealed class ScriptVocabularyAdorner : Adorner
+    {
+        private readonly ParagraphReader reader;
+
+        public ScriptVocabularyAdorner(ParagraphReader reader) : base(reader)
+        {
+            this.reader = reader;
+            IsHitTestVisible = false;
+        }
+
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            base.OnRender(drawingContext);
+            reader.DrawScriptVocabulary(drawingContext);
+        }
+    }
+
+    private void DrawScriptVocabulary(DrawingContext drawingContext)
+    {
         if (scriptSentences is null || !highlightsVisible) return;
+        // The adorner renders after text. Translucency preserves glyph legibility
+        // while giving both full and partial timed-unit vocabulary a visible tint.
+        drawingContext.PushOpacity(0.45);
         foreach (var match in scriptVocabularyRanges)
         {
             if (match.SentenceIndex >= Ranges.Count) continue;
@@ -493,6 +536,7 @@ public sealed class ParagraphReader : RichTextBox
                     new Rect(start.Left, start.Top, finish.Left - start.Left, start.Height));
             }
         }
+        drawingContext.Pop();
     }
 
     // Count text characters across multiple Runs, skipping WPF element symbols.
