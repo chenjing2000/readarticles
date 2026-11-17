@@ -27,6 +27,7 @@ public sealed class ParagraphReader : RichTextBox
         public bool Vocabulary => VocabularyKey is not null;
         public ScriptTimedUnit? TimedUnit { get; } = timedUnit;
         public double LastRead { get; set; } = double.NaN;
+        public IReadOnlyList<Rect>? LayoutLines { get; set; }
     }
     private sealed record ScriptVocabularyRange(int SentenceIndex, int Start, int Length, string Key);
     private readonly List<ScriptVocabularyRange> scriptVocabularyRanges = new();
@@ -246,7 +247,11 @@ public sealed class ParagraphReader : RichTextBox
 
     private void RefreshScriptLayout()
     {
-        foreach (var visual in visualRuns) visual.LastRead = double.NaN;
+        foreach (var visual in visualRuns)
+        {
+            visual.LastRead = double.NaN;
+            visual.LayoutLines = null;
+        }
         // Refresh absolute endpoints after WPF reflows the text.
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
         {
@@ -274,9 +279,16 @@ public sealed class ParagraphReader : RichTextBox
             else
             {
                 Color baseColor = Foreground is SolidColorBrush solid ? solid.Color : Colors.Black;
+                var lines = visual.LayoutLines ??= GetTimedUnitLines(visual);
+                if (lines.Count > 1)
+                {
+                    // A wrapped timed unit is still one Run with one clock.
+                    // Sweep each visual line in reading order, using its actual
+                    // rendered width rather than assigning per-word times.
+                    visual.Run.Foreground = WrappedScriptBrush(lines, fraction, baseColor);
+                    continue;
+                }
                 var gradient = new LinearGradientBrush();
-                // An absolute brush shares one horizontal coordinate space even
-                // if WPF produces separate glyph runs around a hyphen.
                 Rect first = visual.Run.ContentStart.GetCharacterRect(LogicalDirection.Forward);
                 Rect last = visual.Run.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
                 if (IsSingleLine(first, last) && last.Left > first.Left)
@@ -299,6 +311,60 @@ public sealed class ParagraphReader : RichTextBox
                 visual.Run.Foreground = gradient;
             }
         }
+    }
+
+    // WPF may wrap inside one Run. Locate its visual lines without splitting
+    // the text, changing its selection offsets, or inventing timing boundaries.
+    private IReadOnlyList<Rect> GetTimedUnitLines(VisualRun visual)
+    {
+        var lines = new List<Rect>();
+        var range = Ranges[visual.SentenceIndex];
+        int startOffset = visual.Offset;
+        for (int i = 0; i < visual.Run.Text.Length; i++)
+        {
+            var start = PositionAt(range, startOffset + i)
+                .GetCharacterRect(LogicalDirection.Forward);
+            var end = PositionAt(range, startOffset + i + 1)
+                .GetCharacterRect(LogicalDirection.Backward);
+            if (!IsSingleLine(start, end) || end.Left <= start.Left) continue;
+            var cell = new Rect(start.Left, start.Top, end.Left - start.Left, start.Height);
+            if (lines.Count > 0 && Math.Abs(lines[^1].Top - cell.Top) < 1)
+                lines[^1] = Rect.Union(lines[^1], cell);
+            else
+                lines.Add(cell);
+        }
+        return lines;
+    }
+
+    private static DrawingBrush WrappedScriptBrush(IReadOnlyList<Rect> lines,
+        double fraction, Color baseColor)
+    {
+        Rect bounds = lines[0];
+        foreach (var line in lines.Skip(1)) bounds.Union(line);
+        var drawing = new DrawingGroup();
+        drawing.Children.Add(new GeometryDrawing(new SolidColorBrush(baseColor), null,
+            new RectangleGeometry(bounds)));
+
+        double remaining = fraction * lines.Sum(line => line.Width);
+        foreach (var line in lines)
+        {
+            double readWidth = Math.Clamp(remaining, 0, line.Width);
+            if (readWidth > 0)
+                drawing.Children.Add(new GeometryDrawing(ScriptReadBrush, null,
+                    new RectangleGeometry(new Rect(line.Left, line.Top, readWidth, line.Height))));
+            remaining -= line.Width;
+        }
+        var brush = new DrawingBrush(drawing)
+        {
+            ViewboxUnits = BrushMappingMode.Absolute,
+            ViewportUnits = BrushMappingMode.Absolute,
+            Viewbox = bounds,
+            Viewport = bounds,
+            Stretch = Stretch.Fill,
+            TileMode = TileMode.None
+        };
+        brush.Freeze();
+        return brush;
     }
 
     private static bool IsSingleLine(Rect first, Rect last) =>
