@@ -99,6 +99,55 @@ internal static class ScriptChecks
             Program.Check(reader.GetTextForeground(0, 4) is LinearGradientBrush);
         }));
 
+        Program.Run("hyphenated and multiword Script units each retain one gradient Run", () =>
+        {
+            const string text = "euro-zone economic growth";
+            var sentence = new ScriptSentence(text, [
+                new ScriptTimedUnit("euro-zone", 29.226, 29.706, 0),
+                new ScriptTimedUnit("economic growth", 29.706, 30.526, 10)
+            ]);
+            var reader = Reader([sentence], ["euro-zone", "growth"]);
+            var paragraph = (Paragraph)reader.Document.Blocks.FirstBlock!;
+            var runs = paragraph.Inlines.OfType<Span>().Single().Inlines.OfType<Run>().ToArray();
+            Program.Check(runs.Count(run => run.Text == "euro-zone") == 1);
+            Program.Check(runs.Count(run => run.Text == "economic growth") == 1);
+            Program.Check(runs.Length == 3); // separator is its own untimed Run
+
+            reader.SetScriptPosition(29.346); // 25% of the first complete unit
+            var quarter = (LinearGradientBrush)reader.GetTextForeground(0, 0);
+            Program.Check(ReferenceEquals(quarter, reader.GetTextForeground(0, 5)));
+            Program.Check(ReferenceEquals(quarter, reader.GetTextForeground(0, 8)));
+            Program.Check(Math.Abs(quarter.GradientStops[1].Offset - 0.25) < 0.00001);
+
+            reader.SetScriptPosition(29.466); // 50%
+            var halfway = (LinearGradientBrush)reader.GetTextForeground(0, 5);
+            Program.Check(ReferenceEquals(halfway, reader.GetTextForeground(0, 0)));
+            Program.Check(Math.Abs(halfway.GradientStops[1].Offset - 0.5) < 0.00001);
+            reader.SetScriptPosition(29.586); // 75%
+            var threeQuarters = (LinearGradientBrush)reader.GetTextForeground(0, 8);
+            Program.Check(Math.Abs(threeQuarters.GradientStops[1].Offset - 0.75) < 0.00001);
+
+            Program.Check(reader.FocusVocabulary("growth"));
+            Program.Check(Equals(reader.GetScriptVocabularyBackground(0, 19),
+                reader.FindResource("SelectedVocabularyBrush")));
+            Program.Check(Equals(reader.GetScriptVocabularyBackground(0, 11), Brushes.Transparent));
+            Program.Check(ReferenceEquals(runs[2].Foreground, reader.GetTextForeground(0, 19)));
+
+            reader.SetScriptPosition(30.116); // 50% through multiword unit
+            var multiword = (LinearGradientBrush)reader.GetTextForeground(0, 11);
+            Program.Check(ReferenceEquals(multiword, reader.GetTextForeground(0, 19)));
+            Program.Check(Math.Abs(multiword.GradientStops[1].Offset - 0.5) < 0.00001);
+
+            reader.SetVocabulary(["euro-zone", "growth", "economic"], true);
+            var rebuiltRuns = ((Paragraph)reader.Document.Blocks.FirstBlock!).Inlines.OfType<Span>()
+                .Single().Inlines.OfType<Run>().ToArray();
+            Program.Check(rebuiltRuns.Length == 3 && rebuiltRuns[0].Text == "euro-zone");
+            Program.Check(reader.GetTextForeground(0, 19) is LinearGradientBrush);
+            reader.SetScriptPosition(null);
+            Program.Check(reader.GetTextForeground(0, 0) is not LinearGradientBrush);
+            Program.Check(reader.GetTextForeground(0, 19) is not LinearGradientBrush);
+        });
+
         Program.Run("Script gradient and vocabulary background remain independent across Run boundaries", () => InTemp((_, passage) =>
         {
             File.WriteAllText(ArticleRepository.ScriptPathFor(passage), Valid);
@@ -106,6 +155,10 @@ internal static class ScriptChecks
             var reader = Reader(sentences, ["it is", "beautiful day"]);
             var original = reader.Document;
             Program.Check(reader.FocusVocabulary("beautiful day"));
+            Program.Check(Equals(reader.GetScriptVocabularyBackground(0, 8),
+                reader.FindResource("SelectedVocabularyBrush")));
+            Program.Check(Equals(reader.GetScriptVocabularyBackground(0, 18),
+                reader.FindResource("SelectedVocabularyBrush")));
             reader.SetScriptPosition(1.4);
             Program.Check(ReferenceEquals(original, reader.Document));
             Program.Check(reader.GetTextForeground(0, 0) is LinearGradientBrush);
@@ -126,6 +179,35 @@ internal static class ScriptChecks
 
     internal static void RunUi()
     {
+        Program.Run("laid-out Script unit uses one absolute gradient for hyphenated text", () =>
+        {
+            var sentence = new ScriptSentence("euro-zone is one timed unit",
+                [new ScriptTimedUnit("euro-zone", 29.226, 29.706, 0)]);
+            var reader = Reader([sentence], ["euro-zone"]) { Width = 650 };
+            var host = new Window
+            {
+                Content = reader, Width = 750, Height = 220,
+                Left = -10000, Top = -10000, ShowActivated = false
+            };
+            try
+            {
+                host.Show();
+                WpfTestHelpers.Pump();
+                reader.SetScriptPosition(29.466);
+                var gradient = (LinearGradientBrush)reader.GetTextForeground(0, 0);
+                var run = ((Paragraph)reader.Document.Blocks.FirstBlock!).Inlines.OfType<Span>()
+                    .Single().Inlines.OfType<Run>().First();
+                Rect first = run.ContentStart.GetCharacterRect(LogicalDirection.Forward);
+                Rect last = run.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
+                Program.Check(gradient.MappingMode == BrushMappingMode.Absolute);
+                Program.Check(Math.Abs(gradient.EndPoint.X - gradient.StartPoint.X -
+                    (last.Left - first.Left)) < 1);
+                Program.Check(ReferenceEquals(reader.GetTextForeground(0, 0),
+                    reader.GetTextForeground(0, 8)));
+            }
+            finally { host.Close(); WpfTestHelpers.Pump(); }
+        });
+
         Program.Run("Script toggle keeps Passage on failure and restores it after switching", () => InTemp((_, passage) =>
         {
             using var window = new ScriptWindow(passage);
