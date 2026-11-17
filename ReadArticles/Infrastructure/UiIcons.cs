@@ -14,6 +14,8 @@ public static class UiIcons
     public static ImageSource Import { get; } = Svg("vocabulary/import.svg");
     public static ImageSource HighlightOn { get; } = Svg("vocabulary/highlight_on.svg");
     public static ImageSource HighlightOff { get; } = Svg("vocabulary/highlight_off.svg");
+    public static ImageSource ScriptOff { get; } = Svg("reader/script_music.svg", tint: "#4B4B4B");
+    public static ImageSource ScriptOn { get; } = Svg("reader/script_music.svg", tint: "#B81A35");
     public static ImageSource DisabledPlay { get; } = Svg("audio/play.svg", true);
     public static ImageSource DisabledStop { get; } = Svg("audio/stop.svg", true);
     public static ImageSource DisabledHighlightOn { get; } = Svg("vocabulary/highlight_on.svg", true);
@@ -33,7 +35,7 @@ public static class UiIcons
         return image;
     }
     // Render the circle, rounded rectangle and path primitives used by these assets.
-    private static ImageSource Svg(string path, bool grayscale = false)
+    private static ImageSource Svg(string path, bool grayscale = false, string? tint = null)
     {
         using var stream = Application.GetResourceStream(Resource(path))!.Stream;
         var svg = XDocument.Load(stream).Root!;
@@ -50,12 +52,12 @@ public static class UiIcons
         }
         var drawing = new DrawingGroup();
         drawing.Children.Add(new GeometryDrawing(Brushes.Transparent, null, new RectangleGeometry(new Rect(bounds[0], bounds[1], bounds[2], bounds[3]))));
-        foreach (var element in svg.Elements()) drawing.Children.Add(ReadElement(element, grayscale));
+        foreach (var element in svg.Elements()) drawing.Children.Add(ReadElement(element, grayscale, tint));
         var image = new DrawingImage(drawing);
         image.Freeze();
         return image;
     }
-    private static Drawing ReadElement(XElement element, bool grayscale)
+    private static Drawing ReadElement(XElement element, bool grayscale, string? tint)
     {
         if (element.Name.LocalName == "g")
         {
@@ -69,7 +71,7 @@ public static class UiIcons
                     .Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
                 group.Transform = new TranslateTransform(coordinates[0], coordinates.Length > 1 ? coordinates[1] : 0);
             }
-            foreach (var child in element.Elements()) group.Children.Add(ReadElement(child, grayscale));
+            foreach (var child in element.Elements()) group.Children.Add(ReadElement(child, grayscale, tint));
             return group;
         }
         Geometry geometry;
@@ -93,7 +95,7 @@ public static class UiIcons
                 throw new NotSupportedException($"Unsupported SVG element: {element.Name.LocalName}");
         }
 
-        var stroke = ReadBrush(element.Attribute("stroke")?.Value, grayscale);
+        var stroke = ReadBrush(element.Attribute("stroke")?.Value, grayscale, tint);
         Pen? pen = null;
         if (stroke != null)
         {
@@ -103,7 +105,7 @@ public static class UiIcons
             if (element.Attribute("stroke-linejoin")?.Value == "round")
                 pen.LineJoin = PenLineJoin.Round;
         }
-        return new GeometryDrawing(ReadBrush(element.Attribute("fill")?.Value ?? "black", grayscale), pen, geometry);
+        return new GeometryDrawing(ReadBrush(element.Attribute("fill")?.Value ?? "black", grayscale, tint), pen, geometry);
     }
 
     private static double Number(XElement element, string attribute)
@@ -117,10 +119,10 @@ public static class UiIcons
         return Number(element, attribute);
     }
 
-    private static Brush? ReadBrush(string? color, bool grayscale)
+    private static Brush? ReadBrush(string? color, bool grayscale, string? tint)
     {
         if (color == null || color == "none") return null;
-        Color value = (Color)ColorConverter.ConvertFromString(color);
+        Color value = (Color)ColorConverter.ConvertFromString(tint ?? color);
         if (grayscale)
         {
             byte gray = (byte)((299 * value.R + 587 * value.G + 114 * value.B) / 1000);
