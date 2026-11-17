@@ -91,7 +91,7 @@ public partial class MainWindow
             }
             catch (Exception error) when (error is InvalidOperationException or ArgumentException)
             {
-                ViewModel.Notify("ScriptViewFailed", "无法恢复普通正文显示。", ReadArticles.Infrastructure.NotificationSeverity.Error);
+                ViewModel.Notify("ScriptViewFailed", "普通正文切换失败，请重新打开文章恢复显示。", ReadArticles.Infrastructure.NotificationSeverity.Error);
                 ReadArticles.Infrastructure.AppLogger.Default.Warning("ScriptViewFailed", error);
             }
             return;
@@ -125,12 +125,11 @@ public partial class MainWindow
         try
         {
             ShowContent(candidate, scriptScrollOffset);
-            scriptArticle = candidate;
             passageScrollOffset = previousOffset;
         }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException)
         {
-            ViewModel.Notify("ScriptViewFailed", "Script 正文渲染失败，已保留原有正文。",
+            ViewModel.Notify("ScriptViewFailed", "Script 正文切换失败，请重新打开文章恢复显示。",
                 ReadArticles.Infrastructure.NotificationSeverity.Error);
             ReadArticles.Infrastructure.AppLogger.Default.Warning("ScriptViewFailed", error);
         }
@@ -175,6 +174,7 @@ public partial class MainWindow
         ParagraphHost.Children.Clear();
         readers.Clear();
         scriptMode = script is not null;
+        if (script is not null) scriptArticle = script;
         readers.AddRange(prepared);
         foreach (var reader in readers) ParagraphHost.Children.Add(reader);
         EmptyMessage.Visibility = article is null ? Visibility.Visible : Visibility.Collapsed;
