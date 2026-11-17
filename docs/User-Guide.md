@@ -4,13 +4,13 @@
 
 Run ReadArticles on Windows with the .NET 10 Windows Desktop Runtime, version `10.0.11` or a later compatible patch. Building also requires a .NET SDK compatible with `global.json`, currently SDK `10.0.400` with `latestPatch` roll-forward. Both the application and its tests target `net10.0-windows`.
 
-The published application lives in `dist/`. Distribute only `ReadArticles.exe`. It contains the application assemblies, UI assets, and runtime configuration, but not the .NET runtime. On first startup it creates `ReadArticles.settings.json` beside the executable.
+The published application lives in `dist/ReadArticles/`. Distribute the portable folder containing `ReadArticles.exe` and retain its `userdata/` directory during updates. The EXE contains the application assemblies, UI assets, and runtime configuration, but not the .NET runtime. On first startup it creates `userdata/config/settings.json` beside the executable's directory.
 
-- Launch `dist/ReadArticles.exe` to restore the last selected library, if one has been saved.
+- Launch `dist/ReadArticles/ReadArticles.exe` to restore the last selected library, if one has been saved.
 - For another library, use the folder-selection button or pass a library explicitly:
 
 ```powershell
-.\dist\ReadArticles.exe --library "C:\Libraries\English"
+.\dist\ReadArticles\ReadArticles.exe --library "C:\Libraries\English"
 ```
 
 Select the parent directory of marked book directories. Startup and folder selection show only a collapsed tree, not a previous passage or vocabulary. The interface currently mixes Chinese and English labels; this guide names controls by their function in English.
@@ -31,7 +31,7 @@ The bottom play/pause and stop buttons control only the first sorted MP3 directl
 
 A time label between the progress bar and play button displays current time/total duration. Each value uses mm:ss through one hour (including 60:00 at exactly one hour) and hh:mm:ss beyond one hour. The label updates during playback and seeking, stays visible while paused, and appears or disappears with the progress bar.
 
-Successful ordinary actions are quiet. Warning/error status appears for six seconds and then disappears with its layout row. A new warning restarts that interval. Missing physical audio does not prevent passage reading.
+Successful ordinary actions are quiet. Floating informational and warning notifications expire after approximately five seconds of active display time, with expiry paused on hover. Errors remain until dismissed; no status row is added or removed. Missing physical audio does not prevent passage reading.
 
 Use a separate working copy of a library for interactive editing experiments. Do not alter `tests/TestData/` directly while tests are running; deterministic tests use this fixed source data and operate on temporary copies.
 

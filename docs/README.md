@@ -1,6 +1,6 @@
 # ReadArticles documentation
 
-All four applications use the following document responsibilities. Application-specific formats and architecture remain separate reference pages.
+The following documents define the responsibilities and reference material for ReadArticles.
 
 | Document | Responsibility |
 | --- | --- |

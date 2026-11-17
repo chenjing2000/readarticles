@@ -24,7 +24,7 @@ The main branch has no exercise module or exercise test category. No test restor
 | --- | --- |
 | `--content-only` | Passage JSON contracts, library discovery, optional account label, atomic vocabulary writes, metadata, external edits, and harmless deletion requests without an active entry |
 | `--rendering-only` | Literal matching, SID ownership, valid and invalid selections, blank passages, and styles |
-| `--window-only` | Loaded-control hit-testing, selection action, three-pane rendering, independent scrolling, and status lifecycle |
+| `--window-only` | Loaded-control hit-testing, selection action, three-pane rendering, independent scrolling, and floating notification lifecycle |
 | `--tree-only` | One-level expansion and recursive collapse |
 | `--audio-only` | Single-file playback, two-player coordination, stale callbacks, invalid resources, and real MP3 decoding |
 | `--controls-only` | Library-only startup, configuration initialization and value normalization, immediate settings saves, keyboard shortcuts, progress/time, and sibling article-audio controls |

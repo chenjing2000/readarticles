@@ -17,20 +17,20 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | Module | Responsibility |
 | --- | --- |
 | `App.xaml` / `App.xaml.cs` | Shared brushes and button styles; startup, command-line library selection, and main-window creation |
-| `MainWindow.xaml` | Three-pane layout, controls, templates, bindings, and conditional status-row visibility |
+| `MainWindow.xaml` | Three-pane layout, controls, templates, bindings, and floating notification overlay |
 | `MainWindow.xaml.cs` | Construct the state model and two independent media players; initialize modules and coordinate shutdown |
 | `MainWindow.Library.cs` | Folder selection, tree selection, library restoration, and passage-control assembly |
 | `MainWindow.Vocabulary.cs` | Import confirmation, list selection, highlighting, and move/delete UI actions |
 | `MainWindow.Playback.cs` | Playback controls and icons, progress timer, drag interaction, and media cleanup |
 | `MainWindow.Settings.cs` | Startup size, column widths, font/accent/progress-step menus, and preference persistence |
-| `MainWindow.Status.cs` | Conditional warning/error status and six-second expiry |
+
 | `ViewModels/MainViewModel.cs` | Shared state, notifications, and operation errors |
 | `ViewModels/MainViewModel.Library.cs` | Prepare and commit library/article changes; resolve account-display context |
 | `ViewModels/MainViewModel.Vocabulary.cs` | Prepare word commands and coordinate vocabulary edits and commits |
 | `ViewModels/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |
 | `ViewModels/VocabularyEntryViewModel.cs` | A word's display fields, available pronunciation actions, and move/delete commands |
 | `Models/` | Passage segments, SIDs, selection ranges, vocabulary entries, navigation nodes, and loaded snapshots |
-| `Services/LibraryRepository.cs` | Discover marked book directories and recursively build the directory tree without parsing content |
+| `Services/LibraryRepository.cs` | Discover immediate book directories and scan each expanded folder one level at a time without parsing passage content |
 | `Services/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` coordinates the matching vocabulary, missing-audio warnings, and the loaded snapshot |
 | `Services/VocabularyRepository.cs` | Validate vocabulary, derive audio stems, and save with external-change detection |
 | `Services/UserRepository.cs` | Read the limited account-display data from the book's existing answer sheet |
@@ -88,11 +88,11 @@ Media event -> request-token check -> ReaderPlayback state/progress -> UI update
 
 The bottom play/pause and stop actions own only the selected sibling audio file. Stop is enabled only while that file is playing or paused; it does not interrupt sentence or word playback. The sibling audio file has a dedicated player and controller; sentence and word requests share a second independent player and controller. ReaderPlayback coordinates them: starting or resuming the sibling audio file stops pronunciation, while starting pronunciation pauses the sibling audio file without losing its position. Finishing pronunciation leaves the sibling audio file paused. Only one target plays at a time. Old completion/failure callbacks cannot advance or stop a newer target. The bottom progress bar is shown and accepts seeking only for the sibling audio file while playing or paused. Starting a sentence or word keeps the paused sibling audio file progress and time label visible. Seeking and stopping affect only the sibling audio file, even while pronunciation is playing. When the sibling audio file is stopped or has not been started, its progress bar stays hidden.
 
-### Status and lifecycle
+### Notifications and lifecycle
 
-Normal startup, loading, and successful vocabulary edits produce no routine status message. Missing resources, invalid content, duplicate additions, and failed saves remain visible for six seconds. Empty status collapses the entire status row, returning its height to all three panes. A new message restarts expiry.
+Routine successful actions are quiet. Floating notifications appear over the middle reading pane without allocating a status row. Informational and warning messages expire automatically after approximately five seconds of active display time, paused while hovered; errors remain accessible until dismissed. The notification service retains unacknowledged errors, including overflow beyond the visible cards.
 
-On close, timers stop, playback stops, and both media players are disposed. Normal application windows persist settings; test windows can disable persistence.
+On close, normal application windows save final settings during `Closing`, before the window is disposed; a failed final save shows a synchronous warning. During `Closed`, notifications and navigation are detached and playback resources are released. Test windows can disable settings persistence.
 
 ## Display and settings
 
