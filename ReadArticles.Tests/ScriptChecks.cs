@@ -263,12 +263,14 @@ internal static class ScriptChecks
                 byte[] early = CapturePixels(reader, out int frameWidth, out int frameHeight);
                 reader.SetScriptPosition(1.95);
                 byte[] late = CapturePixels(reader, out _, out _);
-                Program.Check(RedPixels(early, frameWidth, frameHeight,
-                    0, (int)first.Top, frameWidth, (int)first.Bottom) > 0);
-                Program.Check(RedPixels(early, frameWidth, frameHeight,
-                    0, (int)last.Top, frameWidth, (int)last.Bottom) == 0);
-                Program.Check(RedPixels(late, frameWidth, frameHeight,
-                    0, (int)last.Top, frameWidth, (int)last.Bottom) > 0);
+                int firstEarly = RedPixels(early, frameWidth, frameHeight,
+                    0, (int)first.Top, frameWidth, (int)first.Bottom);
+                int lastEarly = RedPixels(early, frameWidth, frameHeight,
+                    0, (int)last.Top, frameWidth, (int)last.Bottom);
+                int lastLate = RedPixels(late, frameWidth, frameHeight,
+                    0, (int)last.Top, frameWidth, (int)last.Bottom);
+                Console.WriteLine($"  Wrapped sweep pixels: first early={firstEarly}, last early={lastEarly}, last late={lastLate}");
+                Program.Check(firstEarly > 0 && lastEarly == 0 && lastLate > 0);
 
                 // Check real highlighted pixels in the vocabulary's glyph
                 // rectangles, allowing the word to wrap across visual lines.
@@ -292,6 +294,7 @@ internal static class ScriptChecks
                         (int)start.Left, (int)start.Top, (int)Math.Ceiling(finish.Left),
                         (int)Math.Ceiling(start.Bottom));
                 }
+                Console.WriteLine($"  Script vocabulary highlight changed pixels: {changes}");
                 Program.Check(changes > 0);
             }
             finally { host.Close(); WpfTestHelpers.Pump(); }
