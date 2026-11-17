@@ -308,18 +308,18 @@ public sealed class ParagraphReader : RichTextBox
                         else
                         {
                             double local = width / line.Bounds.Width;
-                            var gradient = new LinearGradientBrush
+                            var lineGradient = new LinearGradientBrush
                             {
                                 MappingMode = BrushMappingMode.Absolute,
                                 StartPoint = new Point(line.Bounds.Left, 0),
                                 EndPoint = new Point(line.Bounds.Right, 0)
                             };
-                            gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, 0));
-                            gradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, local));
-                            gradient.GradientStops.Add(new GradientStop(baseColor, local));
-                            gradient.GradientStops.Add(new GradientStop(baseColor, 1));
-                            gradient.Freeze();
-                            color = gradient;
+                            lineGradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, 0));
+                            lineGradient.GradientStops.Add(new GradientStop(ScriptReadBrush.Color, local));
+                            lineGradient.GradientStops.Add(new GradientStop(baseColor, local));
+                            lineGradient.GradientStops.Add(new GradientStop(baseColor, 1));
+                            lineGradient.Freeze();
+                            color = lineGradient;
                         }
                         effects.Add(new TextEffect
                         {
