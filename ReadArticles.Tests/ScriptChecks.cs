@@ -245,14 +245,17 @@ internal static class ScriptChecks
                 Rect last = run.ContentEnd.GetCharacterRect(LogicalDirection.Backward);
                 Program.Check(last.Top > first.Top + 1);
                 reader.SetScriptPosition(1.5);
-                var paint = reader.GetTextForeground(0, 0);
-                Program.Check(paint is DrawingBrush);
-                Program.Check(ReferenceEquals(paint, reader.GetTextForeground(0, 7)));
-                Program.Check(ReferenceEquals(paint, reader.GetTextForeground(0, 14)));
-                var drawing = (DrawingBrush)paint;
-                Program.Check(drawing.ViewboxUnits == BrushMappingMode.Absolute);
-                Program.Check(drawing.ViewportUnits == BrushMappingMode.Absolute);
-                Program.Check(drawing.Drawing is DrawingGroup { Children.Count: >= 2 });
+                // There is still one complete Run and one time interval.
+                // Only its WPF painting effects are scoped to visual lines.
+                var effects = run.TextEffects;
+                Program.Check(effects is { Count: >= 2 });
+                Program.Check(effects[0].PositionStart == 0);
+                Program.Check(effects[^1].PositionStart + effects[^1].PositionCount <= run.Text.Length);
+                Program.Check(effects.Zip(effects.Skip(1),
+                    (firstEffect, nextEffect) => firstEffect.PositionStart + firstEffect.PositionCount <=
+                        nextEffect.PositionStart).All(ordered => ordered));
+                Program.Check(ReferenceEquals(reader.GetTextForeground(0, 0),
+                    reader.GetTextForeground(0, 14)));
 
                 // Compare actual red text pixels, not raw bitmap equality:
                 // changing the WPF foreground brush may affect antialiasing
@@ -260,8 +263,12 @@ internal static class ScriptChecks
                 reader.SetVocabulary(["beta"], false);
                 WpfTestHelpers.Pump();
                 reader.SetScriptPosition(1.05);
+                Program.Check(run.TextEffects is { Count: >= 2 } earlyEffects &&
+                    earlyEffects[^1].Foreground is SolidColorBrush);
                 byte[] early = CapturePixels(reader, out int frameWidth, out int frameHeight);
                 reader.SetScriptPosition(1.95);
+                Program.Check(run.TextEffects is { Count: >= 2 } lateEffects &&
+                    lateEffects[0].Foreground is SolidColorBrush);
                 byte[] late = CapturePixels(reader, out _, out _);
                 int firstEarly = RedPixels(early, frameWidth, frameHeight,
                     0, (int)first.Top, frameWidth, (int)first.Bottom);
