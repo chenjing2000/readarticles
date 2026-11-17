@@ -4,6 +4,7 @@ The following documents define the responsibilities and reference material for R
 
 | Document | Responsibility |
 | --- | --- |
+| [Handoff](HANDOFF.md) | Current baseline, handoff notes, and next-session workflow |
 | [Getting Started](Getting-Started.md) | Runtime requirements, launch, and first use |
 | [Application Overview](Application-Overview.md) | Purpose, modules, and application-specific architecture |
 | [Configuration](Configuration.md) | Settings location, ownership, preservation, and recovery |
