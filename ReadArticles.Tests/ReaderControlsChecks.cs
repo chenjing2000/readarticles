@@ -116,6 +116,13 @@ internal static class ReaderControlsChecks
                 saved.Save();
                 saved = ReaderSettings.Load(out warning);
                 Program.Check(saved.LeftWidth == 221 && saved.RightWidth == 282 && saved.FontSize == 15);
+                // Closing must persist the final visible panel sizes before the window is disposed.
+                double expectedLeft = Math.Round(((ColumnDefinition)window.FindName("LeftColumn")).ActualWidth);
+                double expectedRight = Math.Round(((ColumnDefinition)window.FindName("RightColumn")).ActualWidth);
+                window.Close();
+                window = null;
+                var closedSettings = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && closedSettings.LeftWidth == expectedLeft && closedSettings.RightWidth == expectedRight);
             }
             finally
             {

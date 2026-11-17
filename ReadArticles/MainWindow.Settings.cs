@@ -44,9 +44,10 @@ public partial class MainWindow
         if (!persistSettings) return;
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
         settings.RightWidth = Math.Round(RightColumn.ActualWidth);
+        SaveSettings(player.Volume, showDialogOnFailure: true);
     }
 
-    private void SaveSettings(double volume)
+    private void SaveSettings(double volume, bool showDialogOnFailure = false)
     {
         if (!persistSettings) return;
 
@@ -61,8 +62,10 @@ public partial class MainWindow
         {
             AppLogger.Default.Error("SettingsSaveFailed", error);
             string message = "无法保存配置文件：" + error.Message;
-            if (IsLoaded) Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsSaveFailed", "无法保存配置文件，请检查配置文件内容及目录权限。", NotificationSeverity.Error));
-            else MessageBox.Show(message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (showDialogOnFailure || !IsLoaded)
+                MessageBox.Show(this, message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
+            else
+                Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsSaveFailed", "无法保存配置文件，请检查配置文件内容及目录权限。", NotificationSeverity.Error));
         }
     }
 
