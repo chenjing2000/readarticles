@@ -228,6 +228,7 @@ public sealed class ParagraphReader : RichTextBox
             Selection.Select(PositionInParagraph(selectionStart), PositionInParagraph(selectionEnd));
             ApplyStyles();
             SetScriptPosition(scriptSeconds);
+            if (scriptSentences is not null && IsLoaded) RefreshScriptLayout();
         }
         finally { formatting = false; }
     }
@@ -487,6 +488,7 @@ public sealed class ParagraphReader : RichTextBox
             paragraph.TextIndent = (double)e.NewValue * 2;
             if (selectionAdd?.IsShown == true)
                 Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(ShowSelectionAdd));
+            if (scriptSentences is not null && IsLoaded) RefreshScriptLayout();
         }
     }
 }
