@@ -18,6 +18,9 @@ public partial class MainWindow
     private bool webPilotClosed;
     private bool webPilotFailureShown;
     private int webPilotVocabularyRevision;
+    private object? webPilotVocabularyIdentity;
+    private string? webPilotPendingSnapshotId;
+    private readonly HashSet<string> webPilotSeenRequests = new(StringComparer.Ordinal);
 
     // Migration-only pilot. All original WPF controls and business commands remain intact.
     private void InitializeWebPilot()
@@ -27,6 +30,7 @@ public partial class MainWindow
         ViewModel.VocabularyChanged += WebPilotVocabularyChanged;
         ViewModel.PlaybackChanged += SendWebPilotPlayback;
         ViewModel.Notifications.Changed += SendWebPilotNotifications;
+        ViewModel.PropertyChanged += WebPilotPropertyChanged;
         Loaded += WebPilotLoaded;
     }
 
@@ -59,6 +63,8 @@ public partial class MainWindow
                 // Reload creates a new JS page identity. Do not accept the old page.
                 webPilotReady = false;
                 webPilotPageId = null;
+                webPilotPendingSnapshotId = null;
+                webPilotSeenRequests.Clear();
                 WebPilotOverlay.Visibility = Visibility.Collapsed;
             };
             core.NewWindowRequested += (_, args) => args.Handled = true;
@@ -107,41 +113,88 @@ public partial class MainWindow
 
     private void WebPilotMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
-        if (webPilotClosed || webPilotFailureShown || !string.Equals(args.Source, WebPilotDocument, StringComparison.OrdinalIgnoreCase))
+        if (webPilotClosed || webPilotFailureShown ||
+            !string.Equals(args.Source, WebPilotDocument, StringComparison.OrdinalIgnoreCase))
             return;
         try
         {
-            using var json = JsonDocument.Parse(args.WebMessageAsJson);
+            string raw = args.WebMessageAsJson;
+            if (raw.Length > 32768) return;
+            using var json = JsonDocument.Parse(raw);
             JsonElement root = json.RootElement;
             if (root.ValueKind != JsonValueKind.Object ||
-                !root.TryGetProperty("version", out var version) || version.GetInt32() != 1 ||
-                !root.TryGetProperty("type", out var type) ||
-                !root.TryGetProperty("pageId", out var page) ||
-                page.ValueKind != JsonValueKind.String)
+                !root.TryGetProperty("version", out var version) ||
+                version.ValueKind != JsonValueKind.Number || !version.TryGetInt32(out int protocolVersion) ||
+                protocolVersion != 1 ||
+                !TryMessageString(root, "type", out string? type) ||
+                !TryMessageString(root, "pageId", out string? pageId) ||
+                !Guid.TryParse(pageId, out _))
                 return;
 
-            string? pageId = page.GetString();
-            if (pageId is null || pageId.Length is < 16 or > 100) return;
-            switch (type.GetString())
+            if (type == "ready")
             {
-                case "ready" when !webPilotReady:
-                    webPilotPageId = pageId;
-                    webPilotReady = true;
-                    SendWebPilotInitialize();
-                    break;
-                case "rendered" when webPilotReady && pageId == webPilotPageId:
-                    if (root.TryGetProperty("sessionId", out var session) &&
-                        session.GetString() == webPilotSessionId)
-                        WebPilotOverlay.Visibility = Visibility.Visible;
-                    break;
-                // No mutation commands are accepted by the pilot. Stage 4 adds
-                // validated action handlers and explicit success/failure replies.
+                if (webPilotReady) return;
+                webPilotPageId = pageId;
+                webPilotReady = true;
+                webPilotSeenRequests.Clear();
+                SendWebPilotInitialize();
+                return;
             }
+
+            if (!webPilotReady || pageId != webPilotPageId) return;
+            if (type is "rendered" or "renderFailed")
+            {
+                if (!TryMessageString(root, "sessionId", out string? sessionId) ||
+                    sessionId != webPilotSessionId ||
+                    !TryMessageString(root, "requestId", out string? snapshotId) ||
+                    snapshotId != webPilotPendingSnapshotId)
+                    return;
+
+                webPilotPendingSnapshotId = null;
+                if (type == "renderFailed")
+                    WebPilotFailure("WebView2 正文渲染失败，已切回 WPF 阅读界面。");
+                else
+                    WebPilotOverlay.Visibility = Visibility.Visible;
+                return;
+            }
+
+            // The pilot deliberately rejects all user actions until the existing
+            // persistence and playback services have validated request handlers.
+            if (type is not ("addWord" or "moveWord" or "deleteWord" or "importVocabulary" or
+                "playArticle" or "stopArticle" or "seekArticle" or "playWord" or
+                "playSegment" or "switchReadingMode" or "setHighlight" or
+                "setFontSize" or "setAccent" or "setPanelWidth" or "notificationDismiss"))
+                return;
+
+            if (!TryMessageString(root, "requestId", out string? requestId) ||
+                !Guid.TryParse(requestId, out _))
+                return;
+            if (!webPilotSeenRequests.Add(requestId)) return;
+
+            bool currentSession = TryMessageString(root, "sessionId", out string? actionSession) &&
+                actionSession == webPilotSessionId;
+            bool currentVocabulary = root.TryGetProperty("vocabularyRevision", out var revision) &&
+                revision.ValueKind == JsonValueKind.Number &&
+                revision.TryGetInt32(out int value) && value == webPilotVocabularyRevision;
+            PostWebPilot("actionResult", new
+            {
+                requestId,
+                status = currentSession && currentVocabulary ? "unavailable" : "stale",
+                vocabularyRevision = webPilotVocabularyRevision
+            });
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or FormatException)
         {
             AppLogger.Default.Warning("WebViewPilotInvalidMessage", error);
         }
+    }
+
+    private static bool TryMessageString(JsonElement root, string property, out string? value)
+    {
+        value = null;
+        return root.TryGetProperty(property, out var field) &&
+            field.ValueKind == JsonValueKind.String &&
+            (value = field.GetString()) is { Length: > 0 and <= 100 };
     }
 
     private void SendWebPilotInitialize()
