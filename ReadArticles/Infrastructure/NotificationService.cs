@@ -21,12 +21,6 @@ public sealed class NotificationService
     {
         if (string.IsNullOrWhiteSpace(message)) return null;
         if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("A stable notification key is required.", nameof(key));
-        // Repeated recoverable events should not flood the reading area.
-        if (severity != NotificationSeverity.Error)
-        {
-            var duplicate = messages.FirstOrDefault(item => item.Key == key && item.Message == message && item.Severity == severity);
-            if (duplicate is not null) return duplicate;
-        }
         var notification = new NotificationItem(++nextId, key, message, severity);
         messages.Add(notification);
         Changed?.Invoke();
