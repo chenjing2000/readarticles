@@ -14,7 +14,7 @@ internal static class TreeNavigationChecks
             try
             {
                 File.WriteAllText(Path.Combine(root, "book.json"), "marker");
-                File.WriteAllText(Path.Combine(root, "Article.json"), "{}");
+                File.WriteAllText(Path.Combine(root, "Article.json"), """{"filetype":"passage"}""");
                 window.Show();
                 var node = new NavigationNode("Book", root, null, Array.Empty<NavigationNode>(), root);
                 node.IsExpanded = true;
@@ -49,7 +49,7 @@ internal static class TreeNavigationChecks
             try
             {
                 File.WriteAllText(Path.Combine(root, "book.json"), "marker");
-                File.WriteAllText(Path.Combine(root, "Article.json"), "{}");
+                File.WriteAllText(Path.Combine(root, "Article.json"), """{"filetype":"passage"}""");
                 window.Show();
                 var stale = new NavigationNode("Old book", root, null, Array.Empty<NavigationNode>(), root)
                     { IsExpanded = true };
@@ -82,7 +82,7 @@ internal static class TreeNavigationChecks
                 string goodPath = Path.Combine(book, "Good.json");
                 string badPath = Path.Combine(book, "Bad.json");
                 File.Copy(TestData.ArticlePath, goodPath);
-                File.WriteAllText(badPath, "{ invalid article");
+                File.WriteAllText(badPath, """{"filetype":"passage","paragraphs":123}""");
                 window.Show();
                 Program.Check(window.ViewModel.OpenLibrary(root));
                 WpfTestHelpers.Pump();
