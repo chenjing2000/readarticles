@@ -22,7 +22,7 @@ public sealed partial class MainViewModel
         {
             bool uk = playback.CanPlayWord(article, entry, "uk");
             bool us = playback.CanPlayWord(article, entry, "us");
-            words.Add(new VocabularyEntryViewModel(entry, this, uk, us));
+            words.Add(new VocabularyEntryViewModel(entry, uk, us));
         }
         return words;
     }

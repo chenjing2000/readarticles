@@ -6,6 +6,23 @@ internal static class WebViewSettingsChecks
 {
     internal static void Run()
     {
+        Program.Run("highlight toggles do not simulate vocabulary edits or advance its revision", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                int vocabularyEvents = 0;
+                window.ViewModel.VocabularyChanged += () => vocabularyEvents++;
+                window.ViewModel.HighlightsVisible = true;
+                window.ViewModel.HighlightsVisible = true;
+                window.ViewModel.HighlightsVisible = false;
+                var revision = typeof(ReadArticles.MainWindow).GetField(
+                    "webPilotVocabularyRevision", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                Program.Check(vocabularyEvents == 0 && (int)revision.GetValue(window)! == 0);
+            }
+            finally { window.Close(); }
+        });
+
         Program.Run("WebView2 settings intents accept only supported values", () =>
         {
             var window = new ReadArticles.MainWindow(false);

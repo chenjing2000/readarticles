@@ -1,5 +1,3 @@
-using System.Windows.Input;
-using ReadArticles.Infrastructure;
 using ReadArticles.Models;
 
 namespace ReadArticles.ViewModels;
@@ -13,22 +11,11 @@ public sealed class VocabularyEntryViewModel
     public IReadOnlyList<Meaning> Meanings => Entry.Meanings;
     public bool CanPlayUk { get; }
     public bool CanPlayUs { get; }
-    public ICommand PlayUk { get; }
-    public ICommand PlayUs { get; }
-    public ICommand MoveUp { get; }
-    public ICommand MoveDown { get; }
-    public ICommand Delete { get; }
-
-    public VocabularyEntryViewModel(VocabularyEntry entry, MainViewModel owner, bool uk, bool us)
+    public VocabularyEntryViewModel(VocabularyEntry entry, bool uk, bool us)
     {
         Entry = entry;
         CanPlayUk = uk;
         CanPlayUs = us;
-        PlayUk = new RelayCommand(() => owner.PlayWord(entry, "uk"), () => uk);
-        PlayUs = new RelayCommand(() => owner.PlayWord(entry, "us"), () => us);
-        MoveUp = new RelayCommand(() => owner.MoveWord(entry, -1), () => owner.CanMoveWord(entry, -1));
-        MoveDown = new RelayCommand(() => owner.MoveWord(entry, 1), () => owner.CanMoveWord(entry, 1));
-        Delete = new RelayCommand(() => owner.DeleteWord(entry), () => owner.CanWriteVocabulary);
     }
 }
 
