@@ -81,6 +81,41 @@ Following the successful Windows pilot screenshot/build, the browser page now in
 
 **Known limitations:** The pilot continues to be Passage-only and read-only; timed Script render/word audio/word save/notifications animation have not been implemented. Browser UI pixel assertions and interactive copy tests are pending. The original WPF Script background pixel failure remains unsuppressed.
 
+## Stage 3 Windows acceptance and stage 4 editing checkpoint (2026-11-18)
+
+The user supplied a Windows WebView2 screenshot and Release/Core logs for commit `5199bb9`:
+
+- `dotnet build ReadArticles -c Release`: **passed**.
+- `tools/Test.ps1 -Suite Core`: **10 groups passed, 0 failed**.
+- Toggling vocabulary highlight paints the Passage matches pink. Selecting a vocabulary row locates its occurrence in the Passage.
+- Selecting text within a single SID shows the floating `+` even when the selection wraps across visual lines. Selecting across two sentences hides the `+`. This is the **intended** single-SID rule; the restriction is by sentence identity, not visual line.
+- Stage 3 is accepted for the tested Passage behaviors. This does **not** assert that the old WPF Script pixel regression or final browser rendering tests pass.
+
+### Stage 4 implementation — pending Windows acceptance
+
+The pilot now offers *real* vocabulary edits. **Use a copy of your library for the first interactive test**:
+
+1. `MainViewModel.Vocabulary.cs` exposes `TryAddWord`, `TryMoveWord`, `TryDeleteWord`, and `TryImportVocabulary` returning explicit `Success`, `Duplicate`, `Unavailable` or `Failed`. The WPF Action-based public methods remain compatible.
+2. The WebView2 host validates the page/request IDs, committed article session, current vocabulary revision, specific vocabulary index and word name, or the selected SID/visible-text UTF-16 offset and length. For blank markers, the verification uses their **display** representation rather than the underlying JSON offset.
+3. Only the existing `ReaderWorkspace.ReplaceVocabulary` → `VocabularyRepository.Save` chain can write the JSON. It retains fingerprint conflict checks, backup verification, and atomic replacement. Browser UI never writes files.
+4. Following successful persistence, the host sends an authoritative `setVocabulary` snapshot; a correlated `actionResult` reports `success`, `duplicate`, `failed`, `stale`, `invalid`, `unavailable`, or `cancelled`. No optimistic additions or reordered rows are shown.
+5. Browser toolbar actions enable only for a writable vocabulary and a selected valid row. Movement and deletion use index + exact word + revision; import uses the original WPF file picker and replacement confirmation. Import cancellation leaves the vocabulary unchanged.
+6. A dedicated C# editing regression was added to the existing `--editing-only` suite for duplicate/no-write, successful add/reorder/delete/import persistence, and external file changes that must not be overwritten.
+7. Script, article/audio controls and final Toast migration remain deferred to their scheduled stages. Default WPF mode stays the fallback and remains unmodified structurally.
+
+**Suggested acceptance sequence:**
+
+```powershell
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+dotnet run --project ReadArticles -c Release -- --webview-pilot
+```
+
+Use a throwaway *copy* of an article and its vocabulary JSON to test the following: add a new word (confirm it appears both on screen and in the file), add it again (duplicate, file unchanged), move it up/down (order saved), delete it (entry removed), cancel import (no change), import another valid vocabulary (replacement saved), and modify the vocabulary JSON in an external editor before a subsequent browser edit (must fail without overwriting external changes). Verify the original non-pilot launch still behaves normally.
+
+**Status:** Code submitted on the migration branch; no post-edit Windows build, UI run or manual vocabulary write verification has been received yet. Do not merge PR #16 to `main` before all stages and user approval.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
