@@ -1,4 +1,3 @@
-using System.Windows.Input;
 using System.Windows.Threading;
 using ReadArticles.Infrastructure;
 
@@ -41,21 +40,4 @@ public partial class MainWindow
         else progressTimer.Stop();
     }
 
-    // Keys inside WebView2 are handled by reader.js; WPF handles the native tree/menu.
-    private void PlaybackKeyDown(object sender, KeyEventArgs e)
-    {
-        if (webPilotFailureShown || ReaderWebView.IsKeyboardFocusWithin) return;
-        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
-        if (key != Key.Left && key != Key.Right && key != Key.Space) return;
-        e.Handled = true;
-        if (key == Key.Space)
-        {
-            if (!e.IsRepeat && ViewModel.Article != null) ViewModel.ToggleArticleAudio();
-            return;
-        }
-        var playback = ViewModel.Playback;
-        if (!playback.CanSeekArticle) return;
-        double step = key == Key.Left ? -settings.BackwardStep : settings.ForwardStep;
-        playback.SeekArticle(playback.ArticlePosition + step);
-    }
 }

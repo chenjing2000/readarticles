@@ -35,6 +35,15 @@ internal static class ReaderControlsChecks
                 settings.Save();
                 settings = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && settings.FontSize == 15 && settings.Volume == 0.65);
+                // Repeated saves and session-only width changes may not rotate the backup.
+                byte[] persisted = File.ReadAllBytes(path);
+                byte[] backup = File.ReadAllBytes(AppPaths.SettingsBackupFile);
+                settings.LeftWidth = 517;
+                settings.RightWidth = 645;
+                settings.Save();
+                settings.Save();
+                Program.Check(File.ReadAllBytes(path).SequenceEqual(persisted) &&
+                    File.ReadAllBytes(AppPaths.SettingsBackupFile).SequenceEqual(backup));
             }
             finally
             {

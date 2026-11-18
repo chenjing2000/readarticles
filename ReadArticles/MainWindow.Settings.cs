@@ -79,7 +79,7 @@ public partial class MainWindow
     {
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
         LeftColumn.Width = new GridLength(settings.LeftWidth);
-        SaveSettings(player.Volume);
+        // Pane widths are session-only and do not belong in settings.json.
         SendWebPilotSettings();
     }
 

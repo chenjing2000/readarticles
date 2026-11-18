@@ -4,7 +4,7 @@
         xmlns:models="clr-namespace:ReadArticles.Models"
         xmlns:icons="clr-namespace:ReadArticles.Infrastructure"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="ReadArticles" Width="1500" Height="920" MinWidth="1050" MinHeight="620" PreviewKeyDown="PlaybackKeyDown"
+        Title="ReadArticles" Width="1500" Height="920" MinWidth="1050" MinHeight="620"
         Background="#F3F3F3" FontFamily="Segoe UI" FontSize="11pt" Icon="{x:Static icons:UiIcons.AppIcon}">
   <Window.Resources>
     <Style x:Key="SettingsSurface" TargetType="Border">
@@ -76,7 +76,7 @@
             </ControlTemplate>
           </Button.Template>
           <Button.ContextMenu>
-            <ContextMenu Placement="Top" HorizontalOffset="25" VerticalOffset="4" FontSize="10pt" Background="Transparent" PreviewKeyDown="PlaybackKeyDown">
+            <ContextMenu Placement="Top" HorizontalOffset="25" VerticalOffset="4" FontSize="10pt" Background="Transparent">
               <ContextMenu.Resources><Style TargetType="MenuItem" BasedOn="{StaticResource SettingsMenuItem}"/></ContextMenu.Resources>
               <ContextMenu.Template><ControlTemplate TargetType="ContextMenu"><Border Style="{StaticResource SettingsSurface}"><StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/></Border></ControlTemplate></ContextMenu.Template>
               <MenuItem Header="字号">

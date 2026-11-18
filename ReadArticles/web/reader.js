@@ -296,8 +296,9 @@ function renderVocabulary(words) {
     }
     row.addEventListener("click", () => focusVocabulary(word.word, index));
     row.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
+      if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
         event.preventDefault();
+        event.stopPropagation();
         focusVocabulary(word.word, index);
       }
     });
@@ -801,7 +802,7 @@ splitter.addEventListener("keydown", event => {
 
 document.addEventListener("keydown", event => {
   if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
-      event.target?.closest("input, select, textarea, button, [contenteditable='true'], [role='separator']"))
+      event.target?.closest("input, select, textarea, button, [role='button'], [contenteditable='true'], [role='separator']"))
     return;
   if (event.key === " " || event.key === "Spacebar") {
     if (currentPlayback.canPlay !== true || event.repeat) return;

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.IO;
 using ReadArticles.Models;
 
@@ -8,6 +9,32 @@ internal static class TreeNavigationChecks
 {
     internal static void Run()
     {
+        Program.Run("native tree and button PreviewKeyDown are not stolen by playback shortcuts", () =>
+        {
+            var window = new ReadArticles.MainWindow(persistSettings: false);
+            try
+            {
+                window.Show();
+                var tree = (TreeView)window.FindName("LibraryTree");
+                var settingsButton = (Button)window.FindName("SettingsButton");
+                var presentationSource = PresentationSource.FromVisual(window);
+                Program.Check(presentationSource is not null);
+                foreach (UIElement target in new UIElement[] { tree, settingsButton })
+                {
+                    foreach (Key key in new[] { Key.Left, Key.Right, Key.Space })
+                    {
+                        var input = new KeyEventArgs(Keyboard.PrimaryDevice, presentationSource!, 0, key)
+                        {
+                            RoutedEvent = Keyboard.PreviewKeyDownEvent
+                        };
+                        target.RaiseEvent(input);
+                        Program.Check(!input.Handled);
+                    }
+                }
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
         Program.Run("collapse cancels an in-flight scan and a later expansion retries", () =>
         {
             string root = Path.Combine(Path.GetTempPath(), "ReadArticles-tree-cancel-" + Guid.NewGuid().ToString("N"));

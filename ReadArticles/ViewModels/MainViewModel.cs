@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.IO;
 using System.Text.Json;
-using System.Windows.Input;
 using ReadArticles.Models;
 using ReadArticles.Infrastructure;
 using ReadArticles.Services;
@@ -50,20 +49,16 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         get => highlightsVisible;
         set
         {
+            if (highlightsVisible == value) return;
             highlightsVisible = value;
             Changed();
-            VocabularyChanged?.Invoke();
         }
     }
     public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer)
     {
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
         playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);
-        playback.Changed += () =>
-        {
-            PlaybackChanged?.Invoke();
-            CommandManager.InvalidateRequerySuggested();
-        };
+        playback.Changed += () => PlaybackChanged?.Invoke();
     }
 
     private bool Handle(Action action)

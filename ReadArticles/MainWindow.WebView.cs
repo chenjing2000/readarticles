@@ -27,7 +27,6 @@ public partial class MainWindow
     private string? webPilotPendingModeRequest;
     private bool webPilotPendingModeIsScript;
     private ScriptArticle? webPilotPendingScriptArticle;
-    private object? webPilotVocabularyIdentity;
     private string? webPilotPendingSnapshotId;
     private readonly HashSet<string> webPilotSeenRequests = new(StringComparer.Ordinal);
 
@@ -419,7 +418,9 @@ public partial class MainWindow
             PostWebPilot("actionResult", new { status = "invalid" }, requestId);
             return;
         }
-        bool saved = SaveSettings(player.Volume);
+        // Width changes are session-only; saving them would rotate a backup
+        // without changing any persisted setting. Other intents still save.
+        bool saved = type == "setPanelWidth" || SaveSettings(player.Volume);
         SendWebPilotSettings();
         PostWebPilot("actionResult", new { status = saved ? "success" : "failed" }, requestId);
     }
@@ -738,7 +739,6 @@ public partial class MainWindow
         webPilotScriptArticle = null;
         webPilotPendingModeRequest = null;
         webPilotPendingScriptArticle = null;
-        webPilotVocabularyIdentity = ViewModel.Article?.Vocabulary;
         webPilotSeenRequests.Clear();
         if (webPilotReady)
         {
@@ -749,13 +749,7 @@ public partial class MainWindow
 
     private void WebPilotVocabularyChanged()
     {
-        var identity = ViewModel.Article?.Vocabulary;
-        if (ReferenceEquals(webPilotVocabularyIdentity, identity))
-        {
-            SendWebPilotSettings();
-            return;
-        }
-        webPilotVocabularyIdentity = identity;
+        // Only a committed vocabulary edit emits this event.
         webPilotVocabularyRevision++;
         if (webPilotReady)
             PostWebPilot("setVocabulary", new
@@ -767,7 +761,7 @@ public partial class MainWindow
 
     private void WebPilotPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(ViewModel.Accent))
+        if (args.PropertyName is nameof(ViewModel.Accent) or nameof(ViewModel.HighlightsVisible))
             SendWebPilotSettings();
     }
 

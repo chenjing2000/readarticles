@@ -1,11 +1,11 @@
 # WebView2 reader migration — implementation log
 
 Date: 2026-11-18  
-Branch: `feature/webview2-reader` (descended from `feature/script-reading-mode`; inspect live PR #16 metadata for its current base).
+Historical branch: `feature/webview2-reader` (originally based on `feature/script-reading-mode`). Current production baseline: `main` at squash commit `2c68cae`; PR #16 merged and PR #15 closed.
 
 ## Stage 8 batch 2d — committed, Windows accepted and CI verified (2026-11-18)
 
-**Current status; supersedes the pending-verification notes in the historical entries below.** The legacy WPF reader, vocabulary view, footers, ToastHost, text adorner and duplicated C# matcher were deleted in commit `89e7670`, pushed to `feature/webview2-reader`. Exactly one WebView2 now owns reader visuals; WPF retains the native library tree, host and terminal error/exit screen.
+**Final migration status; supersedes the pending-verification notes in historical entries below.** The legacy WPF reader, vocabulary view, footers, ToastHost, text adorner and duplicated C# matcher were deleted in commit `89e7670` and delivered to `main` via PR #16 (squash `2c68cae`). Exactly one WebView2 owns reader visuals; WPF retains the native library tree, host and terminal error/exit screen. Stages below are historical, not current instructions.
 
 - Release application and test builds succeeded.
 - WebView2 DOM tests: **4/4**. Core: **10/10 groups**. UI: **13/13 groups**. Full: **6/6 groups**, **91/91 application checks** plus **2/2 source-data checks**. Published-app smoke: **4/4**.

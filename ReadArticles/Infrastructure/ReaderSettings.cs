@@ -145,8 +145,13 @@ public sealed class ReaderSettings
     public void Save()
     {
         Normalize();
+        // A no-op save must not replace the last valid pre-change backup.
+        // Compare persisted JSON, not session-only pane widths.
+        byte[] desired = JsonSerializer.SerializeToUtf8Bytes(this, JsonFiles.Options);
         if (File.Exists(PathName))
         {
+            byte[] existing = File.ReadAllBytes(PathName);
+            if (existing.AsSpan().SequenceEqual(desired)) return;
             _ = Deserialize(PathName);
             BackupFiles.CreateVerifiedBackup(PathName, AppPaths.SettingsBackupFile);
         }

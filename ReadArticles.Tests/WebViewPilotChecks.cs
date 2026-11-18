@@ -187,6 +187,24 @@ internal static class WebViewPilotChecks
                     "document.querySelectorAll('#vocabulary-list .word-row.selected').length")
                     .GetInt32() == 1);
 
+                // Keyboard activation of ARIA word buttons must never trigger article playback.
+                JsonElement wordKeys = Evaluate(browser, """
+                    (() => {
+                      const rows = [...document.querySelectorAll('#vocabulary-list .word-row')];
+                      const press = (row, key) => {
+                        row.focus();
+                        const event = new KeyboardEvent('keydown',
+                          { key, bubbles: true, cancelable: true });
+                        row.dispatchEvent(event);
+                        return event.defaultPrevented && row.classList.contains('selected');
+                      };
+                      return { space: press(rows[1], ' '), enter: press(rows[0], 'Enter') };
+                    })()
+                    """);
+                Program.Check(wordKeys.GetProperty("space").GetBoolean() &&
+                    wordKeys.GetProperty("enter").GetBoolean() &&
+                    !window.ViewModel.Playback.IsArticleActive);
+
                 // The browser settings control must round-trip through the C# bridge.
                 Evaluate(browser, """
                     (() => {
