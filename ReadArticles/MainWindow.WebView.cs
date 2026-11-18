@@ -176,12 +176,27 @@ public partial class MainWindow
             bool currentVocabulary = root.TryGetProperty("vocabularyRevision", out var revision) &&
                 revision.ValueKind == JsonValueKind.Number &&
                 revision.TryGetInt32(out int value) && value == webPilotVocabularyRevision;
-            PostWebPilot("actionResult", new
+            if (!currentSession || !currentVocabulary)
             {
-                requestId,
-                status = currentSession && currentVocabulary ? "unavailable" : "stale",
-                vocabularyRevision = webPilotVocabularyRevision
-            });
+                PostWebPilot("actionResult", new { status = "stale" }, requestId);
+                return;
+            }
+            if (type == "setHighlight")
+            {
+                if (!root.TryGetProperty("payload", out var payload) ||
+                    payload.ValueKind != JsonValueKind.Object ||
+                    !payload.TryGetProperty("enabled", out var enabled) ||
+                    enabled.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                {
+                    PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                    return;
+                }
+                ViewModel.HighlightsVisible = enabled.GetBoolean();
+                PostWebPilot("actionResult", new { status = "success" }, requestId);
+                return;
+            }
+            // All file mutations and playback actions remain unavailable.
+            PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or FormatException)
         {
