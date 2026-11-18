@@ -29,16 +29,16 @@
         <div id="vocabulary-list"></div>
       </div>
       <footer class="toolbar vocabulary-toolbar">
-        <button disabled title="后续阶段接入上移">上移</button>
-        <button disabled title="后续阶段接入下移">下移</button>
-        <button disabled title="后续阶段接入删除">删除</button>
+        <button id="word-up" disabled title="上移所选词汇">上移</button>
+        <button id="word-down" disabled title="下移所选词汇">下移</button>
+        <button id="word-delete" disabled title="删除所选词汇">删除</button>
         <button disabled title="后续阶段接入 Script 切换">Script</button>
         <button id="highlight-toggle" aria-pressed="false" title="切换正文词汇高亮">高亮</button>
-        <button disabled title="后续阶段接入词表导入">导入</button>
+        <button id="word-import" disabled title="导入词汇 JSON（替换当前词表）">导入</button>
       </footer>
     </section>
     <button type="button" id="selection-add" class="selection-add" hidden
-            aria-label="添加所选词汇" title="添加词汇（当前只读试验版不会保存）">+</button>
+            aria-label="添加所选词汇" title="添加所选词汇">+</button>
     <output id="selection-status" class="selection-status" role="status" hidden></output>
     <aside id="notifications" aria-label="通知"></aside>
   </div>
