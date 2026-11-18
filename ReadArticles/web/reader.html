@@ -23,6 +23,11 @@
         <button id="article-stop" disabled title="停止文章音频">停止</button>
         <button id="reader-settings-toggle" aria-expanded="false" aria-controls="reader-settings-panel" title="阅读设置">设置</button>
       </footer>
+      <aside id="notifications" aria-label="通知">
+        <button id="notification-overflow-toggle" class="notification-overflow-toggle" hidden aria-expanded="false" aria-controls="notification-overflow-list"></button>
+        <div id="notification-overflow-list" class="notification-overflow-list" hidden></div>
+        <div id="notification-cards" class="notification-cards"></div>
+      </aside>
     </section>
     <div id="reader-splitter" class="reader-splitter" role="separator"
          aria-label="调整词汇区宽度" aria-orientation="vertical" tabindex="0"></div>
@@ -42,7 +47,6 @@
     </section>
     <button type="button" id="selection-add" class="selection-add" hidden
             aria-label="添加所选词汇" title="添加所选词汇">+</button>
-    <output id="selection-status" class="selection-status" role="status" hidden></output>
     <section id="reader-settings-panel" class="settings-popover" hidden aria-label="阅读设置">
       <div class="settings-title">阅读设置</div>
       <label>正文字号
@@ -58,11 +62,6 @@
         <select id="reader-backward-step"><option value="5">5 秒</option><option value="8">8 秒</option><option value="15">15 秒</option></select>
       </label>
     </section>
-    <aside id="notifications" aria-label="通知">
-      <button id="notification-overflow-toggle" class="notification-overflow-toggle" hidden aria-expanded="false" aria-controls="notification-overflow-list"></button>
-      <div id="notification-overflow-list" class="notification-overflow-list" hidden></div>
-      <div id="notification-cards" class="notification-cards"></div>
-    </aside>
   </div>
 </body>
 </html>
