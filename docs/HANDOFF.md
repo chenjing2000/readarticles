@@ -3,9 +3,9 @@
 ## 当前状态
 
 - **开发分支：** `feature/webview2-reader`，基于 `feature/script-reading-mode`；Draft PR #16 仍未合并，PR #15 同样未合并。请在操作前核对分支、远程 HEAD 和本地 `git status`。
-- **阶段八批次 2d：** 旧 WPF 正文、词表、工具栏、Toast、`ParagraphReader`、选区 Adorner 和重复的 C# 词汇匹配器已从本地工作区清理。单个 WebView2 是唯一阅读界面；WPF 保留窗口、左侧逐层加载的目录树与原生失败/退出界面。
-- **Windows 已完成验收：** Release 构建通过；WebView2 专项 4/4，Core 10/10 组，UI 13/13 组，Full 6/6 组（应用回归 90/90），`Test-PublishedApp.ps1` 4/4；用户已确认 2d 实机功能验收通过。
-- **本地 Git 状态：** 上述结果针对尚未提交的本地工作区。不能把远程 PR #16 的旧 HEAD 或 GitHub CI 结果视为 2d 的远程验收。本轮提交前修正完成后还须重跑相应测试。
+- **阶段八批次 2d：** 旧 WPF 正文、词表、工具栏、Toast、`ParagraphReader`、选区 Adorner 与重复的 C# 词汇匹配器已删除，并于提交 `89e7670` 推送至 `feature/webview2-reader`。单个 WebView2 是唯一阅读界面；WPF 保留窗口、左侧逐层加载的目录树与原生失败/退出界面。
+- **Windows 已完成验收：** Release 构建通过；WebView2 专项 4/4，Core 10/10 组，UI 13/13 组，Full 6/6 组（应用回归 91/91，源文件保护 2/2），`Test-PublishedApp.ps1` 4/4；用户确认 2d 实机功能验收通过。
+- **GitHub 状态：** 提交 `89e7670` 已推送。GitHub Actions [Run #141](https://github.com/chenjing2000/readarticles/actions/runs/44328128599) 针对该提交通过 Windows Release 构建、WebView2 专项测试与便携式单文件发布。发布产物的完整 WebView2 交互仍需在最终发布时单独检查；远程 CI 不代替 Windows 实机验收。
 - **授权：** 本说明不授权提交、推送或合并。尤其不得自动合并 PR #15、#16 或修改 `main`。
 
 ## 最终架构与职责
@@ -19,9 +19,9 @@
 ## 继续工作的入口
 
 1. 先阅读 `AGENTS.md`、`docs/project-contract.md`、`docs/WebView2-Migration.md`、`docs/Testing.md` 和项目代码审查 skill；遵循 WindowsAppPlaybook。
-2. 在 `C:\Projects\ReadArticles` 检查 `git status --short`、`git diff --check`，确认未提交补丁和当前分支。修改前先检查真实源码，勿根据远程未更新的文件覆盖本地改动。
-3. 提交前做最小整改、Release 构建和 Core/UI/Full 回归；对发布产物使用 `tools/Publish.ps1`、`tools/Test-PublishedApp.ps1`，独立验证浏览器启动及实机关键交互。测试用工作副本，绝不对真实词汇库做破坏性测试。
-4. 审核完整 `git diff` 后才决定是否提交。候选英文信息：`refactor: remove legacy WPF reader and complete WebView2 migration`。提交、推送、PR 合并各需独立明确授权。
+2. 在 `C:\Projects\ReadArticles` 检查 `git status --short` 和当前分支，按需 `git fetch` 核对远程 HEAD。不要假定存在未提交的 2d 补丁；修改前以实际源码为准。
+3. 2d 的最小整改及回归测试已完成。后续若修改代码，按影响范围运行 Release 与 Core/UI/Full；发布时执行 `tools/Publish.ps1`、`tools/Test-PublishedApp.ps1` 并对最终 EXE 单独检查浏览器交互。测试使用工作副本，勿对真实词汇库进行破坏性测试。
+4. 下一步核对 PR #16 当前 Base、相对 `main` 的完整差异与 CI；PR #15 包含过渡性 WPF Script 实现，不能不经审查直接合并。Git 提交、推送、PR 合并均需授权。
 
 ## 相关文档
 

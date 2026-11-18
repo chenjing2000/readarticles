@@ -1,16 +1,16 @@
 # WebView2 reader migration — implementation log
 
 Date: 2026-11-18  
-Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `main`).
+Branch: `feature/webview2-reader` (descended from `feature/script-reading-mode`; inspect live PR #16 metadata for its current base).
 
-## Stage 8 batch 2d — accepted locally on Windows (2026-11-18)
+## Stage 8 batch 2d — committed, Windows accepted and CI verified (2026-11-18)
 
-**Current status; supersedes the pending-verification notes in the historical entries below.** The legacy WPF reader, vocabulary view, footers, ToastHost, text adorner and duplicated C# matcher have been removed from the local working tree. Exactly one WebView2 now owns reader visuals; WPF retains the native library tree, host and terminal error/exit screen.
+**Current status; supersedes the pending-verification notes in the historical entries below.** The legacy WPF reader, vocabulary view, footers, ToastHost, text adorner and duplicated C# matcher were deleted in commit `89e7670`, pushed to `feature/webview2-reader`. Exactly one WebView2 now owns reader visuals; WPF retains the native library tree, host and terminal error/exit screen.
 
 - Release application and test builds succeeded.
-- WebView2 DOM tests: **4/4**. Core: **10/10 groups**. UI: **13/13 groups**. Full: **6/6 groups**, **90/90 application checks**. Published-app smoke: **4/4**.
-- The user confirmed interactive acceptance of batch 2d. The checks were executed against **local uncommitted code**; the remote draft PR #16 and GitHub CI do **not** yet represent this state.
-- Precommit corrections (documentation, test naming and boundary coverage) must be validated again before any commit, push or merge. Actual portable EXE browser interactions remain a separate final release check.
+- WebView2 DOM tests: **4/4**. Core: **10/10 groups**. UI: **13/13 groups**. Full: **6/6 groups**, **91/91 application checks** plus **2/2 source-data checks**. Published-app smoke: **4/4**.
+- The user confirmed interactive Windows acceptance of batch 2d. The final precommit correction also passed the Windows Release build and Full suite (91/91) before being included in commit `89e7670`.
+- GitHub Actions [WebView2 pilot Windows smoke #141](https://github.com/chenjing2000/readarticles/actions/runs/44328128599) completed successfully for `89e7670`, covering Windows Release build, WebView2 tests and safeguarded single-file publication. The workflow does not replace local UI/Full testing. Before a final release, separately verify all browser interactions from the exact shipped portable EXE.
 
 ---
 
