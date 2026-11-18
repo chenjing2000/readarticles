@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：第六阶段验收通过；第七阶段 Windows 测试已取得首轮结果：`Test.ps1 -Suite UI` 11/13 组通过、`Test.ps1 -Suite Full` 完整应用回归 125 通过/5 失败；`Publish.ps1` 成功，`Test-PublishedApp.ps1` 3/3 通过。失败中**4 项**是旧 `ReaderControlsChecks` 仍要求保存左右分隔栏宽度或不检查 JSON 内容；已按用户确定的重启默认 310/390 DIP 和仅显示 `filetype:"passage"` 的逐层扫描规则修订测试。另**1 项**是旧 WPF `ParagraphReader` Script 粉色高亮像素测试（实测局部变更像素 0）；没有删除或跳过断言，已加入实际绘制/范围/画刷诊断输出，待 Windows 复测。修订源码已提交到 `feature/webview2-reader`，**新提交的 UI/Full 结果尚未验证**。详情见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。
+> **当前更新（2026-11-18）**：用户复测 `5fde6b0`：Windows Release 构建通过，`Test.ps1 -Suite UI` **12/13 组通过**；`controls-only` 18/18 已全部通过。仅旧 WPF `ParagraphReader` Script 粉色高亮像素断言仍失败：`local=0; global=0; validCells=4; visibleBrush=#FFF9D3E3; hiddenBrush=#00FFFFFF; adornerSize=215.3x242.7`；跨行红色扫读已通过。**最新提交仅修改测试截图容器：使用显式 `AdornerDecorator` 并分别比较装饰层整图及 `AdornerLayer` 像素，保留原有 `changes > 0` 断言。待 Windows 再次运行 UI 并查看 `layer=...`；尚未确认根因，也未改应用渲染代码。** 第六阶段已验收，便携式发布与改名测试曾通过；UI/Full、旧 WPF 清理均未完成。详情见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft PR #16 未合并。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：重新运行 Windows Release 构建和 UI 套件；若仍仅有旧 WPF Script 像素测试失败，提供 `Script vocabulary highlight pixels: ...` 诊断并确定是叠加层渲染缺陷还是截图区域问题，修复或用真实 WebView2 渲染测试等价替代后，才继续 Full 和正式 UI 清理。已发布 EXE 的隔离/改名测试通过，但还未完成 WebView2 发布版交互验收；不直接删除旧 WPF 阅读器。
+> **当前工作目标**：Windows 运行 `dotnet build ReadArticles.Tests -c Release` 与 `.\tools\Test.ps1 -Suite UI`，反馈 `Script vocabulary highlight pixels: local=...; global=...; layer=...`。如仍全为 0，重点排查 WPF Adorner.OnRender 和坐标/布局；不得通过弱化像素断言消除失败。UI 通过后再跑 Full 和 WebView2 实际发布版测试，再评估删除旧阅读器。
 
 ## 1. 仓库、分支和实际状态
 
