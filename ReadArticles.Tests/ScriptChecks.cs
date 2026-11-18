@@ -29,7 +29,7 @@ internal static class ScriptChecks
 
     internal static void Run()
     {
-        Program.Run("Script companion name is exact and is never a library leaf", () => InTemp((directory, passage) =>
+        Program.Run("Script companion and untyped JSON are never library leaves", () => InTemp((directory, passage) =>
         {
             var repo = new LibraryRepository();
             string companion = ArticleRepository.ScriptPathFor(passage);
@@ -38,7 +38,8 @@ internal static class ScriptChecks
             File.WriteAllText(Path.Combine(directory, "Other.SCRIPT.JSON"), Valid);
             File.WriteAllText(Path.Combine(directory, "Another.json"), "{}");
             var snapshot = repo.ScanDirectoryLevel(directory, directory);
-            Program.Check(snapshot.Entries.Count(e => e.IsPassage) == 2);
+            Program.Check(snapshot.Entries.Count(e => e.IsPassage) == 1);
+            Program.Check(snapshot.Entries.Single(e => e.IsPassage).Name == "Example");
             Program.Check(snapshot.Entries.All(e => !e.Name.EndsWith(".script", StringComparison.OrdinalIgnoreCase)));
         }));
 
