@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：`feature/webview2-reader` 的第一至第五阶段已经通过用户 Windows 实机验收。最新确认：WebView2 音频播放期间进度条与 Script 连续红色着色实时同步；暂停、Seek、停止和自然结束行为正常，Release 构建与 Core 10/10 组通过。**第六阶段的浏览器设置、分栏拖动、快捷键及 Toast 已提交代码，尚待 Windows 构建/Core/实机验收。** 默认 WPF 模式保持不变，Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。最新进度与本机验证步骤在 [`WebView2-Migration.md`](WebView2-Migration.md)。
+> **当前更新（2026-11-18）**：`feature/webview2-reader` 的第一至第五阶段已完成 Windows 验收。第六阶段 Windows Core 10/10 组通过，字号、发音口音、Seek 步长、快捷键及 Script/词汇回归正常；但重启后的设置持久化尚未实机验证。用户指出 Toast 行为与要求不符，**现已提交修复：普通和错误通知都显示约 4.65 秒后向下淡出 1 秒、无边框、宽 480px、新消息在底部区域的堆叠顶部出现**；淡出的错误信息仍保留在“还有 N 条错误”中供手动确认。该修复待 Windows 复测。构建版/发布版 EXE 路径及具体命令见 [`WebView2-Migration.md`](WebView2-Migration.md)。默认 WPF 未替换，Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：验收第六阶段 WebView2 分栏宽度持久化、阅读设置、快捷键及浏览器 Toast，然后进行第七阶段旧 WPF 阅读渲染清理和真实浏览器 UI/Full 测试。保持 C# 音频和词汇文件管理、单 EXE 发布、不引入 React/Node.js。
+> **当前工作目标**：重新验收第六阶段 Toast 的自动淡出、悬停、错误归档及重启后设置/分栏宽度保存；随后执行第七阶段旧 WPF 阅读渲染清理和真实浏览器 UI/Full 测试。继续保留 C# 音频/词汇业务、单 EXE 发布，不引入 React/Node.js。
 
 ## 1. 仓库、分支和实际状态
 
