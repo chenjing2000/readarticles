@@ -33,10 +33,13 @@
         <button disabled title="后续阶段接入下移">下移</button>
         <button disabled title="后续阶段接入删除">删除</button>
         <button disabled title="后续阶段接入 Script 切换">Script</button>
-        <button disabled title="后续阶段接入高亮">高亮</button>
+        <button id="highlight-toggle" aria-pressed="false" title="切换正文词汇高亮">高亮</button>
         <button disabled title="后续阶段接入词表导入">导入</button>
       </footer>
     </section>
+    <button type="button" id="selection-add" class="selection-add" hidden
+            aria-label="添加所选词汇" title="添加词汇（当前只读试验版不会保存）">+</button>
+    <output id="selection-status" class="selection-status" role="status" hidden></output>
     <aside id="notifications" aria-label="通知"></aside>
   </div>
 </body>
