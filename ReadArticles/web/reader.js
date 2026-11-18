@@ -80,6 +80,7 @@ function renderArticle(article) {
   const body = byId("article-body");
   const title = byId("article-title");
   hideSelectionAdd();
+  pendingAdd = null;
   body.replaceChildren();
   byId("article-scroll").scrollTop = 0;
   title.textContent = article?.title ?? "";
@@ -291,19 +292,19 @@ function renderInitialize(payload) {
 }
 
 function send(type, additional = {}) {
-  if (window.chrome?.webview) {
-    window.chrome.webview.postMessage({
-      version: 1, type, pageId, sessionId, vocabularyRevision,
-      requestId: crypto.randomUUID(), ...additional
-    });
-  }
+  if (!window.chrome?.webview) return null;
+  const requestId = additional.requestId ?? crypto.randomUUID();
+  window.chrome.webview.postMessage({
+    version: 1, type, pageId, sessionId, vocabularyRevision,
+    ...additional, requestId
+  });
+  return requestId;
 }
 
 byId("selection-add").addEventListener("pointerdown", event => event.preventDefault());
 byId("selection-add").addEventListener("click", () => {
   if (!selectedPassage || !sessionId) return;
-  pendingAdd = true;
-  send("addWord", { payload: selectedPassage });
+  pendingAdd = send("addWord", { payload: { ...selectedPassage } });
 });
 byId("highlight-toggle").addEventListener("click", () => {
   if (!sessionId) return;
@@ -345,9 +346,10 @@ if (window.chrome?.webview) {
       renderNotifications(message.payload ?? {});
     } else if (message.type === "actionResult") {
       // The current pilot never writes a vocabulary file.
-      if (pendingAdd && message.payload?.status === "unavailable") {
+      if (pendingAdd && message.requestId === pendingAdd) {
         const status = byId("selection-status");
-        status.textContent = "只读试验版：尚未保存";
+        status.textContent = message.payload?.status === "stale"
+          ? "选区已过期，请重新选择" : "只读试验版：尚未保存";
         status.hidden = false;
         pendingAdd = null;
       }
