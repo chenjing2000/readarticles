@@ -15,6 +15,7 @@ let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
 const localFeedback = [];
+let noticeSequence = 0;
 let splitting = null;
 let currentMode = "passage";
 let pendingModeRequest = null;
@@ -525,7 +526,7 @@ function createToast(item) {
   const isError = String(item.severity ?? "").toLowerCase() === "error";
   const entry = {
     card, item, remaining: toastDisplayMs, started: null, timeout: null,
-    exiting: false, expired: false, checkOverflow
+    exiting: false, expired: false, checkOverflow, arrival: ++noticeSequence
   };
   const pause = () => {
     if (entry.exiting || entry.expired) return;
@@ -616,17 +617,19 @@ function renderNotifications(notifications) {
       toastEntries.delete(key);
     }
   }
-  for (const item of visible) {
+  // Create unseen notifications oldest-first, then order the actual
+  // visual stack by arrival across both C# and local feedback.
+  for (const item of [...visible].reverse()) {
     const key = String(item.id);
-    let entry = toastEntries.get(key);
-    if (!entry) {
-      entry = createToast(item);
-      toastEntries.set(key, entry);
-    }
-    if (!entry.expired) {
-      host.append(entry.card);
-      window.requestAnimationFrame(entry.checkOverflow);
-    }
+    if (!toastEntries.has(key)) toastEntries.set(key, createToast(item));
+  }
+  const ordered = visible
+    .map(item => toastEntries.get(String(item.id)))
+    .filter(entry => entry && !entry.expired)
+    .sort((a, b) => b.arrival - a.arrival);
+  for (const entry of ordered) {
+    host.append(entry.card);
+    window.requestAnimationFrame(entry.checkOverflow);
   }
   renderErrorArchive(notifications);
 }
