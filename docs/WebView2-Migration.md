@@ -121,7 +121,7 @@ Use a throwaway *copy* of an article and its vocabulary JSON to test the followi
 The user verified `08f70aa` on Windows:
 
 - `dotnet build ReadArticles.Tests -c Release`: **passed**.
-- `.\\tools\\Test.ps1 -Suite Core`: **10/10 groups passed**; the new WebView2 vocabulary edit regression also passed.
+- `.\tools\Test.ps1 -Suite Core`: **10/10 groups passed**; the new WebView2 vocabulary edit regression also passed.
 - In the WebView2 pilot, adding a selected word writes the vocabulary JSON, duplicate words are rejected without writes, move up/down/delete persist in the file, import cancellation preserves the file, valid import commits, and an externally changed vocabulary JSON blocks stale overwrites. **Stage 4 is accepted for these tested behaviors.**
 
 ### Stage 5 submitted code (not yet Windows-accepted)
