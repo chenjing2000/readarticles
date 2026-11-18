@@ -44,6 +44,26 @@ internal static class WebViewSettingsChecks
             finally { window.Close(); }
         });
 
+        Program.Run("WebView2 faded errors remain accessible in notification snapshots", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                for (int index = 0; index < 5; index++)
+                    window.ViewModel.Notifications.Publish("error-" + index,
+                        "Retained error " + index, NotificationSeverity.Error);
+                var method = typeof(ReadArticles.MainWindow).GetMethod(
+                    "WebPilotNotificationSnapshot", BindingFlags.Instance | BindingFlags.NonPublic);
+                Program.Check(method is not null);
+                using var snapshot = JsonDocument.Parse(JsonSerializer.Serialize(
+                    method!.Invoke(window, null)));
+                Program.Check(snapshot.RootElement.GetProperty("visible").GetArrayLength() == 4);
+                Program.Check(snapshot.RootElement.GetProperty("errors").GetArrayLength() == 5);
+                Program.Check(snapshot.RootElement.GetProperty("overflowErrors").GetArrayLength() == 1);
+            }
+            finally { window.Close(); }
+        });
+
         Program.Run("WebView2 notification dismiss retains errors until acknowledged", () =>
         {
             var window = new ReadArticles.MainWindow(false);
