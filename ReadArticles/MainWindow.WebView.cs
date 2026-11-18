@@ -200,6 +200,8 @@ public partial class MainWindow
     private void SendWebPilotInitialize()
     {
         if (!webPilotReady) return;
+        webPilotPendingSnapshotId = Guid.NewGuid().ToString("D");
+        WebPilotOverlay.Visibility = Visibility.Collapsed;
         var article = ViewModel.Article;
         var passage = article is null ? null : new
         {
@@ -211,31 +213,33 @@ public partial class MainWindow
                 hasAudio = s.HasAudio
             }).ToArray()).ToArray()
         };
-        var words = ViewModel.Words.Select(w => new
-        {
-            word = w.Word,
-            phoneticUk = w.PhoneticUk,
-            phoneticUs = w.PhoneticUs,
-            meanings = w.Meanings.Select(m => new { pos = m.Pos, text = m.Text }).ToArray(),
-            canPlayUk = w.CanPlayUk,
-            canPlayUs = w.CanPlayUs
-        }).ToArray();
         PostWebPilot("initialize", new
         {
             article = passage,
-            vocabularyRevision = webPilotVocabularyRevision,
-            vocabulary = words,
-            settings = new
-            {
-                fontSize = settings.FontSize,
-                accent = ViewModel.Accent,
-                highlightsVisible = ViewModel.HighlightsVisible,
-                rightWidth = settings.RightWidth
-            },
+            vocabulary = WebPilotVocabularyRows(),
+            settings = WebPilotSettingsSnapshot(),
             playback = WebPilotPlaybackSnapshot(),
             notifications = WebPilotNotificationSnapshot()
-        });
+        }, webPilotPendingSnapshotId);
     }
+
+    private object[] WebPilotVocabularyRows() => ViewModel.Words.Select(w => (object)new
+    {
+        word = w.Word,
+        phoneticUk = w.PhoneticUk,
+        phoneticUs = w.PhoneticUs,
+        meanings = w.Meanings.Select(m => new { pos = m.Pos, text = m.Text }).ToArray(),
+        canPlayUk = w.CanPlayUk,
+        canPlayUs = w.CanPlayUs
+    }).ToArray();
+
+    private object WebPilotSettingsSnapshot() => new
+    {
+        fontSize = settings.FontSize,
+        accent = ViewModel.Accent,
+        highlightsVisible = ViewModel.HighlightsVisible,
+        rightWidth = settings.RightWidth
+    };
 
     private object WebPilotPlaybackSnapshot()
     {
@@ -263,6 +267,8 @@ public partial class MainWindow
         // A previous display is never presented as the newly committed article.
         webPilotSessionId = Guid.NewGuid().ToString("N");
         webPilotVocabularyRevision = 0;
+        webPilotVocabularyIdentity = ViewModel.Article?.Vocabulary;
+        webPilotSeenRequests.Clear();
         if (webPilotReady)
         {
             WebPilotOverlay.Visibility = Visibility.Collapsed;
@@ -272,8 +278,28 @@ public partial class MainWindow
 
     private void WebPilotVocabularyChanged()
     {
+        var identity = ViewModel.Article?.Vocabulary;
+        if (ReferenceEquals(webPilotVocabularyIdentity, identity))
+        {
+            SendWebPilotSettings();
+            return;
+        }
+        webPilotVocabularyIdentity = identity;
         webPilotVocabularyRevision++;
-        if (webPilotReady) SendWebPilotInitialize();
+        if (webPilotReady)
+            PostWebPilot("setVocabulary", new { vocabulary = WebPilotVocabularyRows() });
+    }
+
+    private void WebPilotPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(ViewModel.Accent))
+            SendWebPilotSettings();
+    }
+
+    private void SendWebPilotSettings()
+    {
+        if (webPilotReady)
+            PostWebPilot("setSettings", WebPilotSettingsSnapshot());
     }
 
     private void SendWebPilotPlayback()
@@ -286,7 +312,7 @@ public partial class MainWindow
         if (webPilotReady) PostWebPilot("setNotifications", WebPilotNotificationSnapshot());
     }
 
-    private void PostWebPilot(string type, object payload)
+    private void PostWebPilot(string type, object payload, string? requestId = null)
     {
         if (!webPilotReady || webPilotClosed || webPilotPageId is null ||
             ReaderWebView.CoreWebView2 is null) return;
@@ -297,6 +323,7 @@ public partial class MainWindow
             pageId = webPilotPageId,
             sessionId = webPilotSessionId,
             vocabularyRevision = webPilotVocabularyRevision,
+            requestId,
             payload
         });
         try
@@ -316,6 +343,7 @@ public partial class MainWindow
         webPilotFailureShown = true;
         webPilotReady = false;
         webPilotPageId = null;
+        webPilotPendingSnapshotId = null;
         WebPilotOverlay.Visibility = Visibility.Collapsed;
         ViewModel.Notify("WebViewPilotUnavailable", message, NotificationSeverity.Error);
         MessageBox.Show(this, message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -329,6 +357,7 @@ public partial class MainWindow
         ViewModel.VocabularyChanged -= WebPilotVocabularyChanged;
         ViewModel.PlaybackChanged -= SendWebPilotPlayback;
         ViewModel.Notifications.Changed -= SendWebPilotNotifications;
+        ViewModel.PropertyChanged -= WebPilotPropertyChanged;
         Loaded -= WebPilotLoaded;
         ReaderWebView.Dispose();
     }
