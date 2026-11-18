@@ -3,6 +3,7 @@
 // Initial WebView2 pilot: authoritative C# snapshots only, no user-data mutations.
 const pageId = crypto.randomUUID();
 let sessionId = null;
+let vocabularyRevision = 0;
 
 const byId = id => document.getElementById(id);
 function element(tag, className, value) {
@@ -16,6 +17,7 @@ function renderArticle(article) {
   const body = byId("article-body");
   const title = byId("article-title");
   body.replaceChildren();
+  byId("article-scroll").scrollTop = 0;
   title.textContent = article?.title ?? "";
   if (!article) {
     body.append(element("p", "empty", "请在左侧图书馆中选择文章。"));
@@ -34,6 +36,8 @@ function renderArticle(article) {
 }
 
 function renderVocabulary(words) {
+  const scroll = byId("vocabulary-scroll");
+  const previousOffset = scroll.scrollTop;
   const list = byId("vocabulary-list");
   list.replaceChildren();
   byId("vocabulary-count").textContent = words.length ? `(${words.length})` : "";
@@ -49,6 +53,7 @@ function renderVocabulary(words) {
     }
     list.append(row);
   }
+  scroll.scrollTop = previousOffset;
 }
 
 function formatSeconds(seconds) {
@@ -73,10 +78,17 @@ function renderNotifications(notifications) {
   }
 }
 
+function renderSettings(settings) {
+  const fontSize = Number(settings.fontSize);
+  const rightWidth = Number(settings.rightWidth);
+  document.documentElement.style.setProperty("--reader-font",
+    (Number.isFinite(fontSize) && fontSize >= 10 && fontSize <= 30 ? fontSize : 15) + "px");
+  document.documentElement.style.setProperty("--word-width",
+    (Number.isFinite(rightWidth) && rightWidth >= 200 && rightWidth <= 1000 ? rightWidth : 390) + "px");
+}
+
 function renderInitialize(payload) {
-  const settings = payload.settings ?? {};
-  document.documentElement.style.setProperty("--reader-font", (Number(settings.fontSize) || 15) + "px");
-  document.documentElement.style.setProperty("--word-width", (Number(settings.rightWidth) || 390) + "px");
+  renderSettings(payload.settings ?? {});
   renderArticle(payload.article);
   renderVocabulary(payload.vocabulary ?? []);
   renderPlayback(payload.playback ?? {});
@@ -94,14 +106,31 @@ if (window.chrome?.webview) {
     const message = event.data;
     if (message?.version !== 1 || message.pageId !== pageId) return;
     if (message.type === "initialize") {
+      if (typeof message.sessionId !== "string" || typeof message.requestId !== "string") return;
       sessionId = message.sessionId;
-      renderInitialize(message.payload ?? {});
-      send("rendered", { sessionId });
-    } else if (message.sessionId === sessionId && message.type === "setPlayback") {
+      vocabularyRevision = Number(message.vocabularyRevision) || 0;
+      try {
+        renderInitialize(message.payload ?? {});
+        send("rendered", { sessionId, requestId: message.requestId });
+      } catch {
+        send("renderFailed", { sessionId, requestId: message.requestId });
+      }
+      return;
+    }
+    if (message.sessionId !== sessionId) return;
+    if (message.type === "setVocabulary") {
+      const nextRevision = Number(message.vocabularyRevision);
+      if (!Number.isInteger(nextRevision) || nextRevision < vocabularyRevision) return;
+      vocabularyRevision = nextRevision;
+      renderVocabulary(message.payload?.vocabulary ?? []);
+    } else if (message.type === "setSettings") {
+      renderSettings(message.payload ?? {});
+    } else if (message.type === "setPlayback") {
       renderPlayback(message.payload ?? {});
-    } else if (message.sessionId === sessionId && message.type === "setNotifications") {
+    } else if (message.type === "setNotifications") {
       renderNotifications(message.payload ?? {});
     }
+    // All user-data action controls remain disabled during the pilot.
   });
   send("ready");
 } else {
