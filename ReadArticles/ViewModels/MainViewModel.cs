@@ -15,7 +15,12 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     private readonly ReaderWorkspace workspace = new ReaderWorkspace();
     private readonly ReaderPlayback playback;
     public NotificationService Notifications { get; } = new();
-    public void Notify(string key, string message, NotificationSeverity severity) => Notifications.Publish(key, message, severity);
+    // Notifications created while an article is open belong to that article,
+    // unless explicitly published as a library/application-level notification.
+    public void Notify(string key, string message, NotificationSeverity severity) =>
+        Notifications.Publish(key, message, severity, Article?.FilePath);
+    public void NotifyGlobal(string key, string message, NotificationSeverity severity) =>
+        Notifications.Publish(key, message, severity);
     private string accent = "uk";
     private bool highlightsVisible;
     public event PropertyChangedEventHandler? PropertyChanged;
