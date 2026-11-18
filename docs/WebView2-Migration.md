@@ -203,6 +203,29 @@ Check **in a working-copy library**:
 
 **Outstanding:** The new C# test, CSS, splitter and Toast are not yet Windows-accepted. Existing old WPF Script pixel regression remains recorded and is not suppressed. Do not merge Draft PR #16 before the remaining UI/Full tests, cleanup and user approval.
 
+## Stage 6 Windows feedback and corrected Toast design (2026-11-18)
+
+The user rebuilt the stage-six pilot and ran `Test.ps1 -Suite Core` successfully (**10/10 groups, content 32/32 tests**). In the Windows GUI, font/accent/seek-step controls, Space/Left/Right shortcuts and Script/highlight/audio/vocabulary regressions behaved correctly. Persistence of divider/reading settings across restarts was **not yet verified**, because the executable location was unclear.
+
+The executable entry points are:
+
+- Development build: `ReadArticles/bin/Release/net10.0-windows/ReadArticles.exe --webview-pilot` (or run `dotnet run --project ReadArticles -c Release -- --webview-pilot` again after closing the window).
+- Portable publish: run `.\tools\Publish.ps1`, then `dist/ReadArticles/ReadArticles.exe --webview-pilot`.
+- Because settings live in `userdata/config/settings.json` beside the corresponding executable, compare two launches of the **same** build/publish location. Do not compare the development and published configurations.
+
+**Toast feedback:** The user observed that ordinary notifications persisted while errors faded, contrary to expectations, and explicitly requested that **both ordinary and error cards** slide in/out at the bottom, appear newest-first as a vertically stacked group, automatically fade after some time with a **1-second exit animation**, have **no borders**, and be wider.
+
+### Correction committed — awaiting Windows visual retest
+
+- All severities now share the same visual lifetime: ~4650 ms before the exit starts, plus exactly 1000 ms downward fade; hover pauses the countdown. Manual close also fades over 1000 ms.
+- The browser's bottom-anchored stack retains newest-first display, entry from above, exit downward, and reuses DOM/timer state across `setNotifications` updates.
+- Toast width rises from 360px to 480px (responsive maximum: viewport minus 36px). Info/warning/error cards are borderless; their different backgrounds remain.
+- **Data-safety distinction:** The ordinary toast is dismissed from `NotificationService` *after* visual fade, whereas the error toast **fades visually but keeps its unacknowledged C# record**. The faded error becomes accessible under `还有 N 条错误` until explicitly acknowledged. The host sends an `errors` snapshot for this purpose. This preserves the pre-existing rule that no error is silently discarded.
+- A new C# test verifies all unacknowledged errors remain in the browser snapshot after the visible four-card limit; a JavaScript timer simulation passed auto-expiry for both types, hover/pause/resume, no reappearance on snapshots, and post-fade error archive access.
+- This correction is **not yet Windows-accepted**. No full WebView2 UI/Full suite completion or merge is claimed.
+
+**Retest:** `git pull --ff-only origin feature/webview2-reader`, `dotnet build ReadArticles.Tests -c Release`, `.\tools\Test.ps1 -Suite Core`, run `--webview-pilot`. Trigger informational, warning and error notifications; all cards should visibly fade after ~4.65 s with 1 s transition, retain hover pause, and stack newest-first within a 480px-wide borderless panel. Verify faded error still appears via the overflow control, and closing it there removes the record. Restart **the same** build twice to test font and pane-width persistence.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
