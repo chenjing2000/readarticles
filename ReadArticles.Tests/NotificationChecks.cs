@@ -81,6 +81,42 @@ internal static class NotificationChecks
                 new[] { differentMessage!.Id, repeated.Id, first.Id }));
         });
 
+        Program.Run("switching article clears every visible and queued notification", () =>
+        {
+            string temp = Path.Combine(Path.GetTempPath(),
+                "ReadArticles-notification-switch-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temp);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                string secondPath = Path.Combine(temp, "Second.json");
+                File.Copy(TestData.ArticlePath, secondPath);
+                var model = window.ViewModel;
+                Program.Check(model.OpenArticle(TestData.ArticlePath));
+                var previous = Enumerable.Range(0, 5)
+                    .Select(i => model.Notifications.Publish("old-" + i,
+                        "Previous article message " + i, NotificationSeverity.Error)!).ToArray();
+                Program.Check(model.Notifications.Visible.Count == 3 &&
+                    model.Notifications.Messages.Count == 5);
+
+                Program.Check(!model.OpenArticle(Path.Combine(temp, "NotFound.json")));
+                Program.Check(previous.All(n => model.Notifications.Messages.Any(
+                    existing => existing.Id == n.Id)));
+
+                Program.Check(model.OpenArticle(secondPath));
+                Program.Check(model.Notifications.Messages.Count == 0 &&
+                    model.Notifications.Visible.Count == 0);
+                var newNotice = model.Notifications.Publish("new", "New article message",
+                    NotificationSeverity.Info)!;
+                Program.Check(model.Notifications.Messages.Single().Id == newNotice.Id);
+            }
+            finally
+            {
+                window.Close();
+                Directory.Delete(temp, true);
+            }
+        });
+
         Program.Run("ordinary notifications are queued without trimming or priority eviction", () =>
         {
             var service = new NotificationService();
