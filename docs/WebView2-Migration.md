@@ -116,6 +116,44 @@ Use a throwaway *copy* of an article and its vocabulary JSON to test the followi
 
 **Status:** Code submitted on the migration branch; no post-edit Windows build, UI run or manual vocabulary write verification has been received yet. Do not merge PR #16 to `main` before all stages and user approval.
 
+## Stage 4 Windows acceptance and stage 5 Script/audio implementation (2026-11-18)
+
+The user verified `08f70aa` on Windows:
+
+- `dotnet build ReadArticles.Tests -c Release`: **passed**.
+- `.\\tools\\Test.ps1 -Suite Core`: **10/10 groups passed**; the new WebView2 vocabulary edit regression also passed.
+- In the WebView2 pilot, adding a selected word writes the vocabulary JSON, duplicate words are rejected without writes, move up/down/delete persist in the file, import cancellation preserves the file, valid import commits, and an externally changed vocabulary JSON blocks stale overwrites. **Stage 4 is accepted for these tested behaviors.**
+
+### Stage 5 submitted code (not yet Windows-accepted)
+
+- The WebView2 Script button loads `<name>.script.json` via the existing C# `ArticleRepository.LoadScript` **only on demand**. Missing/invalid Script leaves the active Passage unchanged. A new session/request-scoped `setReadingMode → modeRendered/modeRenderFailed → actionResult` handshake commits the mode only after the browser confirms rendering.
+- Script uses the companion `title`, paragraph/sentence structure, and `timedUnits` with their original UTF-16 offsets and **one start/end time interval per unit**. Unaligned or untimed units stay readable without gradient. Script sentences do not fabricate Passage SID/audio eligibility. Selection within one Script sentence sends paragraph/sentence indices, not a fabricated SID, and is validated against the trusted Script model before vocabulary edits.
+- Browser script rendering preserves the original text and uses a non-interactive red text copy clipped to rectangles measured by `Range.getClientRects()`. The clip widths are advanced sequentially across visual lines using the unique unit progress `clamp((t - start)/(end - start),0,1)`. This is designed to avoid repeated gradients on wrapped fragments and to allow independent CSS vocabulary backgrounds across timed units.
+- C# remains the unique source of article playback time. Its existing 100 ms UI timer switches to 33 ms when WebView2 Script is playing and sends lightweight `setPlayback` position/state updates; stop/end clears red, seek recomputes it. No HTML Audio or additional audio clock is introduced.
+- Article play/pause/stop/seek, vocabulary UK/US pronunciation and right-click Passage SID pronunciation send validated intents to existing C# `ReaderPlayback`. The host returns `accepted` only to indicate the command was processed, **not** to claim that the audio file actually played. Failures are still reported via existing notifications.
+- A C# contract test checks the Script snapshot's title/unit offsets/nulls and Script selection validation without fabricated SIDs. A separate JavaScript host-message simulation passed initial Passage rendering, article play intent, Script switch request/ack, blank Script title and playback UI state.
+
+**Windows acceptance (still required):**
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+dotnet run --project ReadArticles -c Release -- --webview-pilot
+```
+
+Use a **working-copy** library that contains a Passage, optional `<name>.script.json`, an article MP3/WAV and available UK/US word/Passage sentence recordings. Verify the following behaviors, not just whether the buttons exist:
+
+1. Toggle Passage → Script → Passage repeatedly; Script title (including an empty title), paragraphs and independent scroll positions display correctly. Missing or invalid Script leaves Passage displayed and reports a warning/error.
+2. Start article playback in Script and examine a timed unit wrapping across two or more visual lines (especially `non-identical` wrapping after the hyphen). Red foreground must advance along the first line before reaching the next, with **one** source interval, while matching vocabulary retains its pink background.
+3. Pause, seek backward/forward, stop, and reach the natural end of the track. Red foreground must freeze, recompute, and clear as appropriate; the article play/stop buttons and time slider must stay synchronized with C#.
+4. Play UK/US vocabulary and right-click an eligible Passage SID, including an intentionally missing sentence recording. Vocabulary/sentence sound should use the existing pronunciation channel and article interruption semantics; Script must never offer a synthetic SID.
+5. Select words in one Script sentence (including wrapped text) and add to the Passage-associated vocabulary file. Cross-Script-sentence selection must hide the add button. Duplicate/add/import behavior must still respect the Stage 4 data-safety guarantees.
+6. Resize the window and change reading font in Script mode. Gradient must track the **new** layout, not stale line rectangles. Verify scroll and word focus across mode toggles.
+
+The original WPF Script background pixel regression remains known and is not suppressed. Browser-specific visual/pixel coverage and final legacy cleanup remain pending. **Do not merge PR #16** until all stages and user approval.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
