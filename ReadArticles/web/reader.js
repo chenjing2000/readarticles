@@ -14,7 +14,6 @@ let selectedPassage = null;
 let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
-let noticeSequence = 0;
 let splitting = null;
 let currentMode = "passage";
 let pendingModeRequest = null;
@@ -472,7 +471,6 @@ function dismissNotification(id) {
 // remain in the C# notification service after their cards disappear.
 const toastDisplayMs = 4650;
 const toastFadeMs = 1000;
-let latestNotifications = { visible: [] };
 
 function noticePrefix(severity) {
   const kind = String(severity ?? "").toLowerCase();
@@ -568,7 +566,6 @@ function createToast(item) {
 }
 
 function renderNotifications(notifications) {
-  latestNotifications = notifications;
   const host = byId("notification-cards");
   const visible = (notifications.visible ?? []).slice(0, 3);
   const wanted = new Set(visible.map(item => String(item.id)));
