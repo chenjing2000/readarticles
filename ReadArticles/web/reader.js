@@ -90,6 +90,7 @@ function renderSettings(settings) {
 function renderInitialize(payload) {
   renderSettings(payload.settings ?? {});
   renderArticle(payload.article);
+  byId("vocabulary-scroll").scrollTop = 0;
   renderVocabulary(payload.vocabulary ?? []);
   renderPlayback(payload.playback ?? {});
   renderNotifications(payload.notifications ?? {});
