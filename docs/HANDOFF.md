@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：用户在 Windows 上验证 `1e757fd`：Release 构建成功、Core 10/10 组通过，通知最多显示 3 条、错误必须手动关闭、消息按 FIFO 补位均符合要求；但**普通/警告通知鼠标悬停仍会消失**。已定位根因：原 `renderNotifications` 每次快照都重新 `append` 已在 DOM 中的卡片，可能造成虚假的 `mouseleave` 并重启倒计时。现已提交**稳定 DOM 顺序的条件插入、pointer/mouse 悬停监听及到期时二次核验 `:hover`**，并通过 15 秒悬停/20 次通知快照的模拟计时检查。修复了两条 `CS8602` 测试警告。**待 Windows 再验收悬停修复**。分栏默认左侧 **310 DIP**、右侧 **390 DIP**；每次重启恢复默认（窗口约束下可有偏差）。详见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft PR #16 未合并。
+> **当前更新（2026-11-18）**：`feature/webview2-reader` 第六阶段悬停倒计时修复已通过用户 Windows 实机验收，Core 10/10 组通过。最新需求：**成功切换文章时直接调用 `Notifications.Clear()` 清空显示和等待队列，无需给消息增加文章标识**（中途加入的 ArticlePath/ClearArticle/NotifyGlobal 已撤销）；失败的文章切换保留通知。目录树标题紧跟固定 20 DIP 的展开符号列、左侧间距固定 2 DIP；每次展开只扫描当前层目录，显示直接子文件夹及顶层 `"filetype": "passage"` 的有效 JSON 文件，不递归加载子层。已提交代码与测试，**仍待 Windows 构建/Core/实机验收这些新改动**。查看 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并，默认 WPF 阅读模式保留。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：Windows 复验普通和警告通知悬停超过到期时间仍继续显示、移开后从剩余时间继续计时；兼查展开按钮/关闭按钮区域、错误常驻与三条 FIFO 队列。确认后方可完成第六阶段并进入第七阶段清理。
+> **当前工作目标**：本机验证切换文章清空所有通知、旧通知排队清空、切换失败不清空，左侧分隔条拖动时节点文字固定靠近展开符号，单层 JSON 过滤只显示 filetype 为 passage 的文件。通过后再进入第七阶段 WPF 清理与 UI/Full 运行。
 
 ## 1. 仓库、分支和实际状态
 
