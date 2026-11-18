@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：`feature/webview2-reader` 第六阶段悬停倒计时修复已通过用户 Windows 实机验收，Core 10/10 组通过。最新需求：**成功切换文章时直接调用 `Notifications.Clear()` 清空显示和等待队列，无需给消息增加文章标识**（中途加入的 ArticlePath/ClearArticle/NotifyGlobal 已撤销）；失败的文章切换保留通知。目录树标题紧跟固定 20 DIP 的展开符号列、左侧间距固定 2 DIP；每次展开只扫描当前层目录，显示直接子文件夹及顶层 `"filetype": "passage"` 的有效 JSON 文件，不递归加载子层。已提交代码与测试，**仍待 Windows 构建/Core/实机验收这些新改动**。查看 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并，默认 WPF 阅读模式保留。
+> **当前更新（2026-11-18）**：**第六阶段及后续文章通知/目录树修改已通过用户 Windows 实机验收。** `b0dacaf` 的 `dotnet build ReadArticles.Tests -c Release` 成功，`Test.ps1 -Suite Core` 10/10 组全部通过（content 34、rendering 13、tree 5、editing 2、notifications 8、lazy-tree 7）。用户确认切换文章后所有旧 Error 和等待消息立即清空；左侧分隔栏拖动时展开符号与文件/目录名称始终贴近；展开目录只查看当层子目录及顶层 `"filetype":"passage"` JSON。此前用户还确认 WebView2 Script 同步着色、音频、词汇持久化、Toast 三槽 FIFO、错误常驻和普通/警告悬停暂停。**目前进入第七阶段审计，尚未运行 UI/Full/正式发布验收，不能删除默认 WPF 阅读器或宣称可以合并。** 详见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：本机验证切换文章清空所有通知、旧通知排队清空、切换失败不清空，左侧分隔条拖动时节点文字固定靠近展开符号，单层 JSON 过滤只显示 filetype 为 passage 的文件。通过后再进入第七阶段 WPF 清理与 UI/Full 运行。
+> **当前工作目标**：先检查 `Test.ps1 -Suite UI`、`Test.ps1 -Suite Full`、`Publish.ps1`、`Test-PublishedApp.ps1` 的 Windows 实测结果，并逐文件评估旧 WPF 阅读视图与对应 UI 测试的替代覆盖；在真实 WebView2 运行和发布验收完整通过后，再单独规划删除旧阅读视图。保留 WPF 左侧目录树、C# 音频与文件业务、错误回退；未获合并授权。
 
 ## 1. 仓库、分支和实际状态
 
