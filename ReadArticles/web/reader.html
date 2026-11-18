@@ -21,8 +21,11 @@
         <output id="playback-time">00:00 / 00:00</output>
         <button id="article-play" disabled title="播放或暂停文章音频">播放</button>
         <button id="article-stop" disabled title="停止文章音频">停止</button>
+        <button id="reader-settings-toggle" aria-expanded="false" aria-controls="reader-settings-panel" title="阅读设置">设置</button>
       </footer>
     </section>
+    <div id="reader-splitter" class="reader-splitter" role="separator"
+         aria-label="调整词汇区宽度" aria-orientation="vertical" tabindex="0"></div>
     <section class="pane vocabulary-pane" aria-label="词汇表">
       <div id="vocabulary-scroll" class="scroll">
         <div class="pane-heading">词汇表 <span id="vocabulary-count"></span></div>
@@ -40,7 +43,26 @@
     <button type="button" id="selection-add" class="selection-add" hidden
             aria-label="添加所选词汇" title="添加所选词汇">+</button>
     <output id="selection-status" class="selection-status" role="status" hidden></output>
-    <aside id="notifications" aria-label="通知"></aside>
+    <section id="reader-settings-panel" class="settings-popover" hidden aria-label="阅读设置">
+      <div class="settings-title">阅读设置</div>
+      <label>正文字号
+        <select id="reader-font-size"><option value="14">14</option><option value="15">15</option><option value="16">16</option></select>
+      </label>
+      <label>单词发音
+        <select id="reader-accent"><option value="uk">英音</option><option value="us">美音</option></select>
+      </label>
+      <label>向前跳转
+        <select id="reader-forward-step"><option value="4">4 秒</option><option value="7">7 秒</option><option value="10">10 秒</option></select>
+      </label>
+      <label>向后跳转
+        <select id="reader-backward-step"><option value="5">5 秒</option><option value="8">8 秒</option><option value="15">15 秒</option></select>
+      </label>
+    </section>
+    <aside id="notifications" aria-label="通知">
+      <button id="notification-overflow-toggle" class="notification-overflow-toggle" hidden aria-expanded="false" aria-controls="notification-overflow-list"></button>
+      <div id="notification-overflow-list" class="notification-overflow-list" hidden></div>
+      <div id="notification-cards" class="notification-cards"></div>
+    </aside>
   </div>
 </body>
 </html>
