@@ -132,7 +132,7 @@
                 SelectedItemChanged="TreeSelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <TreeView.Resources>
           <HierarchicalDataTemplate DataType="{x:Type models:NavigationNode}" ItemsSource="{Binding Children}">
-            <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="260" Margin="0,5"/>
+            <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="260" Margin="2,5,0,5" HorizontalAlignment="Left"/>
           </HierarchicalDataTemplate>
         </TreeView.Resources>
         <TreeView.ItemContainerStyle>
@@ -147,7 +147,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <ToggleButton x:Name="Expander" Style="{StaticResource TreeExpander}" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" ClickMode="Press"/>
-                    <Border x:Name="HeaderArea" Grid.Column="1" Background="Transparent"><ContentPresenter x:Name="PART_Header" ContentSource="Header" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/></Border>
+                    <Border x:Name="HeaderArea" Grid.Column="1" Background="Transparent"><ContentPresenter x:Name="PART_Header" ContentSource="Header" HorizontalAlignment="Left"/></Border>
                     <ItemsPresenter x:Name="Children" Grid.Row="1" Grid.Column="1" Visibility="Collapsed"/>
                   </Grid>
                   <ControlTemplate.Triggers>
