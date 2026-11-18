@@ -70,12 +70,12 @@ internal static class NotificationChecks
         Program.Run("all notice types preserve arrival order even when keys repeat", () =>
         {
             var service = new NotificationService();
-            var first = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning);
-            var repeated = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning);
-            var differentMessage = service.Publish("audio", "Missing US audio", NotificationSeverity.Warning);
-            var differentSeverity = service.Publish("audio", "Missing UK audio", NotificationSeverity.Info);
-            Program.Check(first is not null && repeated is not null && first.Id != repeated.Id);
-            Program.Check(differentMessage?.Id != first.Id && differentSeverity?.Id != first.Id);
+            var first = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning)!;
+            var repeated = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning)!;
+            var differentMessage = service.Publish("audio", "Missing US audio", NotificationSeverity.Warning)!;
+            var differentSeverity = service.Publish("audio", "Missing UK audio", NotificationSeverity.Info)!;
+            Program.Check(first.Id != repeated.Id);
+            Program.Check(differentMessage.Id != first.Id && differentSeverity.Id != first.Id);
             Program.Check(service.Messages.Count == 4);
             Program.Check(service.Visible.Select(n => n.Id).SequenceEqual(
                 new[] { differentMessage!.Id, repeated.Id, first.Id }));
