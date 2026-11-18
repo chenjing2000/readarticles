@@ -469,6 +469,12 @@ function dismissNotification(id) {
   if (sessionId) send("notificationDismiss", { payload: { id } });
 }
 
+// Shared visual lifetime for all severities. Unacknowledged error records
+// remain in the C# notification service after their cards disappear.
+const toastDisplayMs = 4650;
+const toastFadeMs = 1000;
+let latestNotifications = { visible: [], errors: [], overflowErrors: [] };
+
 function createToast(item) {
   const key = String(item.id);
   const card = element("div", "notice " + String(item.severity ?? "").toLowerCase());
@@ -479,71 +485,70 @@ function createToast(item) {
   close.type = "button";
   close.setAttribute("aria-label", "关闭通知");
   card.append(message, close);
-  const entry = { card, item, remaining: 4650, started: null, timeout: null, exiting: false };
+  const isError = String(item.severity ?? "").toLowerCase() === "error";
+  const entry = {
+    card, item, remaining: toastDisplayMs, started: null, timeout: null,
+    exiting: false, expired: false
+  };
   const pause = () => {
-    if (entry.exiting) return;
+    if (entry.exiting || entry.expired) return;
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
     entry.timeout = null;
-    if (entry.started !== null) entry.remaining -= performance.now() - entry.started;
+    if (entry.started !== null) entry.remaining = Math.max(0,
+      entry.remaining - (performance.now() - entry.started));
     entry.started = null;
   };
-  const expire = (duration) => {
-    if (entry.exiting) return;
+  const fadeOut = (manual) => {
+    if (entry.exiting || entry.expired) return;
     pause();
     entry.exiting = true;
     card.classList.remove("entering");
     card.classList.add("exiting");
-    entry.timeout = window.setTimeout(() => dismissNotification(item.id), duration);
+    entry.timeout = window.setTimeout(() => {
+      entry.timeout = null;
+      entry.expired = true;
+      card.remove();
+      if (!isError || manual) {
+        dismissNotification(item.id);
+      } else {
+        // Visually fade errors too, but keep the record accessible via
+        // the overflow control until the user acknowledges it.
+        renderErrorArchive(latestNotifications);
+      }
+    }, toastFadeMs);
   };
   const resume = () => {
-    if (entry.exiting || item.severity === "Error") return;
+    if (entry.exiting || entry.expired) return;
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
     entry.started = performance.now();
-    entry.timeout = window.setTimeout(() => expire(350), Math.max(0, entry.remaining));
+    entry.timeout = window.setTimeout(() => fadeOut(false),
+      Math.max(0, entry.remaining));
   };
-  const dispose = () => {
+  entry.dispose = () => {
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
     entry.timeout = null;
     entry.started = null;
     card.remove();
   };
-  entry.dispose = dispose;
   card.addEventListener("mouseenter", pause);
   card.addEventListener("mouseleave", resume);
-  close.addEventListener("click", () => expire(180));
+  close.addEventListener("click", () => fadeOut(true));
   resume();
   return entry;
 }
 
-function renderNotifications(notifications) {
-  const host = byId("notification-cards");
-  const visible = notifications.visible ?? [];
-  const wanted = new Set(visible.map(item => String(item.id)));
-  for (const [key, entry] of toastEntries) {
-    if (!wanted.has(key)) {
-      entry.dispose();
-      toastEntries.delete(key);
-    }
-  }
-  // Preserve each card, timer and hover state between authoritative snapshots.
-  visible.forEach(item => {
-    const key = String(item.id);
-    let entry = toastEntries.get(key);
-    if (!entry) {
-      entry = createToast(item);
-      toastEntries.set(key, entry);
-    }
-    host.append(entry.card);
-  });
-
-  const overflow = notifications.overflowErrors ?? [];
+function renderErrorArchive(notifications) {
+  const visibleIds = new Set((notifications.visible ?? []).map(item => String(item.id)));
+  const allErrors = notifications.errors ?? notifications.overflowErrors ?? [];
+  const archived = allErrors.filter(item =>
+    !visibleIds.has(String(item.id)) || toastEntries.get(String(item.id))?.expired);
   const toggle = byId("notification-overflow-toggle");
   const list = byId("notification-overflow-list");
-  toggle.hidden = overflow.length === 0;
-  toggle.textContent = "还有 " + overflow.length + " 条错误";
-  if (!overflow.length) list.hidden = true;
+  toggle.hidden = archived.length === 0;
+  toggle.textContent = "还有 " + archived.length + " 条错误";
+  if (!archived.length) list.hidden = true;
   list.replaceChildren();
-  for (const item of overflow) {
+  for (const item of archived) {
     const line = element("div", "notification-overflow-entry");
     line.append(element("span", "", item.message));
     const close = element("button", "", "×");
@@ -555,6 +560,32 @@ function renderNotifications(notifications) {
   }
   toggle.setAttribute("aria-expanded", String(!list.hidden && !toggle.hidden));
 }
+
+function renderNotifications(notifications) {
+  latestNotifications = notifications;
+  const host = byId("notification-cards");
+  const visible = notifications.visible ?? [];
+  const wanted = new Set(visible.map(item => String(item.id)));
+  for (const [key, entry] of toastEntries) {
+    if (!wanted.has(key)) {
+      entry.dispose();
+      toastEntries.delete(key);
+    }
+  }
+  // Newest first in the bottom-anchored stack. Reuse existing DOM and
+  // deadlines when unrelated notification snapshots arrive.
+  for (const item of visible) {
+    const key = String(item.id);
+    let entry = toastEntries.get(key);
+    if (!entry) {
+      entry = createToast(item);
+      toastEntries.set(key, entry);
+    }
+    if (!entry.expired) host.append(entry.card);
+  }
+  renderErrorArchive(notifications);
+}
+
 function renderSettings(settings) {
   const fontSize = Number(settings.fontSize);
   const rightWidth = Number(settings.rightWidth);
