@@ -231,9 +231,13 @@ internal static class ScriptChecks
             var reader = Reader([sentence], ["beta"]);
             reader.Width = 160;
             reader.FontSize = 26;
+            // Capture the explicit AdornerDecorator rather than Window.
+            // The highlighted text is painted by a sibling AdornerLayer,
+            // not by the RichTextBox itself.
+            var adornedRoot = new AdornerDecorator { Child = reader };
             var host = new Window
             {
-                Content = reader, Width = 230, Height = 280,
+                Content = adornedRoot, Width = 230, Height = 280,
                 Left = -10000, Top = -10000, ShowActivated = false
             };
             try
@@ -290,11 +294,14 @@ internal static class ScriptChecks
                 Program.Check(adornerLayer?.GetAdorners(reader)?
                     .Any(a => !a.IsHitTestVisible) == true);
                 var visibleBrush = reader.GetScriptVocabularyBackground(0, 6);
-                byte[] withBackground = CapturePixels(host, out int width, out int height);
+                byte[] withBackground = CapturePixels(adornedRoot, out int width, out int height);
+                byte[] visibleLayer = CapturePixels(adornerLayer!, out int layerWidth, out int layerHeight);
                 reader.SetVocabulary(["beta"], false);
                 WpfTestHelpers.Pump();
                 var hiddenBrush = reader.GetScriptVocabularyBackground(0, 6);
-                byte[] withoutBackground = CapturePixels(host, out int sameWidth, out int sameHeight);
+                byte[] withoutBackground = CapturePixels(adornedRoot, out int sameWidth, out int sameHeight);
+                byte[] hiddenLayer = CapturePixels(adornerLayer!, out int hiddenLayerWidth, out int hiddenLayerHeight);
+                Program.Check(layerWidth == hiddenLayerWidth && layerHeight == hiddenLayerHeight);
                 Program.Check(width == sameWidth && height == sameHeight);
                 var range = reader.Ranges[0];
                 int changes = 0;
@@ -306,15 +313,17 @@ internal static class ScriptChecks
                     if (start.IsEmpty || finish.IsEmpty ||
                         Math.Abs(start.Top - finish.Top) >= 1 || finish.Left <= start.Left) continue;
                     validCells++;
-                    Point topLeft = reader.TranslatePoint(start.TopLeft, host);
-                    Point bottomRight = reader.TranslatePoint(new Point(finish.Left, start.Bottom), host);
+                    Point topLeft = reader.TranslatePoint(start.TopLeft, adornedRoot);
+                    Point bottomRight = reader.TranslatePoint(new Point(finish.Left, start.Bottom), adornedRoot);
                     changes += ChangedPixels(withBackground, withoutBackground, width, height,
                         (int)topLeft.X, (int)topLeft.Y, (int)Math.Ceiling(bottomRight.X),
                         (int)Math.Ceiling(bottomRight.Y));
                 }
                 int globalChanges = ChangedPixels(withBackground, withoutBackground,
                     width, height, 0, 0, width, height);
-                Console.WriteLine($"  Script vocabulary highlight pixels: local={changes}; global={globalChanges}; validCells={validCells}; visibleBrush={visibleBrush}; hiddenBrush={hiddenBrush}; adornerSize={adornerLayer!.ActualWidth:F1}x{adornerLayer.ActualHeight:F1}");
+                int layerChanges = ChangedPixels(visibleLayer, hiddenLayer,
+                    layerWidth, layerHeight, 0, 0, layerWidth, layerHeight);
+                Console.WriteLine($"  Script vocabulary highlight pixels: local={changes}; global={globalChanges}; layer={layerChanges}; validCells={validCells}; visibleBrush={visibleBrush}; hiddenBrush={hiddenBrush}; adornerSize={adornerLayer!.ActualWidth:F1}x{adornerLayer.ActualHeight:F1}");
                 // Preserve this actual pixel assertion until the WPF implementation
                 // is fixed or superseded by equivalent WebView2 rendering coverage.
                 Program.Check(changes > 0);
