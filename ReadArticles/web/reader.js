@@ -600,8 +600,9 @@ function renderErrorArchive(notifications) {
     close.addEventListener("click", () => dismissNotification(item.id));
     actions.append(close);
     line.append(body, actions);
+    line.refreshExpansion = checkOverflow;
     list.append(line);
-    window.requestAnimationFrame(checkOverflow);
+    if (!list.hidden) window.requestAnimationFrame(checkOverflow);
   }
   toggle.setAttribute("aria-expanded", String(!list.hidden && !toggle.hidden));
 }
@@ -832,6 +833,9 @@ byId("notification-overflow-toggle").addEventListener("click", () => {
   const list = byId("notification-overflow-list");
   list.hidden = !list.hidden;
   byId("notification-overflow-toggle").setAttribute("aria-expanded", String(!list.hidden));
+  if (!list.hidden) window.requestAnimationFrame(() => {
+    for (const row of list.children) row.refreshExpansion?.();
+  });
 });
 
 document.addEventListener("keydown", event => {
