@@ -50,24 +50,52 @@ internal static class WebViewSettingsChecks
             finally { window.Close(); }
         });
 
-        Program.Run("WebView2 faded errors remain accessible in notification snapshots", () =>
+        Program.Run("WebView2 notification snapshot only admits three FIFO messages", () =>
         {
             var window = new ReadArticles.MainWindow(false);
             try
             {
-                for (int index = 0; index < 5; index++)
-                    window.ViewModel.Notifications.Publish("error-" + index,
-                        "Retained error " + index, NotificationSeverity.Error);
+                var notifications = window.ViewModel.Notifications;
+                var posted = Enumerable.Range(0, 5)
+                    .Select(index => notifications.Publish("error-" + index,
+                        "Retained error " + index, NotificationSeverity.Error)!).ToArray();
                 var method = typeof(ReadArticles.MainWindow).GetMethod(
                     "WebPilotNotificationSnapshot", BindingFlags.Instance | BindingFlags.NonPublic);
                 Program.Check(method is not null);
-                using var snapshot = JsonDocument.Parse(JsonSerializer.Serialize(
-                    method!.Invoke(window, null)));
-                Program.Check(snapshot.RootElement.GetProperty("visible").GetArrayLength() == 4);
-                Program.Check(snapshot.RootElement.GetProperty("errors").GetArrayLength() == 5);
-                Program.Check(snapshot.RootElement.GetProperty("overflowErrors").GetArrayLength() == 1);
+                JsonElement Snapshot()
+                {
+                    using var json = JsonDocument.Parse(JsonSerializer.Serialize(
+                        method!.Invoke(window, null)));
+                    return json.RootElement.Clone();
+                }
+                var first = Snapshot();
+                Program.Check(first.GetProperty("visible").GetArrayLength() == 3);
+                Program.Check(first.GetProperty("visible")[2].GetProperty("id").GetInt64() == posted[0].Id);
+                Program.Check(!first.TryGetProperty("errors", out _) &&
+                    !first.TryGetProperty("overflowErrors", out _));
+                Program.Check(notifications.Messages.Count == 5);
+                notifications.Dismiss(posted[0].Id);
+                var second = Snapshot();
+                Program.Check(second.GetProperty("visible")[0].GetProperty("id").GetInt64() == posted[3].Id);
             }
             finally { window.Close(); }
+        });
+
+        Program.Run("pane widths reset on restart while unrelated reading settings persist", () =>
+        {
+            var restored = JsonSerializer.Deserialize<ReaderSettings>(
+                """
+                {"LeftWidth":720,"RightWidth":850,"FontSize":16,"Accent":"us","ForwardStep":7}
+                """)!;
+            Program.Check(restored.LeftWidth == 310 && restored.RightWidth == 390);
+            Program.Check(restored.FontSize == 16 && restored.Accent == "us" &&
+                restored.ForwardStep == 7);
+            restored.LeftWidth = 540;
+            restored.RightWidth = 620;
+            string saved = JsonSerializer.Serialize(restored);
+            Program.Check(!saved.Contains("LeftWidth", StringComparison.Ordinal) &&
+                !saved.Contains("RightWidth", StringComparison.Ordinal));
+            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 390);
         });
 
         Program.Run("WebView2 notification dismiss retains errors until acknowledged", () =>
