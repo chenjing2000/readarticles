@@ -154,6 +154,16 @@ Use a **working-copy** library that contains a Passage, optional `<name>.script.
 
 The original WPF Script background pixel regression remains known and is not suppressed. Browser-specific visual/pixel coverage and final legacy cleanup remain pending. **Do not merge PR #16** until all stages and user approval.
 
+## Stage 5 Windows clock regression and minimal fix (2026-11-18)
+
+The user's Windows run at commit `4ea5ad0` confirmed the Release test build and Core suite (**10 groups passed**), and confirmed correct Passage/Script switching, vocabulary highlight, UK/US and Passage pronunciation, and cross-sentence selection semantics.
+
+**Live synchronization was not accepted.** During audio playback the WebView2 progress bar and Script red foreground remained frozen, but both jumped to the correct current position when playback was paused. Source inspection identified the exact regression: `MainWindow.Playback.cs::ProgressTimerTick` called `UpdateProgress()` (which only updates the old WPF reader) but never sent the updated position to WebView2. Only `ViewModel.PlaybackChanged` events sent `setPlayback`, explaining the correct one-time update on pause.
+
+Commit `2350502` changes the existing timer callback to call `SendWebPilotPlayback()` on active article audio after the WPF update. It **reuses the same C# audio clock and existing 33 ms Script interval**, without a browser timer, altered Script timing, or added audio engine.
+
+**Required retest:** Run `dotnet build ReadArticles.Tests -c Release` and `.\tools\Test.ps1 -Suite Core`; launch `--webview-pilot` with audio. Confirm the progress bar visibly advances during playback rather than only on pause; check the Script red text follows continuously, pauses in place, resumes and seeks correctly, and clears on stop/natural end. Also verify Passage play/pause and old WPF default launch. No Windows test of this new commit has yet been received.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
