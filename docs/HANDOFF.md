@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：`feature/webview2-reader` 的第一至第五阶段已完成 Windows 验收。第六阶段 Windows Core 10/10 组通过，字号、发音口音、Seek 步长、快捷键及 Script/词汇回归正常；但重启后的设置持久化尚未实机验证。用户指出 Toast 行为与要求不符，**现已提交修复：普通和错误通知都显示约 4.65 秒后向下淡出 1 秒、无边框、宽 480px、新消息在底部区域的堆叠顶部出现**；淡出的错误信息仍保留在“还有 N 条错误”中供手动确认。该修复待 Windows 复测。构建版/发布版 EXE 路径及具体命令见 [`WebView2-Migration.md`](WebView2-Migration.md)。默认 WPF 未替换，Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。
+> **当前更新（2026-11-18）**：`feature/webview2-reader` 第六阶段的 Windows Core 10/10 组通过，但用户指出操作失败提示未纳入统一 Toast、通知缺少分类与两行展开、以及分隔条宽度重启后未恢复。**已提交针对性修复，尚待 Windows 复验**：所有提示集中到正文栏底部居中，`普通：/警告：/错误：` 分类、不同文字/背景色、统一宽度无边框、两行省略与 `...>>展开`；Script 切换失败通过 C# Error 通知统一展示；分隔条提交计算出的目标宽度并移除阻碍恢复的 45% 页面上限。最新验收命令和 settings.json 路径见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft PR #16 未合并，默认 WPF 保留。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：重新验收第六阶段 Toast 的自动淡出、悬停、错误归档及重启后设置/分栏宽度保存；随后执行第七阶段旧 WPF 阅读渲染清理和真实浏览器 UI/Full 测试。继续保留 C# 音频/词汇业务、单 EXE 发布，不引入 React/Node.js。
+> **当前工作目标**：复验统一 Toast（颜色/前缀/居中/两行展开/错误归档）和分隔栏重启恢复，核对 userdata/config/settings.json 的 RightWidth；第六阶段通过后，再执行第七阶段旧 WPF 清理与 WebView2 UI/Full 测试。
 
 ## 1. 仓库、分支和实际状态
 
