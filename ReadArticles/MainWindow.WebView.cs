@@ -53,6 +53,11 @@ public partial class MainWindow
                     args.Cancel = true;
             };
             core.NewWindowRequested += (_, args) => args.Handled = true;
+            core.NavigationCompleted += (_, args) =>
+            {
+                if (!args.IsSuccess)
+                    WebPilotFailure("WebView2 本地页面加载失败，已切回 WPF 阅读界面。");
+            };
             core.ProcessFailed += (_, args) =>
             {
                 // A failed browser process never commits a business-state change.
@@ -194,7 +199,11 @@ public partial class MainWindow
     {
         // A previous display is never presented as the newly committed article.
         webPilotSessionId = Guid.NewGuid().ToString("N");
-        if (webPilotReady) SendWebPilotInitialize();
+        if (webPilotReady)
+        {
+            WebPilotOverlay.Visibility = Visibility.Collapsed;
+            SendWebPilotInitialize();
+        }
     }
 
     private void WebPilotVocabularyChanged()
