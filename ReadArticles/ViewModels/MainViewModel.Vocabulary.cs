@@ -4,6 +4,8 @@ using ReadArticles.Services;
 
 namespace ReadArticles.ViewModels;
 
+public enum VocabularyEditResult { Success, Duplicate, Unavailable, Failed }
+
 public sealed partial class MainViewModel
 {
     private void RefreshWords()
@@ -12,6 +14,7 @@ public sealed partial class MainViewModel
         if (Article is null) return;
         foreach (var word in PrepareWords(Article)) Words.Add(word);
     }
+
     private List<VocabularyEntryViewModel> PrepareWords(LoadedArticle article)
     {
         var words = new List<VocabularyEntryViewModel>();
@@ -23,19 +26,33 @@ public sealed partial class MainViewModel
         }
         return words;
     }
-    public void AddSelection(PassageSelection selection) => Handle(() =>
+
+    // Keep the existing WPF Action-based event contract intact.
+    public void AddSelection(PassageSelection selection) => _ = TryAddWord(selection.Text);
+
+    public VocabularyEditResult TryAddWord(string text)
     {
-        var article = Article ?? throw new InvalidOperationException("请先打开文章。");
-        var entry = VocabularyRepository.NewEntry(selection.Text);
-        if (article.Vocabulary.Data.Words.Any(w => w.Word.Equals(entry.Word, StringComparison.OrdinalIgnoreCase)))
+        if (!CanWriteVocabulary) return VocabularyEditResult.Unavailable;
+        bool duplicate = false;
+        bool completed = Handle(() =>
         {
-            Notify("DuplicateVocabulary", "词表中已存在：" + entry.Word, ReadArticles.Infrastructure.NotificationSeverity.Warning);
-            return;
-        }
-        var entries = new List<VocabularyEntry>(article.Vocabulary.Data.Words);
-        entries.Add(entry);
-        CommitWords(entries);
-    });
+            var article = Article ?? throw new InvalidOperationException("请先打开文章。");
+            var entry = VocabularyRepository.NewEntry(text);
+            if (article.Vocabulary.Data.Words.Any(w =>
+                w.Word.Equals(entry.Word, StringComparison.OrdinalIgnoreCase)))
+            {
+                duplicate = true;
+                Notify("DuplicateVocabulary", "词表中已存在：" + entry.Word,
+                    ReadArticles.Infrastructure.NotificationSeverity.Warning);
+                return;
+            }
+            var entries = new List<VocabularyEntry>(article.Vocabulary.Data.Words) { entry };
+            CommitWords(entries);
+        });
+        return !completed ? VocabularyEditResult.Failed :
+            duplicate ? VocabularyEditResult.Duplicate : VocabularyEditResult.Success;
+    }
+
     public bool CanMoveWord(VocabularyEntry entry, int direction)
     {
         if (!CanWriteVocabulary || (direction != -1 && direction != 1)) return false;
@@ -43,33 +60,60 @@ public sealed partial class MainViewModel
         int index = entries.IndexOf(entry);
         return index >= 0 && index + direction >= 0 && index + direction < entries.Count;
     }
-    public void MoveWord(VocabularyEntry entry, int direction) => Handle(() =>
+
+    public void MoveWord(VocabularyEntry entry, int direction) => _ = TryMoveWord(entry, direction);
+
+    public VocabularyEditResult TryMoveWord(VocabularyEntry entry, int direction)
     {
-        if (!CanMoveWord(entry, direction)) return;
-        var entries = Article!.Vocabulary.Data.Words.ToList();
-        int index = entries.IndexOf(entry);
-        int destination = index + direction;
-        entries.RemoveAt(index);
-        entries.Insert(destination, entry);
-        CommitWords(entries);
-    });
-    public void DeleteWord(VocabularyEntry entry) => Handle(() =>
+        if (!CanMoveWord(entry, direction)) return VocabularyEditResult.Unavailable;
+        bool completed = Handle(() =>
+        {
+            var entries = Article!.Vocabulary.Data.Words.ToList();
+            int index = entries.IndexOf(entry);
+            int destination = index + direction;
+            entries.RemoveAt(index);
+            entries.Insert(destination, entry);
+            CommitWords(entries);
+        });
+        return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
+    }
+
+    public void DeleteWord(VocabularyEntry entry) => _ = TryDeleteWord(entry);
+
+    public VocabularyEditResult TryDeleteWord(VocabularyEntry entry)
     {
         var article = Article;
-        if (article == null || !CanWriteVocabulary || !article.Vocabulary.Data.Words.Contains(entry)) return;
-        CommitWords(article.Vocabulary.Data.Words.Where(w => !ReferenceEquals(w, entry)).ToList());
-        playback.StopWord(entry);
-    });
-    public void ImportVocabulary(string path) => Handle(() =>
+        if (article is null || !CanWriteVocabulary ||
+            !article.Vocabulary.Data.Words.Contains(entry))
+            return VocabularyEditResult.Unavailable;
+        bool completed = Handle(() =>
+        {
+            CommitWords(article.Vocabulary.Data.Words
+                .Where(w => !ReferenceEquals(w, entry)).ToList());
+            playback.StopWord(entry);
+        });
+        return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
+    }
+
+    public void ImportVocabulary(string path) => _ = TryImportVocabulary(path);
+
+    public VocabularyEditResult TryImportVocabulary(string path)
     {
-        if (!File.Exists(path)) throw new FileNotFoundException("导入文件不存在。");
-        var incoming = new VocabularyRepository().Load(path);
-        CommitVocabulary(incoming.Data);
-    });
+        if (!CanWriteVocabulary) return VocabularyEditResult.Unavailable;
+        bool completed = Handle(() =>
+        {
+            if (!File.Exists(path)) throw new FileNotFoundException("导入文件不存在。");
+            var incoming = new VocabularyRepository().Load(path);
+            CommitVocabulary(incoming.Data);
+        });
+        return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
+    }
+
     private void CommitWords(List<VocabularyEntry> entries)
     {
         CommitVocabulary(new VocabularyData { Words = entries, Extra = Article!.Vocabulary.Data.Extra });
     }
+
     private void CommitVocabulary(VocabularyData vocabulary)
     {
         workspace.ReplaceVocabulary(vocabulary);
