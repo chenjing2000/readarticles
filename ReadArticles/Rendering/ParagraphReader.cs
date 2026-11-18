@@ -266,7 +266,7 @@ public sealed class ParagraphReader : RichTextBox
         {
             if (scriptSentences is null) return;
             SetScriptPosition(scriptSeconds);
-            scriptVocabularyAdorner?.InvalidateVisual();
+            scriptVocabularyAdorner?.Redraw();
         }));
     }
 
@@ -414,12 +414,11 @@ public sealed class ParagraphReader : RichTextBox
     {
         if (scriptSentences is not null)
         {
-            // This overlay lives in a separate AdornerLayer. Recompute its
-            // arrange/render state when vocabulary visibility or focus changes.
+            // Rebuild the retained overlay only after the reader is laid out.
+            // This avoids requesting character positions from OnRender, when
+            // WPF's text layout can be in the middle of a rendering pass.
             if (scriptVocabularyLayer is not null)
-                scriptVocabularyLayer.Update(this);
-            else
-                scriptVocabularyAdorner?.InvalidateVisual();
+                scriptVocabularyAdorner?.Redraw();
             return;
         }
         // Assign local Run properties: TextRange formatting can merge adjacent spans
@@ -485,7 +484,7 @@ public sealed class ParagraphReader : RichTextBox
         if (layer is null) return;
         scriptVocabularyLayer = layer;
         layer.Add(scriptVocabularyAdorner);
-        layer.Update(this);
+        scriptVocabularyAdorner.Redraw();
     }
 
     private void DetachScriptVocabulary(object sender, RoutedEventArgs e)
@@ -498,17 +497,27 @@ public sealed class ParagraphReader : RichTextBox
     private sealed class ScriptVocabularyAdorner : Adorner
     {
         private readonly ParagraphReader reader;
+        private readonly DrawingVisual drawing = new();
 
         public ScriptVocabularyAdorner(ParagraphReader reader) : base(reader)
         {
             this.reader = reader;
             IsHitTestVisible = false;
+            AddVisualChild(drawing);
         }
 
-        protected override void OnRender(DrawingContext drawingContext)
+        protected override int VisualChildrenCount => 1;
+
+        protected override Visual GetVisualChild(int index) =>
+            index == 0 ? drawing : throw new ArgumentOutOfRangeException(nameof(index));
+
+        // Calculate text geometry outside the WPF OnRender callback. The
+        // retained visual remains part of this adorner and can be redrawn
+        // immediately when vocabulary highlighting is toggled.
+        public void Redraw()
         {
-            base.OnRender(drawingContext);
-            reader.DrawScriptVocabulary(drawingContext);
+            using var context = drawing.RenderOpen();
+            reader.DrawScriptVocabulary(context);
         }
     }
 
