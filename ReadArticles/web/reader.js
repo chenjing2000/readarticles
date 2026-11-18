@@ -447,13 +447,19 @@ function formatSeconds(seconds) {
 }
 
 function renderPlayback(playback) {
+  currentPlayback = playback;
   const position = Number(playback.position) || 0;
   const duration = Number(playback.duration) || 0;
   const progress = byId("progress");
+  progress.disabled = playback.canSeek !== true;
   progress.max = String(Math.max(duration, 1));
-  progress.value = String(Math.max(0, Math.min(position, Math.max(duration, 1))));
+  if (!seekDragging) progress.value = String(Math.max(0, Math.min(position, Math.max(duration, 1))));
   byId("playback-time").textContent =
-    formatSeconds(position) + " / " + formatSeconds(duration);
+    formatSeconds(seekDragging ? progress.value : position) + " / " + formatSeconds(duration);
+  byId("article-play").disabled = playback.canPlay !== true;
+  byId("article-play").textContent = playback.state === "playing" ? "暂停" : "播放";
+  byId("article-stop").disabled = playback.isArticleActive !== true;
+  paintScriptProgress(playback);
 }
 
 function renderNotifications(notifications) {
@@ -473,14 +479,20 @@ function renderSettings(settings) {
   highlightsVisible = settings.highlightsVisible === true;
   byId("highlight-toggle").setAttribute("aria-pressed", String(highlightsVisible));
   refreshHighlights(false);
+  if (currentMode === "script") scheduleScriptGeometry();
 }
 
 function renderInitialize(payload) {
-  renderArticle(payload.article);
+  pendingModeRequest = null;
+  readingScroll.passage = 0;
+  readingScroll.script = 0;
+  renderArticle(payload.article, payload.mode === "script" ? "script" : "passage");
   selectedWord = null;
   selectedIndex = -1;
   canWriteVocabulary = payload.canWriteVocabulary === true;
   vocabulary = payload.vocabulary ?? [];
+  byId("script-toggle").disabled = payload.article == null;
+  updateReadingModeButton();
   renderVocabulary(vocabulary);
   byId("vocabulary-scroll").scrollTop = 0;
   refreshHighlights(true);
@@ -499,6 +511,39 @@ function send(type, additional = {}) {
   return requestId;
 }
 
+function updateReadingModeButton() {
+  const button = byId("script-toggle");
+  button.setAttribute("aria-pressed", String(currentMode === "script"));
+  button.disabled = !sessionId || !byId("article-body").querySelector(".sentence, .script-sentence") ||
+    !!pendingModeRequest || !!pendingMutation;
+}
+
+function updateReadingMode(next, content) {
+  if (next !== "passage" && next !== "script") throw Error("Unknown reading mode");
+  const body = byId("article-body");
+  const previousNodes = [...body.childNodes];
+  const previousTitle = byId("article-title").textContent;
+  const previousMode = currentMode;
+  const previousScroll = byId("article-scroll").scrollTop;
+  readingScroll[previousMode] = previousScroll;
+  try {
+    renderArticle(content, next, true);
+    refreshHighlights(true);
+    if (next === "script") scheduleScriptGeometry();
+  } catch (error) {
+    if (scriptGeometryFrame) cancelAnimationFrame(scriptGeometryFrame);
+    scriptGeometryFrame = 0;
+    body.replaceChildren(...previousNodes);
+    byId("article-title").textContent = previousTitle;
+    currentMode = previousMode;
+    byId("article-scroll").scrollTop = previousScroll;
+    updateReadingModeButton();
+    refreshHighlights(true);
+    if (previousMode === "script") scheduleScriptGeometry();
+    throw error;
+  }
+}
+
 function updateEditControls() {
   const canEdit = !!sessionId && canWriteVocabulary && !pendingMutation;
   const valid = selectedIndex >= 0 && selectedIndex < vocabulary.length;
@@ -507,6 +552,7 @@ function updateEditControls() {
   byId("word-delete").disabled = !canEdit || !valid;
   byId("word-import").disabled = !canEdit;
   byId("selection-add").disabled = !canEdit;
+  updateReadingModeButton();
 }
 
 function showEditStatus(value) {
@@ -527,6 +573,35 @@ function selectedWordPayload() {
   if (selectedIndex < 0 || selectedIndex >= vocabulary.length) return null;
   return { index: selectedIndex, word: vocabulary[selectedIndex].word };
 }
+
+byId("article-play").addEventListener("click", () => {
+  if (!byId("article-play").disabled) send("playArticle");
+});
+byId("article-stop").addEventListener("click", () => {
+  if (!byId("article-stop").disabled) send("stopArticle");
+});
+byId("progress").addEventListener("pointerdown", () => { seekDragging = true; });
+byId("progress").addEventListener("input", () => {
+  seekDragging = true;
+  renderPlayback(currentPlayback);
+});
+byId("progress").addEventListener("change", () => {
+  const seconds = Number(byId("progress").value);
+  seekDragging = false;
+  if (Number.isFinite(seconds) && currentPlayback.canSeek === true)
+    send("seekArticle", { payload: { position: seconds } });
+});
+byId("script-toggle").addEventListener("click", () => {
+  if (byId("script-toggle").disabled || !sessionId) return;
+  pendingModeRequest = send("switchReadingMode");
+  updateReadingModeButton();
+});
+byId("article-scroll").addEventListener("scroll", () => {
+  readingScroll[currentMode] = byId("article-scroll").scrollTop;
+});
+window.addEventListener("resize", scheduleScriptGeometry);
+const scriptSizeObserver = new ResizeObserver(scheduleScriptGeometry);
+scriptSizeObserver.observe(byId("article-scroll"));
 
 byId("word-up").addEventListener("click", () => {
   const payload = selectedWordPayload();
@@ -572,6 +647,16 @@ if (window.chrome?.webview) {
       return;
     }
     if (message.sessionId !== sessionId) return;
+    if (message.type === "setReadingMode") {
+      if (!pendingModeRequest || message.requestId !== pendingModeRequest) return;
+      try {
+        updateReadingMode(message.payload?.mode, message.payload?.article);
+        send("modeRendered", { requestId: message.requestId });
+      } catch {
+        send("modeRenderFailed", { requestId: message.requestId });
+      }
+      return;
+    }
     if (message.type === "setVocabulary") {
       const nextRevision = Number(message.vocabularyRevision);
       if (!Number.isInteger(nextRevision) || nextRevision < vocabularyRevision) return;
@@ -592,6 +677,13 @@ if (window.chrome?.webview) {
     } else if (message.type === "setNotifications") {
       renderNotifications(message.payload ?? {});
     } else if (message.type === "actionResult") {
+      if (pendingModeRequest && message.requestId === pendingModeRequest) {
+        pendingModeRequest = null;
+        updateReadingModeButton();
+        if (message.payload?.status !== "success")
+          showEditStatus("Script 切换失败或文件不可用，已保留原阅读模式");
+        return;
+      }
       if (!pendingMutation || message.requestId !== pendingMutation.requestId) return;
       const operation = pendingMutation.type;
       const result = message.payload?.status;
