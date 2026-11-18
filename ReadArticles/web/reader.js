@@ -36,11 +36,11 @@ function renderArticle(article) {
 function renderVocabulary(words) {
   const list = byId("vocabulary-list");
   list.replaceChildren();
-  byId("vocabulary-count").textContent = words.length ? \`(\${words.length})\` : "";
+  byId("vocabulary-count").textContent = words.length ? `(${words.length})` : "";
   for (const word of words) {
     const row = element("article", "word-row");
     row.append(element("div", "word-head", word.word));
-    row.append(element("div", "phonetics", \`UK \${word.phoneticUk ?? "—"}  |  US \${word.phoneticUs ?? "—"}\`));
+    row.append(element("div", "phonetics", `UK ${word.phoneticUk ?? "—"}  |  US ${word.phoneticUs ?? "—"}`));
     for (const meaning of word.meanings ?? []) {
       const line = element("p", "meaning");
       line.append(element("span", "part-of-speech", meaning.pos));
@@ -53,7 +53,7 @@ function renderVocabulary(words) {
 
 function formatSeconds(seconds) {
   const value = Math.max(0, Math.floor(Number(seconds) || 0));
-  return \`\${String(Math.floor(value / 60)).padStart(2, "0")}:\${String(value % 60).padStart(2, "0")}\`;
+  return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
 }
 
 function renderPlayback(playback) {
@@ -62,7 +62,7 @@ function renderPlayback(playback) {
   const progress = byId("progress");
   progress.max = String(Math.max(duration, 1));
   progress.value = String(Math.max(0, Math.min(position, Math.max(duration, 1))));
-  byId("playback-time").textContent = \`\${formatSeconds(position)} / \${formatSeconds(duration)}\`;
+  byId("playback-time").textContent = `${formatSeconds(position)} / ${formatSeconds(duration)}`;
 }
 
 function renderNotifications(notifications) {
