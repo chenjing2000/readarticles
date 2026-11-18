@@ -139,6 +139,7 @@ public partial class MainWindow
         else settings.BackwardStep = step;
         RefreshSettingsChecks();
         SaveSettings(player.Volume);
+        SendWebPilotSettings();
     }
 
     private static void RefreshStepChecks(MenuItem menu, double step)
