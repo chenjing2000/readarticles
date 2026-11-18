@@ -25,7 +25,9 @@ public partial class MainWindow : Window
         ViewModel.ArticleChanged += RenderArticle;
         ViewModel.VocabularyChanged += RefreshVocabularyHighlights;
         InitializePlayback();
-        NotificationHost.Attach(ViewModel.Notifications);
+        // During the browser pilot the HTML toast owns transient expiry/hover.
+        // The WPF host attaches only if browser initialization fails.
+        if (!webPilotEnabled) NotificationHost.Attach(ViewModel.Notifications);
         ViewModel.PropertyChanged += SettingsChanged;
         InitializeWebPilot();
         Closing += WindowClosing;
