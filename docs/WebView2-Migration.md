@@ -7,6 +7,28 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Stage 7 UI rerun: only old WPF Script overlay pixel test remains (2026-11-18)
+
+The user retested at `5fde6b0`:
+
+- Release build passed without warnings.
+- `Test.ps1 -Suite UI`: **12/13 groups pass**. `controls-only` is now **18/18**, so the four previously outdated assertions are resolved.
+- `window-only`: **14 pass, 1 fail** — the existing WPF `ScriptChecks.RunUi` pixel test.
+- Exact diagnostic: `local=0; global=0; validCells=4; visibleBrush=#FFF9D3E3; hiddenBrush=#00FFFFFF; adornerSize=215.3x242.7`. The wrapped red foreground sweep still passes.
+
+**Next diagnostic change submitted, not yet Windows-verified:** This test formerly rendered the whole `Window` to `RenderTargetBitmap`, even though Script vocabulary highlight paint is owned by a separate WPF `AdornerLayer`. Its fixture now puts the reader in an explicit `AdornerDecorator`, captures that decorator rather than the top-level window, and *also* compares actual pixels on the `AdornerLayer` itself (logged as `layer=...`). The original `changes > 0` assertion is retained. No rendering code or WebView2 logic has changed. If all captured deltas remain zero, investigate `ParagraphReader.ScriptVocabularyAdorner.OnRender` and its painting/arrange path rather than weakening or deleting the assertion.
+
+**Required Windows rerun:**
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite UI
+```
+
+Record the full `Script vocabulary highlight pixels: local=...; global=...; layer=...;` line. UI and Full must remain **not accepted** until the assertion passes and Full is rerun.
+
 ## Stage 7 Windows UI/Full and packaging results (2026-11-18)
 
 The user ran the four requested commands after the stage-six acceptance:
