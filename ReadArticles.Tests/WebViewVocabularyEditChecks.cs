@@ -22,7 +22,11 @@ internal static class WebViewVocabularyEditChecks
                 string importPath = Path.Combine(root, "Import.vocabulary.json");
                 File.Copy(vocabularyPath, importPath);
 
-                window = new ReadArticles.MainWindow(false);
+                window = new ReadArticles.MainWindow(false)
+                {
+                    Left = -10000, Top = -10000, ShowActivated = false
+                };
+                window.Show();
                 Program.Check(window.ViewModel.OpenArticle(articlePath));
                 var model = window.ViewModel;
                 int originalCount = model.Words.Count;
