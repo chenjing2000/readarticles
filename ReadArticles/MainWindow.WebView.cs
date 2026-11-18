@@ -386,8 +386,8 @@ public partial class MainWindow
                     step.ValueKind == JsonValueKind.Number &&
                     step.TryGetDouble(out double seconds) &&
                     (type == "setForwardStep"
-                        ? seconds is 4 or 7 or 10
-                        : seconds is 5 or 8 or 15))
+                        ? seconds == 4 || seconds == 7 || seconds == 10
+                        : seconds == 5 || seconds == 8 || seconds == 15))
                 {
                     if (type == "setForwardStep") settings.ForwardStep = seconds;
                     else settings.BackwardStep = seconds;
