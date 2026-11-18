@@ -9,9 +9,10 @@ public partial class MainWindow : Window
 {
     public MainViewModel ViewModel { get; }
 
-    public MainWindow(bool persistSettings = true)
+    public MainWindow(bool persistSettings = true, bool webViewPilot = false)
     {
         this.persistSettings = persistSettings;
+        webPilotEnabled = webViewPilot;
         string? settingsWarning = null;
         settings = persistSettings ? ReaderSettings.Load(out settingsWarning) : new ReaderSettings();
         ViewModel = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
 
     private void WindowClosed(object? sender, EventArgs e)
     {
+        CloseWebPilot();
         NotificationHost.Detach();
         ViewModel.CloseNavigation();
         ClosePlayback();
