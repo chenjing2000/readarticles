@@ -226,6 +226,44 @@ The executable entry points are:
 
 **Retest:** `git pull --ff-only origin feature/webview2-reader`, `dotnet build ReadArticles.Tests -c Release`, `.\tools\Test.ps1 -Suite Core`, run `--webview-pilot`. Trigger informational, warning and error notifications; all cards should visibly fade after ~4.65 s with 1 s transition, retain hover pause, and stack newest-first within a 480px-wide borderless panel. Verify faded error still appears via the overflow control, and closing it there removes the record. Restart **the same** build twice to test font and pane-width persistence.
 
+## Stage 6 follow-up: unified centered categorized Toast + exact divider persistence (2026-11-18)
+
+The user ran `dotnet build ReadArticles.Tests -c Release` and `tools/Test.ps1 -Suite Core` successfully (**10/10 groups, including all 33 content checks**), but reported two specific GUI failures:
+
+1. `Script 切换失败或不可用，已保留原阅读模式` still appeared outside the Toast group, and notification cards lacked the requested classification, consistent width, article-centered position and long-text expansion.
+2. Dragging the HTML divider did not restore the same vocabulary width after closing and reopening `dotnet run --project ReadArticles -c Release -- --webview-pilot`.
+
+### Fix submitted, Windows retest required
+
+- The standalone top-left `selection-status` element was removed. Operation results that need visual confirmation use the **same** bottom Toast host as C# notifications; duplicate/failed writes continue to use existing authoritative C# warnings/errors without duplication.
+- Script load/validation/render failures now publish explicit **Error** notifications through `NotificationService`, so `Script 切换失败或不可用，已保留原阅读模式` uses the same categorized bottom stack as other messages.
+- All notification cards live **inside the central article pane** and are horizontally centered there, not aligned to the entire window. All cards have the same responsive 520px width (or narrower when the middle pane cannot fit it), no border, and the same timing/animation.
+- Categories are `普通：` (blue/light weight), `警告：` (amber/medium), and `错误：` (red/medium). The prefix uses a stronger font. Long text is clamped to **two lines** with an `...>>展开` control and `<<收起` to collapse. The archive uses the same two-line behavior.
+- New messages sort by their actual arrival across local operation feedback and server notifications, newest at the top. Both Error and other types fade visually after ~4650ms with a **1000ms downward fade**, and hovering pauses the timer. Expired errors are still available under the overflow-error archive until acknowledged by the user.
+- The divider now commits its **computed target width** on pointer-up, not a potentially stale/clamped DOM rectangle. The stylesheet no longer forces a 45%-of-content hard maximum on the saved width; it honors the saved px width whenever the viewport can accommodate it, shrinking temporarily when necessary. C# still validates and persists `RightWidth` via the existing settings file.
+- A C# Core regression now verifies the new `RightWidth` is included in the `WebPilotSettingsSnapshot`. A standalone JavaScript simulation confirmed categorized prefixes, two-line expansion, true newest-first ordering, error archive, one-second fade, snapshot-driven width restore and exact divider-target dispatch. **These are not proof of actual persistence on the user's Windows filesystem.**
+
+**Required Windows acceptance:**
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+dotnet run --project ReadArticles -c Release -- --webview-pilot
+```
+
+Verify a missing Script companion now raises a centered red `错误：` notification, which disappears visually after the shared interval and remains under `还有 N 条错误`. Trigger a normal/duplicate/failed edit status and inspect prefix/stack. Produce long text; confirm exactly two lines until `...>>展开` is clicked. Confirm all cards have equal, borderless widths relative to the *central* article pane.
+
+For persistence, **close the process normally**, then inspect:
+
+```powershell
+$settings = 'C:\Projects\ReadArticles\ReadArticles\bin\Release\net10.0-windows\userdata\config\settings.json'
+(Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json) | Select-Object LeftWidth, RightWidth, FontSize, Accent, ForwardStep, BackwardStep
+```
+
+Drag the HTML divider to an obviously different width; close the process, inspect `RightWidth`, and relaunch the **same** `dotnet run ... --webview-pilot` command without publishing first. Width and settings should restore. The temporary WPF branch remains available and PR #16 remains Draft. Do **not** infer full UI/Full completion from Core success.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
