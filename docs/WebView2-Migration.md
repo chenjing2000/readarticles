@@ -65,6 +65,22 @@ Stage 2 groundwork now includes:
 
 **Next validation:** rebuild and rerun the Windows pilot, switch between two articles rapidly, check the title/word list follow the selected article, inspect whether the bottom horizontal scrollbar is absent and every disabled toolbar button remains visible. Then run Core and the portable publish checks. Real WebView2 DOM integration tests, audio/Script, mutation action success/failure and final legacy renderer deletion are *not yet accepted*.
 
+## Stage 3 read-only Passage interactions — pending Windows acceptance
+
+Following the successful Windows pilot screenshot/build, the browser page now includes:
+
+- A port of the original `VocabularyMatcher` algorithm: earliest hit, longest phrase at the same start, no match overlaps, case-insensitive candidate deduplication, straight/curly apostrophe and hyphen boundary rules, and digits **excluded** from the English boundary set.
+- Passage blank markers `[[N]]` displayed as `____N____` without creating sentence audio eligibility; matching is limited to the unmodified text fragments on each side of a blank.
+- Browser CSS Custom Highlight API for independent vocabulary background layers and selected vocabulary focus, without inserting nested `span` tags into original sentence text. The default highlight setting is still off; click the newly enabled **高亮** button in the pilot to toggle it.
+- Clicking a vocabulary row selects that entry visually and scrolls to its first matching occurrence in the article. The paragraph layout and text selection are not rebuilt by highlighting or focusing.
+- One-sentence Passage text selection with its real SID, normalized selected text, rendered UTF-16 position and length. Cross-sentence or empty/whitespace-only selections are rejected. The floating `+` sends a correlated `addWord` request but, **in this pilot**, the host rejects saving and the UI explicitly reports `只读试验版：尚未保存`.
+- C# validates page UUID, article session, vocabulary revision, request ID and the highlight toggle payload. Only visual `setHighlight` is enabled. All actual vocabulary mutations, audio and Script operations still return `unavailable` and cannot touch the vocabulary file.
+- The simple JS matching algorithm was exercised against six functional fixtures in the development runtime: earliest/longest, apostrophe variants, digit and hyphen boundaries, deduplication and non-overlap. These are **not** a substitute for automated browser UI tests.
+
+**Windows visual acceptance still required:** Start `--webview-pilot` and open a working-copy Passage with vocabulary entries. Toggle 高亮 on/off, select one right-hand word and confirm all its occurrences get the stronger background and the first one scrolls into view. Select a phrase inside one SID and check the floating `+`; click it and verify the UI explicitly says it was not saved, then inspect the vocabulary JSON and confirm it did not change. Try a selection across two sentences and confirm `+` disappears. Repeatedly switch articles and verify no old highlights appear. Run build, Core and publish checks before considering this checkpoint accepted.
+
+**Known limitations:** The pilot continues to be Passage-only and read-only; timed Script render/word audio/word save/notifications animation have not been implemented. Browser UI pixel assertions and interactive copy tests are pending. The original WPF Script background pixel failure remains unsuppressed.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
