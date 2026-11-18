@@ -36,7 +36,7 @@ internal static class WebViewSettingsChecks
 
                 void Apply(string command, string payload)
                 {
-                    using var data = JsonDocument.Parse("""{"payload":""" + payload + "}");
+                    using var data = JsonDocument.Parse("{\"payload\":" + payload + "}");
                     handle.Invoke(window, [command, data.RootElement,
                         "00000000-0000-4000-8000-000000000001"]);
                 }
@@ -65,7 +65,7 @@ internal static class WebViewSettingsChecks
 
                 void Apply(long id)
                 {
-                    using var data = JsonDocument.Parse("""{"payload":{"id":""" +
+                    using var data = JsonDocument.Parse("{\"payload\":{\"id\":" +
                         id.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}");
                     dismiss.Invoke(window, [data.RootElement,
                         "00000000-0000-4000-8000-000000000002"]);
