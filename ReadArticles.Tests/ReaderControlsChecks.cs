@@ -26,7 +26,8 @@ internal static class ReaderControlsChecks
                 JsonFiles.WriteAtomic(path, new { LeftWidth = 221.4, RightWidth = 281.8, FontSize = 99,
                     Volume = 3, Accent = "invalid", ForwardStep = 1, BackwardStep = 1 });
                 var settings = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && settings.LeftWidth == 221 && settings.RightWidth == 282);
+                // Persisted legacy widths are ignored: every launch starts at defaults.
+                Program.Check(warning == null && settings.LeftWidth == 310 && settings.RightWidth == 390);
                 Program.Check(settings.FontSize == 16 && settings.Volume == 1 && settings.Accent == "uk");
                 Program.Check(settings.ForwardStep == 4 && settings.BackwardStep == 5);
                 settings.FontSize = double.NaN;
@@ -54,7 +55,8 @@ internal static class ReaderControlsChecks
             {
                 if (File.Exists(currentPath)) File.Delete(currentPath);
                 if (File.Exists(markerPath)) File.Delete(markerPath);
-                JsonFiles.WriteAtomic(legacyPath, new ReaderSettings
+                // Simulate a genuine old JSON file that still contains widths.
+                JsonFiles.WriteAtomic(legacyPath, new
                 {
                     LeftWidth = 244,
                     RightWidth = 355,
@@ -64,12 +66,13 @@ internal static class ReaderControlsChecks
                     Library = TestData.LibraryRoot
                 });
                 var migrated = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && migrated.LeftWidth == 244 && migrated.RightWidth == 355);
+                Program.Check(warning == null && migrated.LeftWidth == 310 && migrated.RightWidth == 390);
                 Program.Check(migrated.Accent == "us" && migrated.Volume == 0.4 && migrated.Library == TestData.LibraryRoot);
                 Program.Check(File.Exists(currentPath) && File.Exists(legacyPath));
                 Program.Check(File.Exists(markerPath));
                 var persisted = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && persisted.Accent == "us" && persisted.LeftWidth == 244);
+                Program.Check(warning == null && persisted.Accent == "us" &&
+                    persisted.LeftWidth == 310 && persisted.RightWidth == 390);
                 persisted.Accent = "uk";
                 persisted.Save();
                 var updated = ReaderSettings.Load(out warning);
@@ -115,14 +118,20 @@ internal static class ReaderControlsChecks
                 saved.RightWidth = 281.8;
                 saved.Save();
                 saved = ReaderSettings.Load(out warning);
-                Program.Check(saved.LeftWidth == 221 && saved.RightWidth == 282 && saved.FontSize == 15);
-                // Closing must persist the final visible panel sizes before the window is disposed.
-                double expectedLeft = Math.Round(((ColumnDefinition)window.FindName("LeftColumn")).ActualWidth);
-                double expectedRight = Math.Round(((ColumnDefinition)window.FindName("RightColumn")).ActualWidth);
+                Program.Check(saved.LeftWidth == 310 && saved.RightWidth == 390 && saved.FontSize == 15);
+                // Resizing is allowed in this session; closing must not persist either width.
+                ((ColumnDefinition)window.FindName("LeftColumn")).Width = new GridLength(275);
+                ((ColumnDefinition)window.FindName("RightColumn")).Width = new GridLength(330);
+                window.UpdateLayout();
                 window.Close();
                 window = null;
                 var closedSettings = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && closedSettings.LeftWidth == expectedLeft && closedSettings.RightWidth == expectedRight);
+                Program.Check(warning == null && closedSettings.LeftWidth == 310 &&
+                    closedSettings.RightWidth == 390 && closedSettings.ForwardStep == 7 &&
+                    closedSettings.Accent == "us");
+                string serialized = File.ReadAllText(path);
+                Program.Check(!serialized.Contains("LeftWidth", StringComparison.Ordinal) &&
+                    !serialized.Contains("RightWidth", StringComparison.Ordinal));
             }
             finally
             {
@@ -361,7 +370,7 @@ internal static class ReaderControlsChecks
                 if (Directory.Exists(root)) Directory.Delete(root, true);
             }
         });
-        Program.Run("folder selection discovers names without opening any JSON or content", () =>
+        Program.Run("folder expansion scans only direct passage JSON, not locked descendants", () =>
         {
             var window = CreateWindow();
             string root = Path.Combine(Path.GetTempPath(), "ReadArticles-controls-tests-" + Guid.NewGuid().ToString("N"));
@@ -372,8 +381,14 @@ internal static class ReaderControlsChecks
                 Program.Check(window.ViewModel.OpenArticle(TestData.ArticlePath));
                 string book = Path.Combine(root, "Book"); Directory.CreateDirectory(book);
                 File.WriteAllText(Path.Combine(book, "book.json"), "marker");
-                string path = Path.Combine(book, "Locked.json"); File.WriteAllText(path, "not JSON");
-                using var locked = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                string path = Path.Combine(book, "Visible.json");
+                File.WriteAllText(path, """{"filetype":"passage"}""");
+                File.WriteAllText(Path.Combine(book, "Untyped.json"), "{}");
+                string nested = Path.Combine(book, "Nested"); Directory.CreateDirectory(nested);
+                string inaccessible = Path.Combine(nested, "Locked.json");
+                File.WriteAllText(inaccessible, """{"filetype":"passage"}""");
+                using var locked = new FileStream(inaccessible,
+                    FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                 Program.Check(window.ViewModel.OpenLibrary(root));
                 Program.Check(window.ViewModel.Books.Count == 1 &&
                     !MainLeaves(window).Any() &&
@@ -384,7 +399,10 @@ internal static class ReaderControlsChecks
                 var container = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(bookNode);
                 container.IsExpanded = true;
                 WpfTestHelpers.Wait(() => bookNode.LoadState == ReadArticles.Models.NodeLoadState.Loaded);
-                Program.Check(MainLeaves(window).Single().Name == "Locked");
+                Program.Check(MainLeaves(window).Single().Name == "Visible");
+                Program.Check(bookNode.Children.Count == 2 &&
+                    bookNode.Children.Any(n => n.Name == "Nested" && !n.IsPassage &&
+                        n.LoadState == ReadArticles.Models.NodeLoadState.NotLoaded));
                 Program.Check(window.ViewModel.Article is null && window.ViewModel.Words.Count == 0 && window.Readers.Count == 0);
             }
             finally
