@@ -286,28 +286,37 @@ internal static class ScriptChecks
                 reader.SetScriptPosition(null);
                 reader.SetVocabulary(["beta"], true);
                 WpfTestHelpers.Pump();
-                Program.Check(AdornerLayer.GetAdornerLayer(reader)?.GetAdorners(reader)?
+                var adornerLayer = AdornerLayer.GetAdornerLayer(reader);
+                Program.Check(adornerLayer?.GetAdorners(reader)?
                     .Any(a => !a.IsHitTestVisible) == true);
+                var visibleBrush = reader.GetScriptVocabularyBackground(0, 6);
                 byte[] withBackground = CapturePixels(host, out int width, out int height);
                 reader.SetVocabulary(["beta"], false);
                 WpfTestHelpers.Pump();
+                var hiddenBrush = reader.GetScriptVocabularyBackground(0, 6);
                 byte[] withoutBackground = CapturePixels(host, out int sameWidth, out int sameHeight);
                 Program.Check(width == sameWidth && height == sameHeight);
                 var range = reader.Ranges[0];
                 int changes = 0;
+                int validCells = 0;
                 for (int offset = 6; offset < 10; offset++)
                 {
                     Rect start = reader.PositionAt(range, offset).GetCharacterRect(LogicalDirection.Forward);
                     Rect finish = reader.PositionAt(range, offset + 1).GetCharacterRect(LogicalDirection.Backward);
                     if (start.IsEmpty || finish.IsEmpty ||
                         Math.Abs(start.Top - finish.Top) >= 1 || finish.Left <= start.Left) continue;
+                    validCells++;
                     Point topLeft = reader.TranslatePoint(start.TopLeft, host);
                     Point bottomRight = reader.TranslatePoint(new Point(finish.Left, start.Bottom), host);
                     changes += ChangedPixels(withBackground, withoutBackground, width, height,
                         (int)topLeft.X, (int)topLeft.Y, (int)Math.Ceiling(bottomRight.X),
                         (int)Math.Ceiling(bottomRight.Y));
                 }
-                Console.WriteLine($"  Script vocabulary highlight changed pixels: {changes}");
+                int globalChanges = ChangedPixels(withBackground, withoutBackground,
+                    width, height, 0, 0, width, height);
+                Console.WriteLine($"  Script vocabulary highlight pixels: local={changes}; global={globalChanges}; validCells={validCells}; visibleBrush={visibleBrush}; hiddenBrush={hiddenBrush}; adornerSize={adornerLayer!.ActualWidth:F1}x{adornerLayer.ActualHeight:F1}");
+                // Preserve this actual pixel assertion until the WPF implementation
+                // is fixed or superseded by equivalent WebView2 rendering coverage.
                 Program.Check(changes > 0);
             }
             finally { host.Close(); WpfTestHelpers.Pump(); }
