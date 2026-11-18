@@ -27,6 +27,7 @@ public partial class MainWindow : Window
         InitializePlayback();
         NotificationHost.Attach(ViewModel.Notifications);
         ViewModel.PropertyChanged += SettingsChanged;
+        InitializeWebPilot();
         Closing += WindowClosing;
         Closed += WindowClosed;
 
