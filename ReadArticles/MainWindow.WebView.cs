@@ -168,6 +168,12 @@ public partial class MainWindow
                     if (webPilotScriptMode) webPilotScriptArticle = webPilotPendingScriptArticle;
                     RefreshPlayback();
                 }
+                else
+                {
+                    ViewModel.Notify("WebPilotScriptRenderFailed",
+                        "Script 切换失败或不可用，已保留原阅读模式",
+                        NotificationSeverity.Error);
+                }
                 webPilotPendingModeRequest = null;
                 webPilotPendingScriptArticle = null;
                 PostWebPilot("actionResult", new { status = succeeded ? "success" : "failed" }, modeRequest);
@@ -472,8 +478,9 @@ public partial class MainWindow
                 string path = ArticleRepository.ScriptPathFor(article.FilePath);
                 if (!File.Exists(path))
                 {
-                    ViewModel.Notify("ScriptNotFound", "未找到同名 Script JSON：" + Path.GetFileName(path),
-                        NotificationSeverity.Warning);
+                    ViewModel.Notify("ScriptNotFound",
+                        "Script 切换失败或不可用，已保留原阅读模式。未找到同名 Script JSON：" + Path.GetFileName(path),
+                        NotificationSeverity.Error);
                     PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
                     return;
                 }
@@ -485,7 +492,8 @@ public partial class MainWindow
                     JsonException or IOException or UnauthorizedAccessException or ArgumentException)
                 {
                     AppLogger.Default.Warning("WebPilotScriptLoadFailed", error);
-                    ViewModel.Notify("ScriptLoadFailed", "Script JSON 加载失败：" + error.Message,
+                    ViewModel.Notify("ScriptLoadFailed",
+                        "Script 切换失败或不可用，已保留原阅读模式。Script JSON 加载失败：" + error.Message,
                         NotificationSeverity.Error);
                     PostWebPilot("actionResult", new { status = "failed" }, requestId);
                     return;
