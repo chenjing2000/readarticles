@@ -7,9 +7,11 @@ let vocabularyRevision = 0;
 let vocabulary = [];
 let highlightsVisible = false;
 let selectedWord = null;
+let selectedIndex = -1;
+let canWriteVocabulary = false;
 let matches = [];
 let selectedPassage = null;
-let pendingAdd = null;
+let pendingMutation = null;
 
 const byId = id => document.getElementById(id);
 
@@ -80,7 +82,7 @@ function renderArticle(article) {
   const body = byId("article-body");
   const title = byId("article-title");
   hideSelectionAdd();
-  pendingAdd = null;
+  pendingMutation = null;
   body.replaceChildren();
   byId("article-scroll").scrollTop = 0;
   title.textContent = article?.title ?? "";
@@ -119,10 +121,10 @@ function renderVocabulary(words) {
   const list = byId("vocabulary-list");
   list.replaceChildren();
   byId("vocabulary-count").textContent = words.length ? "(" + words.length + ")" : "";
-  for (const word of words) {
+  words.forEach((word, index) => {
     const row = element("article", "word-row");
     row.dataset.word = word.word;
-    if (selectedWord !== null && ordinalFold(selectedWord) === ordinalFold(word.word))
+    if (selectedIndex === index)
       row.classList.add("selected");
     row.tabIndex = 0;
     row.setAttribute("role", "button");
@@ -136,16 +138,17 @@ function renderVocabulary(words) {
       line.append(document.createTextNode(meaning.text ?? ""));
       row.append(line);
     }
-    row.addEventListener("click", () => focusVocabulary(word.word));
+    row.addEventListener("click", () => focusVocabulary(word.word, index));
     row.addEventListener("keydown", event => {
       if (event.key === "Enter") {
         event.preventDefault();
-        focusVocabulary(word.word);
+        focusVocabulary(word.word, index);
       }
     });
     list.append(row);
-  }
+  });
   scroller.scrollTop = previousOffset;
+  updateEditControls();
 }
 
 function clearHighlights() {
@@ -183,14 +186,16 @@ function refreshHighlights(recalculate) {
   }
 }
 
-function focusVocabulary(word) {
+function focusVocabulary(word, index) {
   selectedWord = word;
+  selectedIndex = index;
   for (const row of byId("vocabulary-list").querySelectorAll(".word-row")) {
     const selected = ordinalFold(row.dataset.word ?? "") === ordinalFold(word);
     row.classList.toggle("selected", selected);
     row.setAttribute("aria-pressed", String(selected));
   }
   refreshHighlights(false);
+  updateEditControls();
   const first = matches.find(match => ordinalFold(match.word) === ordinalFold(word));
   if (!first) return;
   const box = first.range.getBoundingClientRect();
@@ -241,6 +246,7 @@ function updateSelectionAdd() {
   button.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 38, rect.right + 8))) + "px";
   button.style.top = Math.round(Math.max(8, Math.min(window.innerHeight - 40, rect.top - 14))) + "px";
   button.hidden = false;
+  button.disabled = !canWriteVocabulary || !!pendingMutation;
   byId("selection-status").hidden = true;
 }
 
@@ -282,6 +288,8 @@ function renderSettings(settings) {
 function renderInitialize(payload) {
   renderArticle(payload.article);
   selectedWord = null;
+  selectedIndex = -1;
+  canWriteVocabulary = payload.canWriteVocabulary === true;
   vocabulary = payload.vocabulary ?? [];
   renderVocabulary(vocabulary);
   byId("vocabulary-scroll").scrollTop = 0;
@@ -301,10 +309,55 @@ function send(type, additional = {}) {
   return requestId;
 }
 
+function updateEditControls() {
+  const canEdit = !!sessionId && canWriteVocabulary && !pendingMutation;
+  const valid = selectedIndex >= 0 && selectedIndex < vocabulary.length;
+  byId("word-up").disabled = !canEdit || !valid || selectedIndex === 0;
+  byId("word-down").disabled = !canEdit || !valid || selectedIndex === vocabulary.length - 1;
+  byId("word-delete").disabled = !canEdit || !valid;
+  byId("word-import").disabled = !canEdit;
+  byId("selection-add").disabled = !canEdit;
+}
+
+function showEditStatus(value) {
+  const status = byId("selection-status");
+  status.textContent = value;
+  status.hidden = false;
+}
+
+function requestVocabularyEdit(type, payload) {
+  if (!sessionId || !canWriteVocabulary || pendingMutation) return;
+  const requestId = send(type, { payload });
+  if (!requestId) return;
+  pendingMutation = { type, requestId };
+  updateEditControls();
+}
+
+function selectedWordPayload() {
+  if (selectedIndex < 0 || selectedIndex >= vocabulary.length) return null;
+  return { index: selectedIndex, word: vocabulary[selectedIndex].word };
+}
+
+byId("word-up").addEventListener("click", () => {
+  const payload = selectedWordPayload();
+  if (payload) requestVocabularyEdit("moveWord", { ...payload, direction: -1 });
+});
+byId("word-down").addEventListener("click", () => {
+  const payload = selectedWordPayload();
+  if (payload) requestVocabularyEdit("moveWord", { ...payload, direction: 1 });
+});
+byId("word-delete").addEventListener("click", () => {
+  const payload = selectedWordPayload();
+  if (payload) requestVocabularyEdit("deleteWord", payload);
+});
+byId("word-import").addEventListener("click", () => {
+  requestVocabularyEdit("importVocabulary", {});
+});
+
 byId("selection-add").addEventListener("pointerdown", event => event.preventDefault());
 byId("selection-add").addEventListener("click", () => {
   if (!selectedPassage || !sessionId) return;
-  pendingAdd = send("addWord", { payload: { ...selectedPassage } });
+  requestVocabularyEdit("addWord", { ...selectedPassage });
 });
 byId("highlight-toggle").addEventListener("click", () => {
   if (!sessionId) return;
@@ -334,8 +387,12 @@ if (window.chrome?.webview) {
       if (!Number.isInteger(nextRevision) || nextRevision < vocabularyRevision) return;
       vocabularyRevision = nextRevision;
       vocabulary = message.payload?.vocabulary ?? [];
-      if (selectedWord && !vocabulary.some(word => ordinalFold(word.word) === ordinalFold(selectedWord)))
-        selectedWord = null;
+      canWriteVocabulary = message.payload?.canWriteVocabulary === true;
+      if (selectedWord !== null) {
+        selectedIndex = vocabulary.findIndex(word =>
+          ordinalFold(word.word) === ordinalFold(selectedWord));
+        if (selectedIndex < 0) selectedWord = null;
+      } else selectedIndex = -1;
       renderVocabulary(vocabulary);
       refreshHighlights(true);
     } else if (message.type === "setSettings") {
@@ -345,14 +402,35 @@ if (window.chrome?.webview) {
     } else if (message.type === "setNotifications") {
       renderNotifications(message.payload ?? {});
     } else if (message.type === "actionResult") {
-      // The current pilot never writes a vocabulary file.
-      if (pendingAdd && message.requestId === pendingAdd) {
-        const status = byId("selection-status");
-        status.textContent = message.payload?.status === "stale"
-          ? "选区已过期，请重新选择" : "只读试验版：尚未保存";
-        status.hidden = false;
-        pendingAdd = null;
+      if (!pendingMutation || message.requestId !== pendingMutation.requestId) return;
+      const operation = pendingMutation.type;
+      const result = message.payload?.status;
+      pendingMutation = null;
+      if (result === "success") {
+        if (operation === "deleteWord" || operation === "importVocabulary") {
+          selectedWord = null;
+          selectedIndex = -1;
+        } else if (operation === "addWord" || operation === "moveWord") {
+          const index = Number(message.payload?.index);
+          if (Number.isInteger(index) && index >= 0 && index < vocabulary.length) {
+            selectedIndex = index;
+            selectedWord = vocabulary[index].word;
+          }
+        }
+        renderVocabulary(vocabulary);
+        refreshHighlights(false);
       }
+      const statuses = {
+        success: "词汇表已保存",
+        duplicate: "词汇表中已存在该词条",
+        stale: "文章或词表已变化，请重新操作",
+        invalid: "选区或词条无效，请重新选择",
+        unavailable: "当前词表不可编辑",
+        cancelled: "已取消导入",
+        failed: "保存失败，请检查文件及备份状态"
+      };
+      showEditStatus(statuses[result] ?? "操作未完成");
+      updateEditControls();
     }
   });
   send("ready");
