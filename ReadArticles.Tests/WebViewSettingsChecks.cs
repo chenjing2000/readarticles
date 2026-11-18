@@ -28,6 +28,12 @@ internal static class WebViewSettingsChecks
                 Program.Check(settings.RightWidth == 360);
                 Apply("setPanelWidth", """{"width":-42}""");
                 Program.Check(settings.RightWidth == 360);
+                var getSnapshot = type.GetMethod("WebPilotSettingsSnapshot",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Program.Check(getSnapshot is not null);
+                using (var settingsJson = JsonDocument.Parse(JsonSerializer.Serialize(
+                    getSnapshot!.Invoke(window, null))))
+                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() == 360);
                 Apply("setForwardStep", """{"seconds":7}""");
                 Apply("setBackwardStep", """{"seconds":8}""");
                 Program.Check(settings.ForwardStep == 7 && settings.BackwardStep == 8);
