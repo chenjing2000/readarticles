@@ -414,7 +414,12 @@ public sealed class ParagraphReader : RichTextBox
     {
         if (scriptSentences is not null)
         {
-            scriptVocabularyAdorner?.InvalidateVisual();
+            // This overlay lives in a separate AdornerLayer. Recompute its
+            // arrange/render state when vocabulary visibility or focus changes.
+            if (scriptVocabularyLayer is not null)
+                scriptVocabularyLayer.Update(this);
+            else
+                scriptVocabularyAdorner?.InvalidateVisual();
             return;
         }
         // Assign local Run properties: TextRange formatting can merge adjacent spans
@@ -480,6 +485,7 @@ public sealed class ParagraphReader : RichTextBox
         if (layer is null) return;
         scriptVocabularyLayer = layer;
         layer.Add(scriptVocabularyAdorner);
+        layer.Update(this);
     }
 
     private void DetachScriptVocabulary(object sender, RoutedEventArgs e)
