@@ -194,7 +194,8 @@ public partial class MainWindow
             if (type is not ("addWord" or "moveWord" or "deleteWord" or "importVocabulary" or
                 "playArticle" or "stopArticle" or "seekArticle" or "playWord" or
                 "playSegment" or "switchReadingMode" or "setHighlight" or
-                "setFontSize" or "setAccent" or "setPanelWidth" or "notificationDismiss"))
+                "setFontSize" or "setAccent" or "setPanelWidth" or "setForwardStep" or
+                "setBackwardStep" or "notificationDismiss"))
                 return;
 
             if (!TryMessageString(root, "requestId", out string? requestId) ||
@@ -224,6 +225,17 @@ public partial class MainWindow
                 }
                 ViewModel.HighlightsVisible = enabled.GetBoolean();
                 PostWebPilot("actionResult", new { status = "success" }, requestId);
+                return;
+            }
+            if (type is ("setFontSize" or "setAccent" or "setPanelWidth" or
+                "setForwardStep" or "setBackwardStep"))
+            {
+                WebPilotSettingIntent(type, root, requestId);
+                return;
+            }
+            if (type == "notificationDismiss")
+            {
+                WebPilotDismissNotification(root, requestId);
                 return;
             }
             if (type == "switchReadingMode")
@@ -326,6 +338,88 @@ public partial class MainWindow
         {
             AppLogger.Default.Warning("WebViewPilotInvalidMessage", error);
         }
+    }
+
+    private void WebPilotSettingIntent(string type, JsonElement root, string requestId)
+    {
+        if (!root.TryGetProperty("payload", out var payload) ||
+            payload.ValueKind != JsonValueKind.Object)
+        {
+            PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+            return;
+        }
+
+        bool valid = false;
+        switch (type)
+        {
+            case "setFontSize":
+                if (payload.TryGetProperty("size", out var font) &&
+                    font.ValueKind == JsonValueKind.Number &&
+                    font.TryGetInt32(out int size) && size is 14 or 15 or 16)
+                {
+                    ApplyReadingFont(size);
+                    valid = true;
+                }
+                break;
+            case "setAccent":
+                if (TryMessageString(payload, "accent", out string? accent) &&
+                    accent is "uk" or "us")
+                {
+                    ViewModel.Accent = accent;
+                    RefreshSettingsChecks();
+                    valid = true;
+                }
+                break;
+            case "setPanelWidth":
+                if (payload.TryGetProperty("width", out var width) &&
+                    width.ValueKind == JsonValueKind.Number &&
+                    width.TryGetDouble(out double px) && double.IsFinite(px) &&
+                    px >= 220 && px <= 1000)
+                {
+                    settings.RightWidth = Math.Round(px);
+                    valid = true;
+                }
+                break;
+            case "setForwardStep":
+            case "setBackwardStep":
+                if (payload.TryGetProperty("seconds", out var step) &&
+                    step.ValueKind == JsonValueKind.Number &&
+                    step.TryGetDouble(out double seconds) &&
+                    (type == "setForwardStep"
+                        ? seconds is 4 or 7 or 10
+                        : seconds is 5 or 8 or 15))
+                {
+                    if (type == "setForwardStep") settings.ForwardStep = seconds;
+                    else settings.BackwardStep = seconds;
+                    RefreshSettingsChecks();
+                    valid = true;
+                }
+                break;
+        }
+        if (!valid)
+        {
+            PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+            return;
+        }
+        bool saved = SaveSettings(player.Volume);
+        SendWebPilotSettings();
+        PostWebPilot("actionResult", new { status = saved ? "success" : "failed" }, requestId);
+    }
+
+    private void WebPilotDismissNotification(JsonElement root, string requestId)
+    {
+        if (!root.TryGetProperty("payload", out var payload) ||
+            payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("id", out var id) ||
+            id.ValueKind != JsonValueKind.Number ||
+            !id.TryGetInt64(out long notificationId) ||
+            notificationId <= 0)
+        {
+            PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+            return;
+        }
+        bool dismissed = ViewModel.Notifications.Dismiss(notificationId);
+        PostWebPilot("actionResult", new { status = dismissed ? "success" : "stale" }, requestId);
     }
 
     private object? WebPilotPassageSnapshot()
@@ -585,7 +679,9 @@ public partial class MainWindow
         fontSize = settings.FontSize,
         accent = ViewModel.Accent,
         highlightsVisible = ViewModel.HighlightsVisible,
-        rightWidth = settings.RightWidth
+        rightWidth = settings.RightWidth,
+        forwardStep = settings.ForwardStep,
+        backwardStep = settings.BackwardStep
     };
 
     private object WebPilotPlaybackSnapshot()
@@ -608,7 +704,9 @@ public partial class MainWindow
     {
         visible = ViewModel.Notifications.Visible.Select(n =>
             new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray(),
-        overflowErrorCount = ViewModel.Notifications.OverflowErrors.Count
+        overflowErrorCount = ViewModel.Notifications.OverflowErrors.Count,
+        overflowErrors = ViewModel.Notifications.OverflowErrors.Select(n =>
+            new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray()
     };
 
     private void WebPilotArticleChanged()
@@ -713,6 +811,8 @@ public partial class MainWindow
         webPilotPageId = null;
         webPilotPendingSnapshotId = null;
         WebPilotOverlay.Visibility = Visibility.Collapsed;
+        // WPF is the browser-failure fallback, including its Toast timing.
+        NotificationHost.Attach(ViewModel.Notifications);
         ViewModel.Notify("WebViewPilotUnavailable", message, NotificationSeverity.Error);
         MessageBox.Show(this, message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
