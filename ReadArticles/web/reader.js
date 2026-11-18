@@ -115,6 +115,14 @@ function renderArticle(article, mode = "passage", restoreScroll = false) {
       if (index > 0) row.append(document.createTextNode(" "));
       const span = element("span", "sentence");
       if (sentence.sid) span.dataset.sid = sentence.sid;
+      if (sentence.hasAudio === true) {
+        span.dataset.canAudio = "true";
+        span.addEventListener("contextmenu", event => {
+          event.preventDefault();
+          window.getSelection()?.removeAllRanges();
+          send("playSegment", { payload: { sid: sentence.sid } });
+        });
+      }
 
       // Passage blank tokens are display markers, not regular source words.
       const raw = String(sentence.text ?? "");
@@ -260,6 +268,23 @@ function renderVocabulary(words) {
     row.append(element("div", "word-head", word.word));
     row.append(element("div", "phonetics",
       "UK " + (word.phoneticUk ?? "—") + "  |  US " + (word.phoneticUs ?? "—")));
+    const pronunciations = element("div", "word-pronunciations");
+    for (const accent of ["uk", "us"]) {
+      const button = element("button", "", accent === "uk" ? "▶ 英音" : "▶ 美音");
+      button.type = "button";
+      button.disabled = accent === "uk" ? !word.canPlayUk : !word.canPlayUs;
+      button.title = accent === "uk" ? "播放英音" : "播放美音";
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        if (!button.disabled && sessionId) {
+          send("playWord", {
+            payload: { index, word: word.word, accent }
+          });
+        }
+      });
+      pronunciations.append(button);
+    }
+    row.append(pronunciations);
     for (const meaning of word.meanings ?? []) {
       const line = element("p", "meaning");
       line.append(element("span", "part-of-speech", meaning.pos));
