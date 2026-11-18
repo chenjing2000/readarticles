@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：`feature/webview2-reader` 上第一至第四阶段已通过用户 Windows 实机验收。第四阶段包括新增、去重、移动、删除、导入及外部文件修改冲突保护，`dotnet build ReadArticles.Tests -c Release` 和 `Test.ps1 -Suite Core` 全部通过。**第五阶段 Script/音频的新代码已提交，尚待 Windows Release/Core 及 WebView2 真实播放、跨行着色验收**。默认 WPF 阅读器不变，Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。查看 [`WebView2-Migration.md`](WebView2-Migration.md) 的最新逐阶段记录。
+> **当前更新（2026-11-18）**：`feature/webview2-reader` 的第一至第五阶段已经通过用户 Windows 实机验收。最新确认：WebView2 音频播放期间进度条与 Script 连续红色着色实时同步；暂停、Seek、停止和自然结束行为正常，Release 构建与 Core 10/10 组通过。**第六阶段的浏览器设置、分栏拖动、快捷键及 Toast 已提交代码，尚待 Windows 构建/Core/实机验收。** 默认 WPF 模式保持不变，Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。最新进度与本机验证步骤在 [`WebView2-Migration.md`](WebView2-Migration.md)。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：验收第五阶段 Script 多行连续红色着色、词汇粉色背景及播放器交互，再完成设置/Toast/键盘、旧 WPF 代码清理与最终测试。保留单 EXE 发布，不引入 React、Node.js 或第二套音频时钟。
+> **当前工作目标**：验收第六阶段 WebView2 分栏宽度持久化、阅读设置、快捷键及浏览器 Toast，然后进行第七阶段旧 WPF 阅读渲染清理和真实浏览器 UI/Full 测试。保持 C# 音频和词汇文件管理、单 EXE 发布、不引入 React/Node.js。
 
 ## 1. 仓库、分支和实际状态
 
