@@ -7,6 +7,26 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Windows follow-up: transient Toast hover fixed (2026-11-18)
+
+At commit `1e757fd`, the user's Windows Release build and Core suite passed (**10/10 groups, 34 content checks**) with two nonfatal `CS8602` nullable warnings in `NotificationChecks.cs`. The user accepted the three-notification limit, Error manual-dismiss behavior, and FIFO refill, but reported that **Info/Warning still disappeared while the mouse was hovering**. The user also asked for current default widths: left library **310 DIP**, right vocabulary **390 DIP**; the middle pane consumes remaining width. These are startup defaults, adjusted by available window width and layout constraints.
+
+**Root cause and changes submitted (Windows retest pending):** The browser's `renderNotifications` previously unconditionally used `host.append(entry.card)` for every notification snapshot, even when the DOM order did not change. Moving an existing hovered card may generate `mouseleave` and restart a paused timer. The renderer now calls `insertBefore` only when a node is at the wrong position. Each card uses both pointer and mouse enter/leave handlers to pause/resume, and its expiry callback additionally checks the actual CSS `:hover` state before initiating the fade. Manual close and Error's no-auto-fade rule remain unchanged.
+
+A direct JavaScript fake-DOM/timer simulation verified: three active cards (only two non-Error timers), a pointer entering Info after 1500 ms cancels its timer, twenty identical state snapshots do not move the node, fifteen further seconds of hovering do not dismiss Info, and leaving resumes exactly the previous remaining time before the 1000 ms fade. Warning continues to expire normally and Error only closes manually. The C# notification test references that emitted CS8602 now use explicit non-null return contracts.
+
+**Required Windows test:**
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+dotnet run --project ReadArticles -c Release -- --webview-pilot
+```
+
+Trigger a normal or warning notification. Hover over **the message text** before its expiration and hold the pointer there for at least 10 seconds: it must not fade. Move to its `...>>展开` or close-button area while remaining inside the card: it must still not fade. Then move the pointer outside: the **remaining** display time should resume, followed by the original one-second fade. Error stays visible until closed. Confirm startup pane widths still reset to 310/390 DIP (subject to layout constraints).
+
 ## Current acceptance decision: three-slot FIFO and resettable divider widths
 
 **2026-11-18 — new user requirements override earlier Toast/archive and width-persistence designs.** Stage 6 has *not* yet passed Windows validation for these changes.
