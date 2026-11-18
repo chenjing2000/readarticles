@@ -7,6 +7,28 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Stage 7 — Windows UI and Full regression accepted (2026-11-18)
+
+**Latest confirmed acceptance, superseding the historical failure/debug notes below.** On Windows the user pulled through commit `021666d` and ran:
+
+```powershell
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite UI
+.\tools\Test.ps1 -Suite Full
+```
+
+All three succeeded:
+
+- **Release test build:** passed with no warnings.
+- **UI suite:** **13/13 groups passed**, 0 failures and 0 skipped; `window-only` 15/15 and `controls-only` 18/18.
+- **Full suite:** **6/6 groups passed**, 0 failures and 0 skipped; complete application regression **130/130 tests passed** and original article/vocabulary safety checks **2/2 passed**.
+- The previously failing old WPF Script vocabulary overlay test now verifies actual rendering: `local=1590; global=1500; layer=1500; validCells=4; visibleDrawing=5,43.996...,49.206...,29.543...; hiddenDrawing=Empty`. Both `Program.Check(!visibleDrawing.IsEmpty && hiddenDrawing.IsEmpty)` and `Program.Check(changes > 0)` passed, together with the wrapped red timed-unit sweep.
+- This validates the `DrawingVisual`-based WPF Script highlighter; do not reopen earlier `OnRender` or `AdornerLayer.Update` fixes unless there is a new reproducible regression.
+
+**Stage 7 UI and Full regression gates are now complete.** Earlier portable packaging verification (`Publish.ps1` succeeded and `Test-PublishedApp.ps1` passed 3/3) was on a previous commit; after the new WPF renderer change, the final **published WebView2 interactive build** has not yet received end-to-end real-user acceptance. Keep the existing WPF fallback and Draft PR #16; do not merge or delete legacy visual code without a separate agreed cleanup/validation step.
+
+**Remaining acceptance focus:** from the latest branch, run the publish and published-app smoke checks again if preparing a release, then launch `dist\ReadArticles\ReadArticles.exe --webview-pilot` from a portable directory and confirm passage/script switching, word selection and persistence, audio, notifications, splitter reset, and graceful WebView2 initialization failure. With those confirmed, audit and simplify legacy WPF visual dependencies on a reviewable branch step while preserving all non-UI C# business and regression tests.
+
 ## Stage 7: Script overlay drawing moved out of WPF OnRender (2026-11-18)
 
 At the latest Windows UI test after `AdornerLayer.Update(this)`, Release build succeeded but UI stayed at **12/13 groups passed**. The sole failing WPF Script vocabulary background check reported:
