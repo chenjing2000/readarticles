@@ -494,7 +494,8 @@ public partial class MainWindow
     {
         text = null;
         if (payload.ValueKind != JsonValueKind.Object ||
-            !TryMessageString(payload, "sid", out string? sid) ||
+            !TryMessageString(payload, "mode", out string? mode) ||
+            mode != (webPilotScriptMode ? "script" : "passage") ||
             !payload.TryGetProperty("text", out var selectedText) ||
             selectedText.ValueKind != JsonValueKind.String ||
             !payload.TryGetProperty("offset", out var offsetValue) ||
@@ -509,18 +510,35 @@ public partial class MainWindow
         string? candidate = selectedText.GetString();
         if (string.IsNullOrWhiteSpace(candidate) || candidate.Length > 2048)
             return false;
-        var segment = ViewModel.Article?.Segments.FirstOrDefault(s => s.Sid == sid);
-        if (segment is null) return false;
+        string original;
 
-        // Match the exact Passage display text. Blank markers change visible
-        // UTF-16 offsets and must not be compared against source JSON offsets.
-        string visible = Regex.Replace(segment.Text, @"\[\[(\d+)\]\]",
-            match => "____" + match.Groups[1].Value + "____");
-        if (offset > visible.Length || length > visible.Length - offset)
-            return false;
-        string normalized = Regex.Replace(visible.Substring(offset, length), @"\s+", " ").Trim();
-        if (!string.Equals(candidate, normalized, StringComparison.Ordinal))
-            return false;
+        if (mode == "script")
+        {
+            if (webPilotScriptArticle is null ||
+                !payload.TryGetProperty("paragraphIndex", out var paragraph) ||
+                paragraph.ValueKind != JsonValueKind.Number ||
+                !paragraph.TryGetInt32(out int paragraphIndex) ||
+                paragraphIndex < 0 || paragraphIndex >= webPilotScriptArticle.Paragraphs.Count ||
+                !payload.TryGetProperty("sentenceIndex", out var sentence) ||
+                sentence.ValueKind != JsonValueKind.Number ||
+                !sentence.TryGetInt32(out int sentenceIndex) ||
+                sentenceIndex < 0 ||
+                sentenceIndex >= webPilotScriptArticle.Paragraphs[paragraphIndex].Sentences.Count)
+                return false;
+            original = webPilotScriptArticle.Paragraphs[paragraphIndex].Sentences[sentenceIndex].Text;
+        }
+        else
+        {
+            if (!TryMessageString(payload, "sid", out string? sid)) return false;
+            var segment = ViewModel.Article?.Segments.FirstOrDefault(s => s.Sid == sid);
+            if (segment is null) return false;
+            // Passage blank markers alter the *visible* UTF-16 offsets.
+            original = Regex.Replace(segment.Text, @"\[\[(\d+)\]\]",
+                match => "____" + match.Groups[1].Value + "____");
+        }
+        if (offset > original.Length || length > original.Length - offset) return false;
+        string normalized = Regex.Replace(original.Substring(offset, length), @"\s+", " ").Trim();
+        if (!string.Equals(candidate, normalized, StringComparison.Ordinal)) return false;
         text = candidate;
         return true;
     }
