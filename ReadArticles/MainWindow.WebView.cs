@@ -246,7 +246,15 @@ public partial class MainWindow
             vocabularyRevision = webPilotVocabularyRevision,
             payload
         });
-        ReaderWebView.CoreWebView2.PostWebMessageAsJson(json);
+        try
+        {
+            ReaderWebView.CoreWebView2.PostWebMessageAsJson(json);
+        }
+        catch (Exception error)
+        {
+            AppLogger.Default.Warning("WebViewPilotSendFailed", error);
+            WebPilotFailure("WebView2 通信失败，已切回 WPF 阅读界面。");
+        }
     }
 
     private void WebPilotFailure(string message)
