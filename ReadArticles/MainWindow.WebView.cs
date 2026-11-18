@@ -2,6 +2,8 @@ using System.IO;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using ReadArticles.ViewModels;
+using ReadArticles.Models;
+using ReadArticles.Services;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -21,6 +23,11 @@ public partial class MainWindow
     private bool webPilotClosed;
     private bool webPilotFailureShown;
     private int webPilotVocabularyRevision;
+    private ScriptArticle? webPilotScriptArticle;
+    private bool webPilotScriptMode;
+    private string? webPilotPendingModeRequest;
+    private bool webPilotPendingModeIsScript;
+    private ScriptArticle? webPilotPendingScriptArticle;
     private object? webPilotVocabularyIdentity;
     private string? webPilotPendingSnapshotId;
     private readonly HashSet<string> webPilotSeenRequests = new(StringComparer.Ordinal);
@@ -68,6 +75,8 @@ public partial class MainWindow
                 webPilotPageId = null;
                 webPilotPendingSnapshotId = null;
                 webPilotSeenRequests.Clear();
+                webPilotPendingModeRequest = null;
+                webPilotPendingScriptArticle = null;
                 WebPilotOverlay.Visibility = Visibility.Collapsed;
             };
             core.NewWindowRequested += (_, args) => args.Handled = true;
@@ -145,6 +154,25 @@ public partial class MainWindow
             }
 
             if (!webPilotReady || pageId != webPilotPageId) return;
+            if (type is "modeRendered" or "modeRenderFailed")
+            {
+                if (!TryMessageString(root, "sessionId", out string? modeSession) ||
+                    modeSession != webPilotSessionId ||
+                    !TryMessageString(root, "requestId", out string? modeRequest) ||
+                    modeRequest != webPilotPendingModeRequest)
+                    return;
+                bool succeeded = type == "modeRendered";
+                if (succeeded)
+                {
+                    webPilotScriptMode = webPilotPendingModeIsScript;
+                    if (webPilotScriptMode) webPilotScriptArticle = webPilotPendingScriptArticle;
+                    RefreshPlayback();
+                }
+                webPilotPendingModeRequest = null;
+                webPilotPendingScriptArticle = null;
+                PostWebPilot("actionResult", new { status = succeeded ? "success" : "failed" }, modeRequest);
+                return;
+            }
             if (type is "rendered" or "renderFailed")
             {
                 if (!TryMessageString(root, "sessionId", out string? sessionId) ||
@@ -196,6 +224,17 @@ public partial class MainWindow
                 }
                 ViewModel.HighlightsVisible = enabled.GetBoolean();
                 PostWebPilot("actionResult", new { status = "success" }, requestId);
+                return;
+            }
+            if (type == "switchReadingMode")
+            {
+                WebPilotSwitchReadingMode(requestId);
+                return;
+            }
+            if (type is "playArticle" or "stopArticle" or "seekArticle" or
+                "playWord" or "playSegment")
+            {
+                WebPilotAudioIntent(type, root, requestId);
                 return;
             }
             if (type == "addWord")
@@ -289,6 +328,145 @@ public partial class MainWindow
         }
     }
 
+    private object? WebPilotPassageSnapshot()
+    {
+        var article = ViewModel.Article;
+        return article is null ? null : new
+        {
+            title = article.Title,
+            paragraphs = article.Paragraphs.Select(p => p.Select(s => new
+            {
+                sid = s.Sid, text = s.Text, hasAudio = s.HasAudio
+            }).ToArray()).ToArray()
+        };
+    }
+
+    private static object WebPilotScriptSnapshot(ScriptArticle article) => new
+    {
+        title = article.Title,
+        paragraphs = article.Paragraphs.Select(p => p.Sentences.Select(s => new
+        {
+            text = s.Text,
+            timedUnits = s.TimedUnits.Select(u => new
+            {
+                text = u.Text, offset = u.Offset, length = u.Length,
+                start = u.Start, end = u.End, canColor = u.CanColor
+            }).ToArray()
+        }).ToArray()).ToArray()
+    };
+
+    private void WebPilotSwitchReadingMode(string requestId)
+    {
+        var article = ViewModel.Article;
+        if (article is null)
+        {
+            PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
+            return;
+        }
+        if (webPilotPendingModeRequest is not null)
+        {
+            PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
+            return;
+        }
+        bool nextScript = !webPilotScriptMode;
+        ScriptArticle? script = null;
+        if (nextScript)
+        {
+            script = webPilotScriptArticle;
+            if (script is null)
+            {
+                string path = ArticleRepository.ScriptPathFor(article.FilePath);
+                if (!File.Exists(path))
+                {
+                    ViewModel.Notify("ScriptNotFound", "未找到同名 Script JSON：" + Path.GetFileName(path),
+                        NotificationSeverity.Warning);
+                    PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
+                    return;
+                }
+                try
+                {
+                    script = new ArticleRepository().LoadScript(article.FilePath);
+                }
+                catch (Exception error) when (error is InvalidDataException or
+                    JsonException or IOException or UnauthorizedAccessException or ArgumentException)
+                {
+                    AppLogger.Default.Warning("WebPilotScriptLoadFailed", error);
+                    ViewModel.Notify("ScriptLoadFailed", "Script JSON 加载失败：" + error.Message,
+                        NotificationSeverity.Error);
+                    PostWebPilot("actionResult", new { status = "failed" }, requestId);
+                    return;
+                }
+            }
+        }
+        webPilotPendingModeRequest = requestId;
+        webPilotPendingModeIsScript = nextScript;
+        webPilotPendingScriptArticle = script;
+        PostWebPilot("setReadingMode", new
+        {
+            mode = nextScript ? "script" : "passage",
+            article = nextScript ? WebPilotScriptSnapshot(script!) : WebPilotPassageSnapshot()
+        }, requestId);
+    }
+
+    private void WebPilotAudioIntent(string type, JsonElement root, string requestId)
+    {
+        var article = ViewModel.Article;
+        if (article is null)
+        {
+            PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
+            return;
+        }
+
+        if (type == "playArticle")
+            ViewModel.ToggleArticleAudio();
+        else if (type == "stopArticle")
+            ViewModel.StopArticleAudio();
+        else if (type == "seekArticle")
+        {
+            if (!ViewModel.Playback.CanSeekArticle ||
+                !root.TryGetProperty("payload", out var data) ||
+                data.ValueKind != JsonValueKind.Object ||
+                !data.TryGetProperty("position", out var time) ||
+                time.ValueKind != JsonValueKind.Number ||
+                !time.TryGetDouble(out double seconds) || !double.IsFinite(seconds) ||
+                seconds < 0 || seconds > ViewModel.Playback.ArticleDuration)
+            {
+                PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                return;
+            }
+            ViewModel.Playback.SeekArticle(seconds);
+        }
+        else if (type == "playWord")
+        {
+            if (!root.TryGetProperty("payload", out var target) ||
+                !WebPilotTryWordTarget(target, out int index) ||
+                !TryMessageString(target, "accent", out string? accent) ||
+                accent is not ("uk" or "us") ||
+                (accent == "uk" ? !ViewModel.Words[index].CanPlayUk : !ViewModel.Words[index].CanPlayUs))
+            {
+                PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                return;
+            }
+            ViewModel.PlayWord(ViewModel.Words[index].Entry, accent);
+        }
+        else if (type == "playSegment")
+        {
+            if (webPilotScriptMode ||
+                !root.TryGetProperty("payload", out var target) ||
+                !TryMessageString(target, "sid", out string? sid) ||
+                !ViewModel.CanPlaySegment(sid!))
+            {
+                PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                return;
+            }
+            ViewModel.PlaySegment(sid!);
+        }
+        // Playback failures continue to be surfaced by ReaderPlayback notifications.
+        // "accepted" is not a false claim that a media file played successfully.
+        PostWebPilot("actionResult", new { status = "accepted" }, requestId);
+        SendWebPilotPlayback();
+    }
+
     private static string WebPilotResultName(VocabularyEditResult result) => result switch
     {
         VocabularyEditResult.Success => "success",
@@ -360,20 +538,12 @@ public partial class MainWindow
         if (!webPilotReady) return;
         webPilotPendingSnapshotId = Guid.NewGuid().ToString("D");
         WebPilotOverlay.Visibility = Visibility.Collapsed;
-        var article = ViewModel.Article;
-        var passage = article is null ? null : new
-        {
-            title = article.Title,
-            paragraphs = article.Paragraphs.Select(p => p.Select(s => new
-            {
-                sid = s.Sid,
-                text = s.Text,
-                hasAudio = s.HasAudio
-            }).ToArray()).ToArray()
-        };
+        object? passage = webPilotScriptMode && webPilotScriptArticle is not null
+            ? WebPilotScriptSnapshot(webPilotScriptArticle) : WebPilotPassageSnapshot();
         PostWebPilot("initialize", new
         {
             article = passage,
+            mode = webPilotScriptMode ? "script" : "passage",
             canWriteVocabulary = ViewModel.CanWriteVocabulary,
             vocabulary = WebPilotVocabularyRows(),
             settings = WebPilotSettingsSnapshot(),
@@ -410,6 +580,8 @@ public partial class MainWindow
             position = playback.ArticlePosition,
             duration = playback.ArticleDuration,
             canSeek = playback.CanSeekArticle,
+            canPlay = ViewModel.Article is not null,
+            isArticleActive = playback.IsArticleActive,
             playingSid = ViewModel.PlayingSid
         };
     }
@@ -426,6 +598,10 @@ public partial class MainWindow
         // A previous display is never presented as the newly committed article.
         webPilotSessionId = Guid.NewGuid().ToString("N");
         webPilotVocabularyRevision = 0;
+        webPilotScriptMode = false;
+        webPilotScriptArticle = null;
+        webPilotPendingModeRequest = null;
+        webPilotPendingScriptArticle = null;
         webPilotVocabularyIdentity = ViewModel.Article?.Vocabulary;
         webPilotSeenRequests.Clear();
         if (webPilotReady)
