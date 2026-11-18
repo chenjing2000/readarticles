@@ -43,13 +43,15 @@ public partial class MainWindow
     {
         if (!persistSettings) return;
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
-        settings.RightWidth = Math.Round(RightColumn.ActualWidth);
+        // The browser owns the right divider in WebView2 mode.
+        if (!webPilotEnabled || webPilotFailureShown)
+            settings.RightWidth = Math.Round(RightColumn.ActualWidth);
         SaveSettings(player.Volume, showDialogOnFailure: true);
     }
 
-    private void SaveSettings(double volume, bool showDialogOnFailure = false)
+    private bool SaveSettings(double volume, bool showDialogOnFailure = false)
     {
-        if (!persistSettings) return;
+        if (!persistSettings) return true;
 
         settings.Volume = volume;
         settings.Accent = ViewModel.Accent;
@@ -57,6 +59,7 @@ public partial class MainWindow
         try
         {
             settings.Save();
+            return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
@@ -66,6 +69,7 @@ public partial class MainWindow
                 MessageBox.Show(this, message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
             else
                 Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsSaveFailed", "无法保存配置文件，请检查配置文件内容及目录权限。", NotificationSeverity.Error));
+            return false;
         }
     }
 
@@ -78,7 +82,8 @@ public partial class MainWindow
     private void ColumnsResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
     {
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
-        settings.RightWidth = Math.Round(RightColumn.ActualWidth);
+        if (!webPilotEnabled || webPilotFailureShown)
+            settings.RightWidth = Math.Round(RightColumn.ActualWidth);
         LeftColumn.Width = new GridLength(settings.LeftWidth);
         RightColumn.Width = new GridLength(settings.RightWidth);
         SaveSettings(player.Volume);
