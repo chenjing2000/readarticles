@@ -7,6 +7,41 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Stage 7 Windows UI/Full and packaging results (2026-11-18)
+
+The user ran the four requested commands after the stage-six acceptance:
+
+- `Test.ps1 -Suite UI`: **11 groups passed, 2 groups failed**. `window-only` had **one** failing assertion (14 pass / 1 fail); `controls-only` had **four** (14 pass / 4 fail).
+- `Test.ps1 -Suite Full`: application regression **125 passed / 5 failed**, so the Full group failed.
+- `Publish.ps1`: **passed**, generating `dist/ReadArticles/ReadArticles.exe` using the existing portable publishing safeguards.
+- `Test-PublishedApp.ps1`: **3/3 checks passed**, including isolated renamed EXE/configuration and native .NET-missing instructions.
+
+### Four outdated UI assertions fixed on the feature branch
+
+1. `ReaderControlsChecks`: three settings tests still required saved `LeftWidth` and `RightWidth`. They now assert **310/390 DIP on reloading**, verify historical JSON widths are ignored, and ensure non-width settings (accent, font and seek steps) still persist.
+2. `ReaderControlsChecks`: a directory test still expected a locked invalid `Locked.json` to be listed without JSON inspection. The test now confirms a direct `Visible.json` with `filetype:"passage"` is listed, untyped direct JSON is hidden, and a **locked JSON inside an unexpanded child directory** is never opened. This directly protects one-level lazy scanning.
+
+### One legacy WPF Script pixel failure still open
+
+`ScriptChecks.RunUi` reports `Script vocabulary highlight changed pixels: 0` for the *old WPF* `ParagraphReader` adorner overlay, although the timed-unit text sweep test passes (`first early=64, last early=0, last late=417`). **Do not suppress or change** the `changes > 0` assertion to claim success. A diagnostic-only update now prints:
+
+- changed pixels **inside the measured vocabulary range** and across the whole captured window;
+- number of usable text cells measured;
+- effective visible/hidden background brushes and WPF adorner layer size.
+
+Those data distinguish overlay rendering/capture problems from an incorrect range. The user has already accepted the **new WebView2** Script pink vocabulary highlights in the running pilot; that acceptance is **not** proof that the old WPF pixel test passes. Preserve the existing default WPF reader pending a separate, reviewable stage-seven cleanup and equivalent true browser-rendering tests.
+
+**Current status:** the updated UI/Full suite has not yet been rerun on Windows, and no new pass can be claimed. Re-run:
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite UI
+```
+
+Review the `Script vocabulary highlight pixels: ...` diagnostic if the remaining pixel test fails. Only run Full again once the isolated UI failure has been diagnosed or fixed. Do not merge Draft PR #16.
+
 ## Windows acceptance at `b0dacaf` — stage 6 complete (2026-11-18)
 
 The user ran `git pull --ff-only origin feature/webview2-reader`, `dotnet build ReadArticles.Tests -c Release`, and `.\tools\Test.ps1 -Suite Core` on Windows. **Release test build passed; Core passed 10/10 groups, zero failures and zero skips.** Notable passing checks: content 34/34, rendering 13/13, tree 5/5, editing 2/2, notification 8/8, and lazy-tree 7/7.
