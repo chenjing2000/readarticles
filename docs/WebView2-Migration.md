@@ -7,6 +7,25 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Stage 7 WPF Script overlay: zero pixels inside layer — render invalidation fix submitted (2026-11-18)
+
+The user reran the UI suite after the explicit `AdornerDecorator` diagnostic fixture. **Release build passed. UI remains 12/13 groups passed; controls-only is 18/18.** The one failure in the old WPF Script test still showed `local=0; global=0; layer=0; validCells=4; visibleBrush=#FFF9D3E3; hiddenBrush=#00FFFFFF`. This rules out simply capturing the wrong parent, since the adorner layer itself showed no pixel changes.
+
+**Minimal production change committed, Windows retest pending:** The `ParagraphReader.ApplyStyles` Script path previously called only `scriptVocabularyAdorner.InvalidateVisual()`. It now requests `scriptVocabularyLayer.Update(this)` when attached (falling back to direct visual invalidation before attachment), and `AttachScriptVocabulary` immediately requests an initial layer update after `Add`. WPF's `AdornerLayer.Update(UIElement)` invalidates the associated adorner's layout/render state, not just the visual. This addresses a plausible stale adorner-layer redraw, but **is not yet proof of the root cause or a successful fix**.
+
+The UI test still retains its strict `changes > 0` pixel assertion. Additional diagnostics report `overlaySize`, `visibleDrawing` and `hiddenDrawing` bounds from the WPF visual to distinguish missing drawing commands from bitmap compositing. No production WebView2 reading logic changed.
+
+Retest only:
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite UI
+```
+
+If UI still fails, include the complete `Script vocabulary highlight pixels: ...; overlaySize=...; visibleDrawing=...; hiddenDrawing=...` line. Only once UI passes run `.\tools\Test.ps1 -Suite Full`. The prior `Publish.ps1` and `Test-PublishedApp.ps1` already passed; no main merge or removal of WPF fallback has been authorized.
+
 ## Stage 7 UI rerun: only old WPF Script overlay pixel test remains (2026-11-18)
 
 The user retested at `5fde6b0`:
