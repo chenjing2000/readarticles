@@ -16,7 +16,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite 
 - **UI** runs Core plus native window/tree checks, WebView2 browser rendering, settings and control checks. Run it on an interactive Windows desktop.
 - **Full** runs the complete application regression suite, real MP3/WAV playback checks, and read-only checks against the unified test article. Run this locally before merging; it does not require a developer-specific article directory.
 
-The main CI workflow runs Core; the WebView2 feature-branch workflow also runs browser smoke. Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
+The single Windows CI workflow runs on pushes and pull requests to `main` (and manual dispatch). Its Core suite already includes real WebView2 DOM tests; the retired feature-branch pilot workflow has been removed. Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
 
 The summary distinguishes Passed, Failed, and Skipped groups. A skipped group is not counted as verified. A failed native command or assertion makes the entry point return a nonzero exit code.
 
@@ -60,6 +60,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-PublishedAp
 ```
 
 The published-app check copies only the EXE into a temporary path with spaces, renames it, and launches it from another working directory. It checks the main window, configuration placement, clean closure, and missing-.NET installation instructions. It does not modify installed runtimes or user configuration.
+
+### Final portable EXE: interactive acceptance (manual, isolated data)
+
+After `Publish.ps1` and `Test-PublishedApp.ps1` succeed, start **the exact** `dist/ReadArticles/ReadArticles.exe` in a writable portable directory on an interactive Windows desktop, using a **copy** of the test library. Verify the following before releasing:
+
+1. WebView2 reaches the actual Passage DOM, rather than merely creating a WPF window handle; ensure there is no native failure screen. Check independent article/word scrolling and vocabulary selection/highlighting.
+2. Switch Passage -> Script -> Passage and confirm correct title, timed-word foreground/seek behavior and restored selection/scroll where applicable.
+3. Exercise keyboard focus: TreeView Left/Right and Space on native controls must not trigger audio; focused WebView2 word rows activate with Enter **and** Space without triggering whole-article playback.
+4. Verify word/segment and whole-article audio on a real output device. Test pause/resume, seek, stop and missing recording feedback.
+5. On a **disposable library copy**, edit a word, move/delete it, import a vocabulary JSON and verify only the companion vocabulary and owned backups change. Confirm settings and notifications, then close and reopen the published executable.
+
+This list is an interactive **release gate**, not proof of automated coverage. Do not use a real article library for destructive tests, and do not claim this checklist passed unless someone actually ran it.
 
 ## Workflow and publishing regression checks
 

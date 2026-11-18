@@ -1,6 +1,8 @@
 name: Windows regression tests
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -23,6 +25,7 @@ jobs:
       - name: Build application
         shell: powershell
         run: dotnet build ReadArticles -c Release
+      # Core already runs the real WebView2 browser/DOM tests; avoid a duplicate pilot workflow.
       - name: Run Core regression suite
         shell: powershell
         run: .\tools\Test.ps1 -Suite Core

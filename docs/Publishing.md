@@ -33,7 +33,7 @@ dist/
 
 A failed build, unexpected dependency, locked EXE, or copy-validation failure does not replace the installed EXE. Updating does not overwrite existing `userdata/`, the user's external library, or arbitrary files in `dist/`.
 
-The earlier `dist/ReadArticles.exe` and `dist/userdata/` are deliberately **not deleted** by migration. After validating the new portable installation and verifying the user's configuration, the user may manually archive or remove obsolete root-level files. Do not delete them before checking the new installation. Previous EXE copies may also be removed manually after a version has been verified.
+The earlier `dist/ReadArticles.exe` and `dist/userdata/` are deliberately **not deleted** by migration. After validating the new portable installation and verifying the user's configuration, the user may manually archive or remove obsolete root-level files. Do not delete them before checking the new installation. Previous EXE copies may also be removed manually **only after** the new version has passed both `Test-PublishedApp.ps1` and the interactive final-EXE checklist in [Testing](Testing.md). Keep at least the newest verified recovery EXE; archive or delete older `.previous-*` copies as needed (a practical manual target is one or two recovery versions). The publish script deliberately does **not** auto-purge unverified recovery files or touch `userdata/`.
 
 The publish script validates the package structure and safe EXE replacement, **not** a full interactive WebView2 reading-session check. Always run the published-app check on an interactive local Windows desktop before declaring the new version usable.
 

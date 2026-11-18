@@ -2,11 +2,11 @@
 
 ## 当前状态
 
-- **开发分支：** `feature/webview2-reader`，基于 `feature/script-reading-mode`；Draft PR #16 仍未合并，PR #15 同样未合并。请在操作前核对分支、远程 HEAD 和本地 `git status`。
-- **阶段八批次 2d：** 旧 WPF 正文、词表、工具栏、Toast、`ParagraphReader`、选区 Adorner 与重复的 C# 词汇匹配器已删除，并于提交 `89e7670` 推送至 `feature/webview2-reader`。单个 WebView2 是唯一阅读界面；WPF 保留窗口、左侧逐层加载的目录树与原生失败/退出界面。
+- **当前正式基线：** `main`，squash 合并提交 `2c68cae`。PR #16 已合并，PR #15 已关闭且未单独合并；旧 WebView2/Script 功能分支不再作为开发入口。每次工作先核对当前 HEAD 和 `git status`。
+- **已交付架构：** 旧 WPF 正文、词表、工具栏、Toast、`ParagraphReader`、选区 Adorner 与重复的 C# 词汇匹配器已删除。单个 WebView2 是唯一阅读界面；WPF 保留窗口、左侧逐层加载的目录树与原生失败/退出界面。
 - **Windows 已完成验收：** Release 构建通过；WebView2 专项 4/4，Core 10/10 组，UI 13/13 组，Full 6/6 组（应用回归 91/91，源文件保护 2/2），`Test-PublishedApp.ps1` 4/4；用户确认 2d 实机功能验收通过。
-- **GitHub 状态：** 提交 `89e7670` 已推送。GitHub Actions [Run #141](https://github.com/chenjing2000/readarticles/actions/runs/44328128599) 针对该提交通过 Windows Release 构建、WebView2 专项测试与便携式单文件发布。发布产物的完整 WebView2 交互仍需在最终发布时单独检查；远程 CI 不代替 Windows 实机验收。
-- **授权：** 本说明不授权提交、推送或合并。尤其不得自动合并 PR #15、#16 或修改 `main`。
+- **验收证据：** 合并前的 WebView2 [Run #142](https://github.com/chenjing2000/readarticles/actions/runs/44330081273) 和 Windows Core [Run #143](https://github.com/chenjing2000/readarticles/actions/runs/44331283755) 已通过；此前的本地 Full 91/91 与实机验收也已完成。合并后新整改的构建和 Windows 实机测试必须重新执行，不能沿用旧结果。最终发布版的完整 WebView2 交互仍需单独检查。
+- **授权：** 本说明不构成修改、提交、推送或合并授权。新整改应在从 `main` 创建的独立分支上开展，并分别取得后续 Git 操作授权。
 
 ## 最终架构与职责
 
@@ -21,7 +21,7 @@
 1. 先阅读 `AGENTS.md`、`docs/project-contract.md`、`docs/WebView2-Migration.md`、`docs/Testing.md` 和项目代码审查 skill；遵循 WindowsAppPlaybook。
 2. 在 `C:\Projects\ReadArticles` 检查 `git status --short` 和当前分支，按需 `git fetch` 核对远程 HEAD。不要假定存在未提交的 2d 补丁；修改前以实际源码为准。
 3. 2d 的最小整改及回归测试已完成。后续若修改代码，按影响范围运行 Release 与 Core/UI/Full；发布时执行 `tools/Publish.ps1`、`tools/Test-PublishedApp.ps1` 并对最终 EXE 单独检查浏览器交互。测试使用工作副本，勿对真实词汇库进行破坏性测试。
-4. 下一步核对 PR #16 当前 Base、相对 `main` 的完整差异与 CI；PR #15 包含过渡性 WPF Script 实现，不能不经审查直接合并。Git 提交、推送、PR 合并均需授权。
+4. 后续新功能或整改以 `main` 为基线建立独立分支，完成变更核对、针对性回归、Windows 实机与发布验收后再审查是否合并。旧 PR #15/#16 只是历史记录。
 
 ## 相关文档
 
