@@ -11,7 +11,7 @@ public partial class MainWindow
 {
     private const string WebPilotOrigin = "https://readarticles.invalid";
     private const string WebPilotDocument = WebPilotOrigin + "/reader.html";
-    private readonly string webPilotSessionId = Guid.NewGuid().ToString("N");
+    private string webPilotSessionId = Guid.NewGuid().ToString("N");
     private string? webPilotPageId;
     private bool webPilotEnabled;
     private bool webPilotReady;
@@ -60,9 +60,7 @@ public partial class MainWindow
             };
             core.Navigate(WebPilotDocument);
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
-            or InvalidOperationException or ArgumentException or COMException or
-            CoreWebView2RuntimeNotFoundException)
+        catch (Exception error)
         {
             AppLogger.Default.Warning("WebViewPilotInitializationFailed", error);
             WebPilotFailure("WebView2 无法初始化。请检查 Evergreen Runtime 安装或用户数据目录权限。现已使用 WPF 阅读界面。");
@@ -195,6 +193,7 @@ public partial class MainWindow
     private void WebPilotArticleChanged()
     {
         // A previous display is never presented as the newly committed article.
+        webPilotSessionId = Guid.NewGuid().ToString("N");
         if (webPilotReady) SendWebPilotInitialize();
     }
 
@@ -240,6 +239,7 @@ public partial class MainWindow
 
     private void CloseWebPilot()
     {
+        if (!webPilotEnabled) return;
         webPilotClosed = true;
         ViewModel.ArticleChanged -= WebPilotArticleChanged;
         ViewModel.VocabularyChanged -= WebPilotVocabularyChanged;
