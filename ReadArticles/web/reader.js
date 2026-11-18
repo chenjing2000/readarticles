@@ -14,6 +14,7 @@ let selectedPassage = null;
 let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
+const localFeedback = [];
 let splitting = null;
 let currentMode = "passage";
 let pendingModeRequest = null;
@@ -398,7 +399,6 @@ function sentenceFor(node) {
 function hideSelectionAdd() {
   selectedPassage = null;
   byId("selection-add").hidden = true;
-  byId("selection-status").hidden = true;
 }
 
 function updateSelectionAdd() {
@@ -440,7 +440,6 @@ function updateSelectionAdd() {
   button.style.top = Math.round(Math.max(8, Math.min(window.innerHeight - 40, rect.top - 14))) + "px";
   button.hidden = false;
   button.disabled = !canWriteVocabulary || !!pendingMutation;
-  byId("selection-status").hidden = true;
 }
 
 function formatSeconds(seconds) {
@@ -475,20 +474,58 @@ const toastDisplayMs = 4650;
 const toastFadeMs = 1000;
 let latestNotifications = { visible: [], errors: [], overflowErrors: [] };
 
+function noticePrefix(severity) {
+  const kind = String(severity ?? "").toLowerCase();
+  return kind === "error" ? "错误：" : kind === "warning" ? "警告：" : "普通：";
+}
+
+function noticeText(message, severity) {
+  const body = element("div", "notice-message clamped");
+  body.append(element("strong", "notice-prefix", noticePrefix(severity)));
+  body.append(document.createTextNode(String(message ?? "")));
+  return body;
+}
+
+function attachNoticeExpansion(body, actions) {
+  const expand = element("button", "notice-expand", "...>>展开");
+  expand.type = "button";
+  expand.hidden = true;
+  expand.setAttribute("aria-expanded", "false");
+  const update = () => {
+    if (body.classList.contains("expanded")) return;
+    expand.hidden = body.scrollHeight <= body.clientHeight + 1;
+  };
+  expand.addEventListener("click", () => {
+    const opened = !body.classList.contains("expanded");
+    body.classList.toggle("expanded", opened);
+    body.classList.toggle("clamped", !opened);
+    expand.textContent = opened ? "<<收起" : "...>>展开";
+    expand.setAttribute("aria-expanded", String(opened));
+    expand.hidden = false;
+  });
+  actions.append(expand);
+  return update;
+}
+
 function createToast(item) {
   const key = String(item.id);
   const card = element("div", "notice " + String(item.severity ?? "").toLowerCase());
   card.dataset.id = key;
   card.classList.add("entering");
-  const message = element("span", "notice-message", item.message);
+  const message = noticeText(item.message, item.severity);
+  const actions = element("div", "notice-actions");
+  const checkOverflow = attachNoticeExpansion(message, actions);
   const close = element("button", "notice-close", "×");
   close.type = "button";
   close.setAttribute("aria-label", "关闭通知");
-  card.append(message, close);
+  actions.append(close);
+  card.append(message, actions);
+
+  const local = key.startsWith("local-");
   const isError = String(item.severity ?? "").toLowerCase() === "error";
   const entry = {
     card, item, remaining: toastDisplayMs, started: null, timeout: null,
-    exiting: false, expired: false
+    exiting: false, expired: false, checkOverflow
   };
   const pause = () => {
     if (entry.exiting || entry.expired) return;
@@ -508,11 +545,14 @@ function createToast(item) {
       entry.timeout = null;
       entry.expired = true;
       card.remove();
-      if (!isError || manual) {
+      if (local) {
+        const index = localFeedback.findIndex(n => String(n.id) === key);
+        if (index >= 0) localFeedback.splice(index, 1);
+        renderNotifications(latestNotifications);
+      } else if (!isError || manual) {
         dismissNotification(item.id);
       } else {
-        // Visually fade errors too, but keep the record accessible via
-        // the overflow control until the user acknowledges it.
+        // Errors disappear visually but remain in the authoritative archive.
         renderErrorArchive(latestNotifications);
       }
     }, toastFadeMs);
@@ -550,13 +590,17 @@ function renderErrorArchive(notifications) {
   list.replaceChildren();
   for (const item of archived) {
     const line = element("div", "notification-overflow-entry");
-    line.append(element("span", "", item.message));
-    const close = element("button", "", "×");
+    const body = noticeText(item.message, "Error");
+    const actions = element("div", "notice-actions");
+    const checkOverflow = attachNoticeExpansion(body, actions);
+    const close = element("button", "notice-close", "×");
     close.type = "button";
     close.setAttribute("aria-label", "关闭错误消息");
     close.addEventListener("click", () => dismissNotification(item.id));
-    line.append(close);
+    actions.append(close);
+    line.append(body, actions);
     list.append(line);
+    window.requestAnimationFrame(checkOverflow);
   }
   toggle.setAttribute("aria-expanded", String(!list.hidden && !toggle.hidden));
 }
@@ -564,7 +608,7 @@ function renderErrorArchive(notifications) {
 function renderNotifications(notifications) {
   latestNotifications = notifications;
   const host = byId("notification-cards");
-  const visible = notifications.visible ?? [];
+  const visible = [...localFeedback].reverse().concat(notifications.visible ?? []);
   const wanted = new Set(visible.map(item => String(item.id)));
   for (const [key, entry] of toastEntries) {
     if (!wanted.has(key)) {
@@ -572,8 +616,6 @@ function renderNotifications(notifications) {
       toastEntries.delete(key);
     }
   }
-  // Newest first in the bottom-anchored stack. Reuse existing DOM and
-  // deadlines when unrelated notification snapshots arrive.
   for (const item of visible) {
     const key = String(item.id);
     let entry = toastEntries.get(key);
@@ -581,7 +623,10 @@ function renderNotifications(notifications) {
       entry = createToast(item);
       toastEntries.set(key, entry);
     }
-    if (!entry.expired) host.append(entry.card);
+    if (!entry.expired) {
+      host.append(entry.card);
+      window.requestAnimationFrame(entry.checkOverflow);
+    }
   }
   renderErrorArchive(notifications);
 }
@@ -681,10 +726,15 @@ function updateEditControls() {
   updateReadingModeButton();
 }
 
-function showEditStatus(value) {
-  const status = byId("selection-status");
-  status.textContent = value;
-  status.hidden = false;
+function showEditStatus(value, severity = "Info") {
+  // Operation results are transient UI feedback. They share the same bottom
+  // notification host, classification and lifetime as C# notifications.
+  localFeedback.push({
+    id: "local-" + crypto.randomUUID(),
+    severity, message: value
+  });
+  if (localFeedback.length > 4) localFeedback.shift();
+  renderNotifications(latestNotifications);
 }
 
 function requestVocabularyEdit(type, payload) {
@@ -727,18 +777,23 @@ for (const [id, type, field, convert] of [
 
 const splitter = byId("reader-splitter");
 function clampDividerWidth(width) {
-  const max = Math.max(250, Math.round(byId("article-scroll").closest(".workspace").clientWidth * 0.45));
-  return Math.round(Math.max(250, Math.min(max, width)));
+  const available = byId("article-scroll").closest(".workspace").clientWidth;
+  const max = Math.max(220, Math.round(available - 288));
+  return Math.round(Math.max(220, Math.min(max, width)));
 }
 function setDividerWidth(width) {
-  document.documentElement.style.setProperty("--word-width", clampDividerWidth(width) + "px");
+  const actual = clampDividerWidth(width);
+  document.documentElement.style.setProperty("--word-width", actual + "px");
+  if (splitting) splitting.targetWidth = actual;
   scheduleScriptGeometry();
+  return actual;
 }
 splitter.addEventListener("pointerdown", event => {
   if (event.button !== 0 || !sessionId) return;
   event.preventDefault();
-  splitting = { pointerId: event.pointerId, width: byId("vocabulary-scroll").getBoundingClientRect().width,
-    x: event.clientX };
+  splitting = { pointerId: event.pointerId,
+    width: byId("vocabulary-scroll").getBoundingClientRect().width,
+    x: event.clientX, targetWidth: null };
   splitter.setPointerCapture(event.pointerId);
   splitter.classList.add("dragging");
   document.body.classList.add("splitter-dragging");
@@ -749,13 +804,14 @@ splitter.addEventListener("pointermove", event => {
 });
 function finishDivider(event, save) {
   if (!splitting || event.pointerId !== splitting.pointerId) return;
+  const targetWidth = splitting.targetWidth;
   splitting = null;
   splitter.classList.remove("dragging");
   document.body.classList.remove("splitter-dragging");
   if (splitter.hasPointerCapture(event.pointerId)) splitter.releasePointerCapture(event.pointerId);
   if (save) {
-    const width = byId("vocabulary-scroll").getBoundingClientRect().width;
-    send("setPanelWidth", { payload: { width: clampDividerWidth(width) } });
+    const width = targetWidth ?? clampDividerWidth(byId("vocabulary-scroll").getBoundingClientRect().width);
+    send("setPanelWidth", { payload: { width } });
   } else renderSettings(currentSettings);
 }
 splitter.addEventListener("pointerup", event => finishDivider(event, true));
@@ -904,8 +960,8 @@ if (window.chrome?.webview) {
       if (pendingModeRequest && message.requestId === pendingModeRequest) {
         pendingModeRequest = null;
         updateReadingModeButton();
-        if (message.payload?.status !== "success")
-          showEditStatus("Script 切换失败或文件不可用，已保留原阅读模式");
+        // The host publishes Script failures to NotificationService.
+        // Never create a second independent message outside the Toast stack.
         return;
       }
       if (!pendingMutation || message.requestId !== pendingMutation.requestId) return;
@@ -935,7 +991,12 @@ if (window.chrome?.webview) {
         cancelled: "已取消导入",
         failed: "保存失败，请检查文件及备份状态"
       };
-      showEditStatus(statuses[result] ?? "操作未完成");
+      // Duplicate and file-write failures have already produced authoritative
+      // warning/error notifications in the C# ViewModel.
+      if (result !== "duplicate" && result !== "failed")
+        showEditStatus(statuses[result] ?? "操作未完成",
+          result === "invalid" || result === "stale" || result === "unavailable"
+            ? "Warning" : "Info");
       updateEditControls();
     }
   });
