@@ -82,6 +82,8 @@ public partial class MainWindow
 
     private void PlaybackKeyDown(object sender, KeyEventArgs e)
     {
+        // The browser handles its own keys; do not apply a second WPF seek.
+        if (webPilotEnabled && WebPilotOverlay.Visibility == Visibility.Visible) return;
         Key key = e.Key == Key.System ? e.SystemKey : e.Key;
         if (key != Key.Left && key != Key.Right && key != Key.Space) return;
         e.Handled = true;
