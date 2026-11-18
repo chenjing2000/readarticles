@@ -55,7 +55,7 @@ public partial class MainWindow
         }
         System.Windows.Automation.AutomationProperties.SetName(ReadAllButton, (string)ReadAllButton.ToolTip);
         // One existing timer; use finer updates only for playing Script text.
-        progressTimer.Interval = scriptMode && ViewModel.Playback.IsArticlePlaying
+        progressTimer.Interval = (scriptMode || (webPilotEnabled && webPilotScriptMode)) && ViewModel.Playback.IsArticlePlaying
             ? TimeSpan.FromMilliseconds(33) : TimeSpan.FromMilliseconds(100);
         if (!ViewModel.Playback.IsArticleActive)
         {
