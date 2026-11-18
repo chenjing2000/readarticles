@@ -82,6 +82,7 @@ public partial class MainWindow
         LeftColumn.Width = new GridLength(settings.LeftWidth);
         RightColumn.Width = new GridLength(settings.RightWidth);
         SaveSettings(player.Volume);
+        SendWebPilotSettings();
     }
 
     private void AccentClicked(object sender, RoutedEventArgs e)
@@ -111,6 +112,7 @@ public partial class MainWindow
         foreach (var reader in readers) reader.FontSize = settings.FontSize;
         VocabularyList.FontSize = settings.FontSize;
         RefreshSettingsChecks();
+        SendWebPilotSettings();
     }
 
     private void RefreshSettingsChecks()
