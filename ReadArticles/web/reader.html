@@ -17,10 +17,10 @@
         </div>
       </main>
       <footer class="toolbar">
-        <label class="progress-label">文章音频 <input id="progress" type="range" min="0" max="1" value="0" disabled></label>
+        <label class="progress-label">文章音频 <input id="progress" type="range" min="0" max="1" step="0.05" value="0" disabled></label>
         <output id="playback-time">00:00 / 00:00</output>
-        <button disabled title="后续阶段接入播放">播放</button>
-        <button disabled title="后续阶段接入停止">停止</button>
+        <button id="article-play" disabled title="播放或暂停文章音频">播放</button>
+        <button id="article-stop" disabled title="停止文章音频">停止</button>
       </footer>
     </section>
     <section class="pane vocabulary-pane" aria-label="词汇表">
@@ -32,7 +32,7 @@
         <button id="word-up" disabled title="上移所选词汇">上移</button>
         <button id="word-down" disabled title="下移所选词汇">下移</button>
         <button id="word-delete" disabled title="删除所选词汇">删除</button>
-        <button disabled title="后续阶段接入 Script 切换">Script</button>
+        <button id="script-toggle" disabled aria-pressed="false" title="切换 Passage/Script 阅读模式">Script</button>
         <button id="highlight-toggle" aria-pressed="false" title="切换正文词汇高亮">高亮</button>
         <button id="word-import" disabled title="导入词汇 JSON（替换当前词表）">导入</button>
       </footer>
