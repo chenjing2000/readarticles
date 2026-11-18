@@ -294,11 +294,14 @@ internal static class ScriptChecks
                 Program.Check(adornerLayer?.GetAdorners(reader)?
                     .Any(a => !a.IsHitTestVisible) == true);
                 var visibleBrush = reader.GetScriptVocabularyBackground(0, 6);
+                var overlay = adornerLayer!.GetAdorners(reader)!.Single(a => !a.IsHitTestVisible);
+                Rect visibleDrawing = VisualTreeHelper.GetDrawing(overlay)?.Bounds ?? Rect.Empty;
                 byte[] withBackground = CapturePixels(adornedRoot, out int width, out int height);
                 byte[] visibleLayer = CapturePixels(adornerLayer!, out int layerWidth, out int layerHeight);
                 reader.SetVocabulary(["beta"], false);
                 WpfTestHelpers.Pump();
                 var hiddenBrush = reader.GetScriptVocabularyBackground(0, 6);
+                Rect hiddenDrawing = VisualTreeHelper.GetDrawing(overlay)?.Bounds ?? Rect.Empty;
                 byte[] withoutBackground = CapturePixels(adornedRoot, out int sameWidth, out int sameHeight);
                 byte[] hiddenLayer = CapturePixels(adornerLayer!, out int hiddenLayerWidth, out int hiddenLayerHeight);
                 Program.Check(layerWidth == hiddenLayerWidth && layerHeight == hiddenLayerHeight);
@@ -323,7 +326,7 @@ internal static class ScriptChecks
                     width, height, 0, 0, width, height);
                 int layerChanges = ChangedPixels(visibleLayer, hiddenLayer,
                     layerWidth, layerHeight, 0, 0, layerWidth, layerHeight);
-                Console.WriteLine($"  Script vocabulary highlight pixels: local={changes}; global={globalChanges}; layer={layerChanges}; validCells={validCells}; visibleBrush={visibleBrush}; hiddenBrush={hiddenBrush}; adornerSize={adornerLayer!.ActualWidth:F1}x{adornerLayer.ActualHeight:F1}");
+                Console.WriteLine($"  Script vocabulary highlight pixels: local={changes}; global={globalChanges}; layer={layerChanges}; validCells={validCells}; visibleBrush={visibleBrush}; hiddenBrush={hiddenBrush}; adornerSize={adornerLayer!.ActualWidth:F1}x{adornerLayer.ActualHeight:F1}; overlaySize={overlay.RenderSize.Width:F1}x{overlay.RenderSize.Height:F1}; visibleDrawing={visibleDrawing}; hiddenDrawing={hiddenDrawing}");
                 // Preserve this actual pixel assertion until the WPF implementation
                 // is fixed or superseded by equivalent WebView2 rendering coverage.
                 Program.Check(changes > 0);
