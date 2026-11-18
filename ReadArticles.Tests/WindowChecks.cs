@@ -162,7 +162,8 @@ internal static class WindowChecks
                 var layout = (System.Windows.Controls.Grid)window.Content;
                 var panels = layout.Children.OfType<FrameworkElement>()
                     .Where(child => System.Windows.Controls.Grid.GetRow(child) == 0 &&
-                        child is not System.Windows.Controls.GridSplitter).ToArray();
+                        child is not System.Windows.Controls.GridSplitter &&
+                        child.Visibility == Visibility.Visible).ToArray();
                 Program.Check(panels.Length == 3 && layout.RowDefinitions.Count == 1);
                 WpfTestHelpers.Pump();
                 window.UpdateLayout();
