@@ -48,7 +48,23 @@ function Remove-TestDirectory([string]$Directory) {
     if (@($items | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) {
         throw 'Temporary test directory contains a reparse point; cleanup refused.'
     }
-    Remove-Item -LiteralPath $resolved -Recurse -Force
+    # WebView2 browser processes may briefly hold cache files after the host exits.
+    # Retry only this validated temporary directory; persistent locks must fail.
+    for ($attempt = 1; $attempt -le 40; $attempt++) {
+        try {
+            Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction Stop
+            if (Test-Path -LiteralPath $resolved) {
+                throw 'The temporary directory still exists after deletion.'
+            }
+            return
+        }
+        catch {
+            if ($attempt -eq 40) {
+                throw "Temporary test cleanup failed: $resolved. $($_.Exception.Message)"
+            }
+            Start-Sleep -Milliseconds 250
+        }
+    }
 }
 
 function Test-PowerShellSource([string]$Workspace) {

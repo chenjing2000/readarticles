@@ -186,14 +186,8 @@ internal static class TreeNavigationChecks
 
                 Program.Check(window.SelectPassage(TestData.ArticlePath));
                 WpfTestHelpers.Pump(); window.UpdateLayout();
-                var scroll = WpfTestHelpers.Descendants((ListBox)window.FindName("VocabularyList"))
-                    .OfType<System.Windows.Controls.Primitives.ScrollBar>()
-                    .First(s => s.Orientation == Orientation.Vertical);
-                Program.Check(Math.Abs(scroll.ActualWidth -
-                    Math.Round(Math.Round(System.Windows.SystemParameters.VerticalScrollBarWidth) / 2)) < 0.01);
                 Program.Check(Math.Abs(tree.FontSize - 11.0 * 96 / 72) < 0.001);
-                Program.Check(Math.Abs(((TextBlock)window.FindName("ArticleTitleText")).FontSize - 12.0 * 96 / 72) < 0.001);
-                Program.Check(Math.Abs(((ListBox)window.FindName("VocabularyList")).FontSize - 15) < 0.001);
+                Program.Check(window.FindName("ReaderWebView") is not null);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });

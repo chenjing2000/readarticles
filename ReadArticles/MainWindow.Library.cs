@@ -1,21 +1,14 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using Microsoft.Win32;
 using ReadArticles.Models;
-using ReadArticles.Rendering;
-using ReadArticles.Services;
 using ReadArticles.ViewModels;
 
 namespace ReadArticles;
 
 public partial class MainWindow
 {
-    private readonly List<ParagraphReader> readers = new List<ParagraphReader>();
-
-    public IReadOnlyList<ParagraphReader> Readers => readers;
-
     public async void RestoreContent(string? library = null) =>
         await RestoreContentAsync(library);
 
@@ -68,153 +61,6 @@ public partial class MainWindow
             if (container.IsExpanded && SelectTreeNode(container, target)) return true;
         }
         return false;
-    }
-
-    private ScriptArticle? scriptArticle;
-    private bool scriptMode;
-    private double passageScrollOffset;
-    private double scriptScrollOffset;
-    private long contentRenderVersion;
-
-    private void ScriptClicked(object sender, RoutedEventArgs e)
-    {
-        var article = ViewModel.Article;
-        if (article is null) return;
-        if (scriptMode)
-        {
-            double offset = passageScrollOffset;
-            double leavingOffset = PassageScroll.VerticalOffset;
-            try
-            {
-                ShowContent(null, offset);
-                scriptScrollOffset = leavingOffset;
-            }
-            catch (Exception error) when (error is InvalidOperationException or ArgumentException)
-            {
-                ViewModel.Notify("ScriptViewFailed", "普通正文切换失败，请重新打开文章恢复显示。", ReadArticles.Infrastructure.NotificationSeverity.Error);
-                ReadArticles.Infrastructure.AppLogger.Default.Warning("ScriptViewFailed", error);
-            }
-            return;
-        }
-
-        ScriptArticle? candidate = scriptArticle;
-        if (candidate is null)
-        {
-            string path = ArticleRepository.ScriptPathFor(article.FilePath);
-            if (!File.Exists(path))
-            {
-                ViewModel.Notify("ScriptNotFound", "未找到同名 Script JSON：" + Path.GetFileName(path),
-                    ReadArticles.Infrastructure.NotificationSeverity.Warning);
-                return;
-            }
-            try
-            {
-                candidate = new ArticleRepository().LoadScript(article.FilePath);
-            }
-            catch (Exception error) when (error is InvalidDataException or System.Text.Json.JsonException or
-                IOException or UnauthorizedAccessException or ArgumentException)
-            {
-                ViewModel.Notify("ScriptLoadFailed", "Script JSON 加载失败：" + error.Message,
-                    ReadArticles.Infrastructure.NotificationSeverity.Error);
-                ReadArticles.Infrastructure.AppLogger.Default.Warning("ScriptLoadFailed", error);
-                return;
-            }
-        }
-
-        double previousOffset = PassageScroll.VerticalOffset;
-        try
-        {
-            ShowContent(candidate, scriptScrollOffset);
-            passageScrollOffset = previousOffset;
-        }
-        catch (Exception error) when (error is InvalidOperationException or ArgumentException)
-        {
-            ViewModel.Notify("ScriptViewFailed", "Script 正文切换失败，请重新打开文章恢复显示。",
-                ReadArticles.Infrastructure.NotificationSeverity.Error);
-            ReadArticles.Infrastructure.AppLogger.Default.Warning("ScriptViewFailed", error);
-        }
-    }
-
-    private void RenderArticle()
-    {
-        // An article change starts a new session. Do not retain the old Script cache.
-        scriptArticle = null;
-        scriptMode = false;
-        passageScrollOffset = 0;
-        scriptScrollOffset = 0;
-        ShowContent(null, 0);
-    }
-
-    private void ShowContent(ScriptArticle? script, double targetOffset)
-    {
-        var article = ViewModel.Article;
-        var words = ViewModel.Words.Select(w => w.Word).ToArray();
-        var prepared = new List<ParagraphReader>();
-        if (article is not null)
-        {
-            if (script is null)
-            {
-                foreach (var paragraph in article.Paragraphs)
-                    prepared.Add(CreateReader(paragraph, words));
-            }
-            else
-            {
-                foreach (var paragraph in script.Paragraphs)
-                {
-                    // Empty SID is not an invented audio SID. Script sentences never
-                    // trigger sentence pronunciation or Passage blank detection.
-                    var segments = paragraph.Sentences
-                        .Select(sentence => new Segment("", sentence.Text, false)).ToArray();
-                    prepared.Add(CreateReader(segments, words, paragraph.Sentences));
-                }
-            }
-        }
-
-        // Commit the view only after every ParagraphReader was constructed.
-        ParagraphHost.Children.Clear();
-        readers.Clear();
-        scriptMode = script is not null;
-        if (script is not null) scriptArticle = script;
-        readers.AddRange(prepared);
-        foreach (var reader in readers) ParagraphHost.Children.Add(reader);
-        EmptyMessage.Visibility = article is null ? Visibility.Visible : Visibility.Collapsed;
-        string title = script?.Title ?? article?.Title ?? "";
-        ArticleTitleText.SetCurrentValue(TextBlock.TextProperty, title);
-        ArticleTitleText.Visibility = article is not null && title.Length > 0
-            ? Visibility.Visible : Visibility.Collapsed;
-        ScriptButton.IsEnabled = article is not null;
-        ScriptImage.Source = scriptMode ? ReadArticles.Infrastructure.UiIcons.ScriptOn : ReadArticles.Infrastructure.UiIcons.ScriptOff;
-        ScriptButton.ToolTip = scriptMode ? "切换到普通正文" : "切换到同步朗读正文";
-        RefreshVocabularyHighlights();
-        RefreshPlayback();
-        long version = ++contentRenderVersion;
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
-        {
-            if (version == contentRenderVersion && ReferenceEquals(ViewModel.Article, article))
-                PassageScroll.ScrollToVerticalOffset(targetOffset);
-        }));
-    }
-
-    private ParagraphReader CreateReader(IEnumerable<Segment> segments, string[] words,
-        IReadOnlyList<ScriptSentence>? sentences = null)
-    {
-        var reader = new ParagraphReader(segments, words, ViewModel.HighlightsVisible, sentences)
-        {
-            FontSize = settings.FontSize,
-            FontFamily = new FontFamily("Segoe UI"),
-            Margin = new Thickness(0, 3, 0, 15)
-        };
-        reader.SelectionRequested += ViewModel.AddSelection;
-        if (sentences is null) reader.SegmentPlaybackRequested += ViewModel.PlaySegment;
-        return reader;
-    }
-
-    private void UpdateScriptColors()
-    {
-        if (!scriptMode) return;
-        double? position = ViewModel.Playback.IsArticleActive
-            ? ViewModel.Playback.ArticlePosition : null;
-        foreach (var reader in readers) reader.SetScriptPosition(position);
     }
 
     private bool restoringTreeSelection;

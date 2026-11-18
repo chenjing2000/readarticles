@@ -18,7 +18,6 @@ public partial class MainWindow
     private const string WebPilotDocument = WebPilotOrigin + "/reader.html";
     private string webPilotSessionId = Guid.NewGuid().ToString("N");
     private string? webPilotPageId;
-    private bool webPilotEnabled;
     private bool webPilotReady;
     private bool webPilotClosed;
     private bool webPilotFailureShown;
@@ -32,10 +31,9 @@ public partial class MainWindow
     private string? webPilotPendingSnapshotId;
     private readonly HashSet<string> webPilotSeenRequests = new(StringComparer.Ordinal);
 
-    // Migration-only pilot. All original WPF controls and business commands remain intact.
+    // The single WebView2 is the sole reading and vocabulary workspace.
     private void InitializeWebPilot()
     {
-        if (!webPilotEnabled) return;
         ViewModel.ArticleChanged += WebPilotArticleChanged;
         ViewModel.VocabularyChanged += WebPilotVocabularyChanged;
         ViewModel.PlaybackChanged += SendWebPilotPlayback;
@@ -83,19 +81,19 @@ public partial class MainWindow
             core.NavigationCompleted += (_, args) =>
             {
                 if (!args.IsSuccess)
-                    WebPilotFailure("WebView2 本地页面加载失败，已切回 WPF 阅读界面。");
+                    WebPilotFailure("WebView2 本地页面加载失败。请重新启动 ReadArticles。");
             };
             core.ProcessFailed += (_, args) =>
             {
                 // A failed browser process never commits a business-state change.
-                WebPilotFailure("WebView2 进程异常，已切回 WPF 阅读界面。");
+                WebPilotFailure("WebView2 进程异常。请重新启动 ReadArticles。");
             };
             core.Navigate(WebPilotDocument);
         }
         catch (Exception error)
         {
             AppLogger.Default.Warning("WebViewPilotInitializationFailed", error);
-            WebPilotFailure("WebView2 无法初始化。请检查 Evergreen Runtime 安装或用户数据目录权限。现已使用 WPF 阅读界面。");
+            WebPilotFailure("WebView2 无法初始化。请检查 Evergreen Runtime 安装或用户数据目录权限，然后重新启动程序。");
         }
     }
 
@@ -189,7 +187,7 @@ public partial class MainWindow
 
                 webPilotPendingSnapshotId = null;
                 if (type == "renderFailed")
-                    WebPilotFailure("WebView2 正文渲染失败，已切回 WPF 阅读界面。");
+                    WebPilotFailure("WebView2 正文渲染失败。请重新启动 ReadArticles。");
                 else
                     WebPilotOverlay.Visibility = Visibility.Visible;
                 return;
@@ -816,7 +814,7 @@ public partial class MainWindow
         catch (Exception error)
         {
             AppLogger.Default.Warning("WebViewPilotSendFailed", error);
-            WebPilotFailure("WebView2 通信失败，已切回 WPF 阅读界面。");
+            WebPilotFailure("WebView2 通信失败。请重新启动 ReadArticles。");
         }
     }
 
@@ -832,16 +830,22 @@ public partial class MainWindow
         webPilotReady = false;
         webPilotPageId = null;
         webPilotPendingSnapshotId = null;
+        webPilotPendingModeRequest = null;
+        webPilotPendingScriptArticle = null;
+        ViewModel.Stop();
+        // Keep the native failure screen above every pane, including the tree.
+        // The former WPF reader is not a runtime recovery path.
+        WebFailureMessage.Text = message;
+        WebFailurePanel.Visibility = Visibility.Visible;
         WebPilotOverlay.Visibility = Visibility.Collapsed;
-        // WPF is the browser-failure fallback, including its Toast timing.
-        NotificationHost.Attach(ViewModel.Notifications);
-        ViewModel.Notify("WebViewPilotUnavailable", message, NotificationSeverity.Error);
-        MessageBox.Show(this, message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
+        WebFailureExitButton.Focus();
+        AppLogger.Default.Warning("WebViewPilotUnavailable");
     }
+
+    private void WebFailureExitClicked(object sender, RoutedEventArgs e) => Close();
 
     private void CloseWebPilot()
     {
-        if (!webPilotEnabled) return;
         webPilotClosed = true;
         ViewModel.ArticleChanged -= WebPilotArticleChanged;
         ViewModel.VocabularyChanged -= WebPilotVocabularyChanged;

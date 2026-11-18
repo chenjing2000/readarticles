@@ -9,10 +9,9 @@ public partial class MainWindow : Window
 {
     public MainViewModel ViewModel { get; }
 
-    public MainWindow(bool persistSettings = true, bool webViewPilot = false)
+    public MainWindow(bool persistSettings = true)
     {
         this.persistSettings = persistSettings;
-        webPilotEnabled = webViewPilot;
         string? settingsWarning = null;
         settings = persistSettings ? ReaderSettings.Load(out settingsWarning) : new ReaderSettings();
         ViewModel = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
@@ -21,19 +20,12 @@ public partial class MainWindow : Window
         DataContext = ViewModel;
         InitializeWindowSettings();
         ViewModel.HighlightsVisible = false;
-
-        ViewModel.ArticleChanged += RenderArticle;
-        ViewModel.VocabularyChanged += RefreshVocabularyHighlights;
         InitializePlayback();
-        // During the browser pilot the HTML toast owns transient expiry/hover.
-        // The WPF host attaches only if browser initialization fails.
-        if (!webPilotEnabled) NotificationHost.Attach(ViewModel.Notifications);
         ViewModel.PropertyChanged += SettingsChanged;
         InitializeWebPilot();
         Closing += WindowClosing;
         Closed += WindowClosed;
 
-        RenderArticle();
         if (settingsWarning != null)
         {
             AppLogger.Default.Warning("SettingsLoadWarning");
@@ -44,7 +36,6 @@ public partial class MainWindow : Window
     private void WindowClosed(object? sender, EventArgs e)
     {
         CloseWebPilot();
-        NotificationHost.Detach();
         ViewModel.CloseNavigation();
         ClosePlayback();
     }

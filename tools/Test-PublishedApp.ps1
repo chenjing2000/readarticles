@@ -66,13 +66,17 @@ try {
         }
         finally { $missing.Dispose() }
     }
-    Complete-TestRun
 }
 finally {
     if ($script:publishedProcess) {
         if (-not $script:publishedProcess.HasExited) { $script:publishedProcess.Kill(); $script:publishedProcess.WaitForExit() }
         $script:publishedProcess.Dispose()
     }
-    Remove-TestDirectory $temporary
-    Pop-Location
+    try {
+        Invoke-TestCheck 'Temporary published-app cleanup' {
+            Remove-TestDirectory $temporary
+        }
+    }
+    finally { Pop-Location }
 }
+Complete-TestRun

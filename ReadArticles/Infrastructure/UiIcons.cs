@@ -8,21 +8,6 @@ namespace ReadArticles.Infrastructure;
 
 public static class UiIcons
 {
-    public static ImageSource Play { get; } = Svg("audio/play.svg");
-    public static ImageSource Pause { get; } = Svg("audio/pause.svg");
-    public static ImageSource Stop { get; } = Svg("audio/stop.svg");
-    public static ImageSource Import { get; } = Svg("vocabulary/import.svg");
-    public static ImageSource HighlightOn { get; } = Svg("vocabulary/highlight_on.svg");
-    public static ImageSource HighlightOff { get; } = Svg("vocabulary/highlight_off.svg");
-    public static ImageSource ScriptOff { get; } = Svg("reader/script_music.svg", tint: "#4B4B4B");
-    public static ImageSource ScriptOn { get; } = Svg("reader/script_music.svg", tint: "#B81A35");
-    public static ImageSource DisabledPlay { get; } = Svg("audio/play.svg", true);
-    public static ImageSource DisabledStop { get; } = Svg("audio/stop.svg", true);
-    public static ImageSource DisabledHighlightOn { get; } = Svg("vocabulary/highlight_on.svg", true);
-    public static ImageSource DisabledHighlightOff { get; } = Svg("vocabulary/highlight_off.svg", true);
-    public static ImageSource MoveUp { get; } = Svg("vocabulary/move_up.svg");
-    public static ImageSource MoveDown { get; } = Svg("vocabulary/move_down.svg");
-    public static ImageSource Delete { get; } = Svg("vocabulary/delete.svg");
     public static ImageSource AppIcon { get; } = Png("maple_leaf.png");
     public static ImageSource Plus { get; } = Svg("tree/plus.svg");
     public static ImageSource Minus { get; } = Svg("tree/minus.svg");

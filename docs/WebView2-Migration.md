@@ -3,9 +3,30 @@
 Date: 2026-11-18  
 Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `main`).
 
+## Stage 8 batch 2d — accepted locally on Windows (2026-11-18)
+
+**Current status; supersedes the pending-verification notes in the historical entries below.** The legacy WPF reader, vocabulary view, footers, ToastHost, text adorner and duplicated C# matcher have been removed from the local working tree. Exactly one WebView2 now owns reader visuals; WPF retains the native library tree, host and terminal error/exit screen.
+
+- Release application and test builds succeeded.
+- WebView2 DOM tests: **4/4**. Core: **10/10 groups**. UI: **13/13 groups**. Full: **6/6 groups**, **90/90 application checks**. Published-app smoke: **4/4**.
+- The user confirmed interactive acceptance of batch 2d. The checks were executed against **local uncommitted code**; the remote draft PR #16 and GitHub CI do **not** yet represent this state.
+- Precommit corrections (documentation, test naming and boundary coverage) must be validated again before any commit, push or merge. Actual portable EXE browser interactions remain a separate final release check.
+
+---
+
+### Earlier stage records (historical; not current instructions)
+
 ## Approved end state
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
+
+## Stage 8 — default WebView2 and native failure screen (batch 1; Windows retest pending)
+
+- At `ae1ed47`, the user confirmed a clean tree, portable publish success, published-app smoke 3/3, and all seven interactive portable WebView2 acceptance checks. These results precede the stage-eight code changes.
+- User selected cleanup option B: one default WebView2 reader, with a minimal native WPF failure screen; no complete WPF reader fallback.
+- Batch 1 changes application startup to WebView2 by default, stops playback on browser failure, covers all interactive panes with a native error/exit screen, and adds a focused failure regression test.
+- The old WPF reader, constructor pilot switch, and old WPF UI tests remain temporarily to isolate this batch from deletion/testing migration. They are **not** an application-runtime fallback after this change.
+- Verify Release build, `--webview-pilot-only`, Core/UI/Full, publish and the real default-startup EXE, including the failure screen. Do not mark these checks passed before they run on Windows. No merge is authorized.
 
 ## Stage 7 — Windows UI and Full regression accepted (2026-11-18)
 
@@ -538,3 +559,11 @@ The SDK addition may affect native Loader publishing. **Do not waive or silently
 7. Replace old WPF structural UI tests with WebView2 rendering tests; manually test audio/visual behavior; delete old visual implementation only after complete acceptance (stage 7).
 
 No CI, interactive UI, audio or publication result is claimed by this document. This branch must not be merged to `main` without explicit user approval.
+
+## Stage 8 — obsolete WPF reader removal (batch 2d; Windows validation pending)
+
+- The sole reading and vocabulary UI is WebView2. WPF keeps the application window, left lazy-loaded navigation tree and settings menu, plus the native failure/exit screen.
+- Remove ParagraphReader, selection adorner, native ToastHost, duplicate vocabulary matcher and the old WPF center/right XAML and event handlers.
+- Keep C# audio ownership, article and Script repositories, vocabulary transactional saves, backups and native tree; the JS reader owns all article/word/progress/notification visuals.
+- Replace obsolete visual tests with real WebView2 DOM assertions and retain model, navigation, audio, settings and backup checks. Raw test totals will decrease because removed WPF-only tests are not counted as browser tests.
+- This batch has **not** been validated by a Windows build or full regression at authoring time; do not merge PR #16 without Windows tests and interactive acceptance.

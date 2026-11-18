@@ -2,27 +2,26 @@
 
 ## Design goals
 
-ReadArticles is a local Windows reading and vocabulary application. It displays a directory tree, a rendered English passage, and an editable vocabulary list in three separate panes. Content remains in ordinary JSON and MP3/WAV files so it can be prepared outside the application and inspected without a database.
+ReadArticles is a local Windows reading and vocabulary application. WPF hosts the left library tree and one WebView2 hosts the passage and vocabulary panes. Content remains in ordinary JSON and MP3/WAV files so it can be prepared outside the application and inspected without a database.
 
 The design favors explicit responsibilities, concrete services, and small functions. It avoids a dependency-injection container, generic repository framework, event bus, and plugin architecture. A single audio-player interface is retained because it separates native media playback from deterministic playback tests.
 
 ## Framework and execution
 
-The application uses C# and WPF, targeting `net10.0-windows` with runtime version `10.0.11` or a later compatible patch. The build SDK is selected by `global.json`, currently `10.0.400`. WPF XAML defines the window, templates, and bindings. Native `RichTextBox`, `FlowDocument`, and `TextPointer` APIs implement passage rendering and selection. A WPF `Adorner` hosts the selection-add button in the same visual tree as the passage. WPF media playback supplies MP3/WAV decoding and progress.
+The application uses C# and WPF, targeting `net10.0-windows` with runtime version `10.0.11` or a later compatible patch. The build SDK is selected by `global.json`, currently `10.0.400`. WPF XAML defines the native window and directory tree. A single embedded WebView2 renders Passage/Script content, vocabulary, controls, text selection, highlighting and notifications using static HTML/CSS/JavaScript. WPF media playback supplies MP3/WAV decoding and progress through the C# playback service. WebView2 Evergreen Runtime is a separate system requirement.
 
-JSON handling uses `System.Text.Json`; files remain the storage layer. The original Python application is a migration reference, not a runtime dependency or required repository file. The WPF reader does not use an embedded browser to render the passage.
+JSON handling uses `System.Text.Json`; files remain the storage layer. The original Python application is a migration reference, not a runtime dependency or required repository file. The former WPF passage renderer was removed after WebView2 migration.
 
 ## Module responsibilities
 
 | Module | Responsibility |
 | --- | --- |
 | `App.xaml` / `App.xaml.cs` | Shared brushes and button styles; startup, command-line library selection, and main-window creation |
-| `MainWindow.xaml` | Three-pane layout, controls, templates, bindings, and floating notification overlay |
+| `MainWindow.xaml` | Native left navigation and one WebView2 reader host, with a native failure/exit overlay |
 | `MainWindow.xaml.cs` | Construct the state model and two independent media players; initialize modules and coordinate shutdown |
-| `MainWindow.Library.cs` | Folder selection, tree selection, library restoration, and passage-control assembly |
-| `MainWindow.Vocabulary.cs` | Import confirmation, list selection, highlighting, and move/delete UI actions |
-| `MainWindow.Playback.cs` | Playback controls and icons, progress timer, drag interaction, and media cleanup |
-| `MainWindow.Settings.cs` | Startup size, column widths, font/accent/progress-step menus, and preference persistence |
+| `MainWindow.Library.cs` | Folder selection, tree selection, library restoration and article selection |
+| `MainWindow.Playback.cs` | C# audio playback snapshots, timing and resource cleanup |
+| `MainWindow.Settings.cs` | Native pane settings, width handling and preference persistence |
 
 | `ViewModels/MainViewModel.cs` | Shared state, notifications, and operation errors |
 | `ViewModels/MainViewModel.Library.cs` | Prepare and commit library/article changes; resolve account-display context |
@@ -35,19 +34,18 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `Services/VocabularyRepository.cs` | Validate vocabulary, derive audio stems, and save with external-change detection |
 | `Services/UserRepository.cs` | Read the limited account-display data from the book's existing answer sheet |
 | `Services/ReaderWorkspace.cs` | Commit prepared library/article state and replace vocabulary after successful persistence |
-| `Services/VocabularyMatcher.cs` | Find non-overlapping literal vocabulary matches with explicit English-word boundaries |
 | `Services/AudioResources.cs` | Resolve sentence/word audio and select the first sibling MP3, otherwise WAV, for whole-article playback |
 | `Services/ReaderPlayback.cs` | Select audio targets, enforce article-only controls/progress, cancel pronunciation, and report audio errors |
 | `Services/PlaybackController.cs` / `IAudioPlayer.cs` | Playback state, pause/resume, completion, progress access, and stale-event rejection; player boundary |
-| `Rendering/ParagraphReader.cs` | Build paragraph documents; maintain SID-to-text ranges, selections, styles, and playback requests |
-| `Rendering/SelectionAddAdorner.cs` | Position and show/hide the native circle-plus selection action |
 | `Infrastructure/JsonFiles.cs` | JSON helpers, SHA256 fingerprints, and temporary-file replacement |
 | `Infrastructure/ResourcePaths.cs` | Relative-path and reparse-point checks |
 | `Infrastructure/ReaderSettings.cs` | Load and save preferences under the portable `userdata/config/` directory |
-| `Infrastructure/UiIcons.cs` | Load embedded icons and create vector drawings, including disabled variants |
-| `Infrastructure/WpfAudioPlayer.cs` / `RelayCommand.cs` | Native media adapter and small WPF command implementation |
+| `Infrastructure/UiIcons.cs` | Load remaining native window/tree icons |
+| `Infrastructure/WpfAudioPlayer.cs` / `RelayCommand.cs` | Native audio adapter and retained command support |
+| `MainWindow.WebView.cs` | Browser initialization, verified bridge messages and native terminal failure handling |
+| `web/reader.html`, `reader.css`, `reader.js` | Article/Script DOM, vocabulary matching and editing UI, selection, playback visuals, settings and notifications |
 
-The window and main view model each use partial files to group responsibilities while sharing their existing state. `ReaderPlayback` is a concrete service with no window or view-model dependency. `PlaybackController` operates through `IAudioPlayer`, which includes media-open events and progress. The window reads article progress and sends seek requests through `ReaderPlayback`; native media objects remain behind the player boundary. Repositories own file validation and persistence, the workspace owns committed content, and renderers own text/selection display. No additional service interfaces or generic frameworks are introduced.
+The window and main view model each use partial files to group responsibilities while sharing their existing state. `ReaderPlayback` is a concrete service with no window or view-model dependency. `PlaybackController` operates through `IAudioPlayer`, which includes media-open events and progress. The window sends playback snapshots to the page; the page sends validated seek/playback intents to `ReaderPlayback`. Repositories own validation and persistence, the workspace owns committed content, and the browser owns text/selection display. No additional service interfaces or generic frameworks are introduced.
 
 ## Important data flows
 
@@ -56,7 +54,7 @@ The window and main view model each use partial files to group responsibilities 
 ```text
 Folder selection -> LibraryRepository -> navigation nodes -> collapsed tree
 Passage selection -> ArticleRepository -> prepared article and words
-                  -> commit workspace -> render paragraphs and vocabulary
+                  -> commit workspace -> WebView2 article/word snapshots -> DOM
 ```
 
 Library selection clears the active passage and words. Startup restores only a library directory, when available. Selecting an article loads its matching vocabulary. Preparation occurs before committing the article, so a failed switch retains the previous readable article.
@@ -64,20 +62,20 @@ Library selection clears the active passage and words. Startup restores only a l
 ### Vocabulary editing
 
 ```text
-Selection/import/move/delete -> MainViewModel -> ReaderWorkspace
+Browser selection/import/move/delete intent -> MainViewModel -> ReaderWorkspace
                             -> VocabularyRepository -> checked file replacement
-                            -> refresh words -> update passage styles
+                            -> authoritative word snapshot -> browser DOM/highlights
 ```
 
 All successful vocabulary commits use one refresh/notification path. Import keeps incoming metadata; later edits retain the current vocabulary metadata. Recognized extension metadata at the vocabulary root, entry, and meaning levels survives serialization. Legacy `audio` fields are ignored on load and removed on save.
 
 Vocabulary saves serialize this application's writers with a named mutex derived from the absolute, case-normalized path within the current Windows session. Each writer rechecks the expected fingerprint after acquiring ownership and before replacing the file; a stale writer is rejected. This does not lock unrelated external editors or coordinate different path aliases through links or network mappings.
 
-The JSON `words` array determines list order. Moving swaps neighboring positions; the first and last items disable impossible moves. Delete removes the selected entry. The selection-add button creates a word whose pronunciation filenames are inferred from its stem, but does not generate definitions or audio files.
+The JSON `words` array determines list order. Moving swaps neighboring positions; the first and last items disable impossible moves. Delete removes the selected entry. The browser selection-add action requests a C# word commit whose pronunciation filenames are inferred from its stem, but does not generate definitions or audio files.
 
 Delete requires an active, writable vocabulary and an entry belonging to that vocabulary. Requests with no article or a stale entry do nothing. The matching pronunciation is stopped only after the deletion has been saved successfully.
 
-Paragraph documents are rebuilt when the case-insensitive vocabulary set changes. A reorder, capitalization-only change, or duplicate-only set change updates styles without rebuilding the document. Valid text selections and SID mappings are preserved through document updates.
+After a successful word edit, C# publishes the authoritative vocabulary snapshot; the browser updates its word rows and vocabulary highlights. Failed or stale edits cannot appear as committed changes.
 
 ### Playback
 
@@ -97,11 +95,11 @@ On close, normal application windows save final settings during `Closing`, befor
 ## Display and settings
 
 - Startup width and height are the rounded 70% of the primary screen's working area, centered to whole DIP coordinates; previous window dimensions are not restored.
-- The tree and title use 11 pt and 12 pt respectively. The shared body/vocabulary setting directly uses 14, 15, or 16 DIP, defaulting to 15 DIP. Settings menus use 10 pt.
+- The native tree uses 11 pt. Browser article/word text uses the shared 14/15/16 px font setting, default 15; browser headings and controls have their own CSS. The native settings menu uses 10 pt.
 - Each paragraph has a two-em first-line indent. All panes scroll independently and column splitters allow resizing.
-- The three bottom toolbars share their height and alignment. Playback controls remain present when disabled.
-- Highlighting starts off. The selection-add action is a 14 by 14 DIP native vector circle-plus; it follows selection scrolling and layout and hides outside the viewport or when selection is cleared.
-- Progress settings provide independent Forward (4/7/10 seconds) and Backward (5/8/15 seconds) selections, defaulting to their first options. Left uses the Backward value to move backward; Right uses the Forward value to move forward. Each option displays seconds explicitly. All Settings menus fit their text and share a light background; selected font, accent, and step options use #87c0ca instead of a checkmark. Space has priority across the window and popup menus and toggles only the sibling audio file playback/pause.
+- The two reading-workspace toolbars live in WebView2. Playback controls remain present when disabled.
+- Highlighting starts off. A browser-owned selection-add control follows the active selection and hides when invalid or outside the viewport.
+- Progress settings provide Forward (4/7/10 seconds) and Backward (5/8/15 seconds) steps. Browser focus handles Space for article play/pause and Left/Right for seek; native controls retain only their own focus behavior.
 - Font size, accent, progress steps, library, column widths, and player volume are retained as applicable. Window dimensions, active passage, and highlighting are not saved. Old settings containing these fields remain readable; the unused fields are ignored.
 
 ## Current boundaries
@@ -114,15 +112,15 @@ Each playback controller owns one audio file at a time. It has no paragraph queu
 
 Tests exercise these production modules directly; the obsolete prototype application has been removed. See [Testing](Testing.md) for categories and their data ownership. Exercise authoring remains in the supplied skills, but there is no exercise runtime module on main.
 
-Keyboard focus remains available, but the global focus visual uses an empty template so no control displays a dotted focus outline.
+Keyboard focus is available in both native tree controls and browser controls; focus visuals follow each renderer.
 
-Focusable buttons use a pale teal (#D7EFEB) background while they have keyboard focus, including the settings circle. Focus outlines remain hidden. Local MP3s and personal resource directories are excluded from Git; embedded UI icons remain source dependencies.
+Native button focus and browser `:focus-visible` are styled independently. Local MP3s and personal resource directories are excluded from Git; required icons remain embedded.
 
 The Portable publish profile creates one framework-dependent Windows x64 executable in `dist/ReadArticles/`. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses `userdata/config/settings.json` beside the executable directory; missing settings initialize at startup, recoverable JSON corruption keeps a backup, and settings changes save without waiting for exit. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
 
-ReaderSettings owns configuration defaults, recovery, and value normalization on load and save. It rounds stored column widths, bounds the font and volume, and validates accent and progress choices. MainWindow.Settings applies those values to controls and constrains column widths to the current viewport; it does not duplicate configuration validation.
+ReaderSettings owns defaults, recovery and validation for font, volume, accent, progress choices and legacy width fields. The native left width and browser vocabulary width have separate layout controls; persisted legacy widths are ignored on restart.
 
-Program-computed window dimensions, column widths and limits, scrollbar width, and paragraph line heights are rounded before they feed subsequent size calculations. Saved LeftWidth and RightWidth are integers. Direct XAML pt font declarations for the title, tree, and settings menus remain unchanged. SVG geometry and text-selection positions are not rounded, preserving drawing and text alignment.
+Native window/column dimensions use WPF layout; browser scrollbars, text wrapping, SVG clip geometry and selection positions use Chromium layout. Saved legacy pane widths do not restore on restart.
 
 Audio filenames are inferred without JSON paths: word files are `audio/<stem>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`; sentence files are `audio_sentences/<sid>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`. Derive stems by trimming, invariant lowercasing, replacing non-ASCII `a-z`/`0-9` characters with `_`, collapsing underscores, and trimming underscores. First entries reserve nonempty stems in `words` order regardless of recordings; later collisions and empty stems retain text with all audio disabled. Spelling uniqueness is unchanged. Blank articles are identified by valid body `[[n]]` placeholders and disable sentence audio.
 
@@ -130,6 +128,6 @@ For each pronunciation target prefer MP3 by existence, otherwise WAV. Whole-arti
 
 ## Phase 5 service boundaries
 
-`NotificationService` stores notification severity, deduplication and persistent-error state independently of WPF controls. `ToastHost` owns WPF visuals, animations, hover-pause and dismissal lifecycle. The middle reading pane hosts the overlay without allocating a status row.
+`NotificationService` owns the FIFO queue, severity and error persistence. WebView2 displays at most three floating notification cards and owns their animation, hover and dismissal intents. Browser startup failure is shown on the native terminal screen.
 
 `LibraryRepository.Load` discovers only book directories at the library root, while `ScanDirectoryLevel` enumerates one level without opening passage content. `MainViewModel` coordinates background scans and marshals collection updates to the WPF Dispatcher, guarded by library-session and node-generation tokens. Closing the window or collapsing a folder invalidates pending work.

@@ -9,6 +9,8 @@
 ## 技术与运行环境
 
 - C# / WPF，.NET 10，Windows x64。
+- 正式启动以单个 WebView2 作为唯一阅读工作区；WPF 保留窗口和左侧目录树。WebView2 Evergreen Runtime 为运行依赖。
+- WebView2 初始化、导航或进程异常时，停止音频并显示最小原生故障提示及退出入口；不启用第二套 WPF 阅读器。
 - Framework-dependent 单文件发布，不启用 trimming。运行需要 .NET 10 Windows Desktop Runtime x64，补丁下限见 [README](../README.md)。
 - 采用便携式目录部署。程序目录必须位于当前用户有写权限的位置；不自动迁移用户数据到 `%LOCALAPPDATA%`。
 

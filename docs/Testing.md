@@ -12,11 +12,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite 
 
 ## Suites
 
-- **Core** runs publishing safeguards and the core regression categories: content and unified-audio contracts, matching/rendering, tree navigation, and vocabulary editing.
-- **UI** runs Core plus icons, reader windows, and keyboard/control interaction checks. Run this suite locally on the Windows desktop where the application is used; it is the focused diagnostic suite for WPF interaction issues.
+- **Core** runs publishing safeguards and data/audio/Script contracts, WebView2 snapshot checks, real browser DOM rendering, tree navigation, vocabulary commit and notification tests.
+- **UI** runs Core plus native window/tree checks, WebView2 browser rendering, settings and control checks. Run it on an interactive Windows desktop.
 - **Full** runs the complete application regression suite, real MP3/WAV playback checks, and read-only checks against the unified test article. Run this locally before merging; it does not require a developer-specific article directory.
 
-The hosted GitHub Actions runner runs **Core** only. WPF focus, popup, media-device, and input timing can differ between hosted virtual desktops and a user's interactive Windows session. A hosted UI timeout is therefore recorded as an environment-specific UI failure, not silently treated as a passing UI test. The local **UI** and **Full** results remain required for acceptance of changes affecting the reader interface or playback.
+The main CI workflow runs Core; the WebView2 feature-branch workflow also runs browser smoke. Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
 
 The summary distinguishes Passed, Failed, and Skipped groups. A skipped group is not counted as verified. A failed native command or assertion makes the entry point return a nonzero exit code.
 
@@ -73,37 +73,27 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 Never edit `tests/TestData/` during a test run. When intentionally changing a fixture, update `tests/TestData/README.md` and the corresponding regression assertions in the same change. Do not commit generated screenshots, reports, logs, personal settings, or temporary media. Run tests sequentially because native WPF input and playback checks require exclusive desktop interaction.
 
-## Phase 5 targeted checks
+## Current targeted regression checks (single WebView2 reader)
 
-Run `dotnet run --project ReadArticles.Tests -c Release -- --notifications-only` for queue ordering, severity, deduplication and error overflow. Run `dotnet run --project ReadArticles.Tests -c Release -- --lazy-tree-only` for root-only and one-level scan behavior. The existing `--tree-only`, `--window-only`, `--backup-only` and `--content-only` suites remain relevant. Native WPF animation timing, hover, keyboard close and published EXE behavior still require an interactive Windows desktop in addition to hosted Core CI. Never test recovery fault cases against a real library.
+Run the following from the repository root on Windows:
 
-## Phase 5 reliability and interactive regression additions
+```powershell
+dotnet build ReadArticles.Tests -c Release
+dotnet run --project ReadArticles.Tests -c Release -- --webview-pilot-only
+dotnet run --project ReadArticles.Tests -c Release -- --script-only
+.\tools\Test.ps1 -Suite Core
+.\tools\Test.ps1 -Suite UI
+.\tools\Test.ps1 -Suite Full
+.\tools\Test-PublishedApp.ps1
+```
 
-- `--window-only`: includes a real WPF ToastHost timing check. A transient message is hovered near its expiry threshold, must remain visible while hovered, then expires after the remaining active time. An Error must remain after the transient timeout and disappear only after its close action.
-- `--tree-only`: includes rapid collapse during a pending directory scan, successful retry after cancellation, library-session replacement while an old scan is pending, and failed article selection restoring the previously committed leaf.
-- `--backup-only`: includes a Windows file-sharing fault injection. The current source is held without delete sharing so the restore replacement fails after backup rotation; the test verifies the original source and previous valid backup are both restored byte-for-byte and temporary files are cleaned.
-- The fault-injection test uses an isolated temporary directory and never touches the user's library. The WPF timing test uses the test window and closes it in a finally block.
+- `--webview-pilot-only` covers the embedded static assets, terminal native error screen, lack of legacy WPF reader, real Passage/word DOM and Script switching, vocabulary matching boundaries, independent scroll, font-setting roundtrip, notification dismissal and SVG clip/foreground progress.
+- `--script-only` covers Script JSON validation, timed-unit offsets, null-time handling and bridge snapshot/selection contracts. Script unaligned units are allowed but not colored; single-null and zero-duration intervals must be rejected.
+- `--tree-only`, `--lazy-tree-only`, `--controls-only`, `--editing-only`, `--notifications-only` and `--backup-only` keep the native tree, business states and data-safety checks. `--rendering-only` checks the browser and Script bridge, **not** the deleted WPF `ParagraphReader`.
+- `--source-only` verifies that the active test article and vocabulary load without writes. It is **not** an independent browser-rendering test; real DOM assertions are in `--webview-pilot-only` / `--rendering-only`.
+- The browser matches vocabulary using case-insensitive literal matches, longest match at the earliest start, and the established apostrophe/hyphen/numeric-boundary rules. Do not reintroduce the deleted C# `VocabularyMatcher` merely to test this behavior.
+- Notification queue tests cover severity, FIFO order, three visible cards, overflow and persistent errors. Browser DOM tests check rendering/dismissal; deleted WPF ToastHost animation/bitmap tests are no longer applicable.
+- Script foreground coloring uses SVG clip geometry driven by the C# audio clock. DOM/geometry checks verify structure and updates; **real-audio listening and visual inspection of wrapped timed units** remain separate acceptance evidence. Confirm first-line-to-last-line coloring for hyphenated/multiword units, seek, pause, stop, highlight backgrounds and mode switches.
+- The published-app smoke validates launch, renamed executable, settings location and missing-.NET guidance; it does **not** independently prove every published EXE WebView2 interaction. Exercise the actual published build on an interactive desktop before release.
 
-## Toast layout and motion regression
-
-- `--notifications-only` verifies that message history remains chronological while the visible list is newest-first (newest at top, oldest at bottom), including the four-item visible limit.
-- `--window-only` verifies that new cards enter from above, dismissed cards exit downward, the default card width is 360 DIP, visible card gaps are 2 DIP, and the oldest visible card is anchored to the bottom of the host.
-- The host retains a 16 DIP bottom margin from the reading pane. Info, Warning and Error cards use distinct icon glyphs, foreground colors, backgrounds and font weights.
-- Info and Warning expire after their active display interval; hovering pauses the interval. Error notifications do not expire automatically. Exiting cards remain in the layout until their exit animation completes.
-- Animation sampling is performed on a real WPF window in the Windows UI suite. Hosted Core CI does not replace interactive desktop verification of perceived motion and rendering.
-
-## Script timed-unit sweep regression
-
-A Script `timed_units` entry is the **indivisible foreground animation unit**. For example, `["euro-zone",29.226,29.706]` must render as one complete WPF text Run and one gradient: at 29.346, 29.466, and 29.586 seconds its entire visual width must be 25%, 50%, and 75% red respectively. Neither the hyphen nor a vocabulary match may start a new gradient. The same applies to a timed unit containing multiple words (for example, `"economic growth"`).
-
-Vocabulary highlighting uses independent background drawing and must still highlight a vocabulary entry that is shorter than, or spans across, Script timed-unit boundaries. Inspect selected vocabulary, highlight toggle, document stability during playback, seek backwards, and viewport resizing. Check that no redraw of the full FlowDocument occurs on audio timer ticks.
-
-Hosted Core checks cover Run identity, shared gradient brush/stops and background range logic. Windows UI checks verify the single-line absolute-width gradient, the wrapped unit's single Run with per-visual-line TextEffects (not separate timing units), bitmap changes progressing from its first visual line to its last, and actual rendered-pixel differences for Script vocabulary highlighting. **Visual acceptance** still requires reviewing the rendered pixels and listening with real audio, especially for wrapped timed units, because brush-shape assertions alone do not prove perceptual sweep correctness.
-
-## Script reading companion acceptance
-
-Run `dotnet run --project ReadArticles.Tests -c Release -- --script-only` on a Windows desktop to exercise the Script parser, time-dependent Run foreground, missing companion behavior and mode switch. Core includes Script parsing and renderer logic; the window interaction check belongs to the UI/window category. Run Core, UI and Full before reviewing the feature for merge.
-
-Manual checks with a **working copy** of the article library: add `<name>.script.json` beside an existing Passage, with the new required `filetype` and `title` fields. Verify the music icon changes state, empty titles hide the title, the original vocabulary list is unchanged, and the Script text is not compared with Passage. Start whole-article audio; confirm cumulative left-to-right foreground color, pause, seek backward/forward, switching views while playing, and clearing on stop/end. Confirm that vocabulary background highlighting and multiword focus survive time-boundary splits, including a wrapped line. Script right-click must not request sentence pronunciation. For a wrapped timed unit, verify the red boundary completes its first visual line before advancing into the next, without repeated sweeps; also inspect partial vocabulary backgrounds over both line breaks and timed-unit boundaries. Test switching modes during playback and after a missing or malformed companion. Also test null time units and removal of Script without altering original Passage, audio, or vocabulary. Do not add private or copyrighted articles to checked-in fixtures.
-
-This change's interactive visual and actual audio synchronization are not verified merely by successful automated checks; they require the Windows UI/Full suites and a real audio listening test before merge.
+Do not write to a real library or its backup files in any destructive or fault-injection test. Run Core/UI/Full sequentially. Following stage 2d, fewer total assertions are expected because WPF-only visual tests were removed; report the actual counts from each run rather than copying historical 131/131 or 90/90 totals into a new result.

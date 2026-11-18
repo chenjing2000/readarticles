@@ -18,7 +18,7 @@ public partial class App : Application
         Exit += (_, _) => AppLogger.Default.Info("ApplicationExited");
 
         base.OnStartup(e);
-        var window = new MainWindow(webViewPilot: e.Args.Contains("--webview-pilot", StringComparer.OrdinalIgnoreCase));
+        var window = new MainWindow();
         window.Show();
         window.RestoreContent(Argument("--library"));
 
