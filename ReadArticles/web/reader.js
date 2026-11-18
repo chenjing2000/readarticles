@@ -388,7 +388,8 @@ function focusVocabulary(word, index) {
 
 function sentenceFor(node) {
   const parent = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-  return parent?.closest(".sentence") ?? null;
+  const sentence = parent?.closest(".sentence, .script-sentence") ?? null;
+  return sentence?.closest(".script-paint") ? null : sentence;
 }
 
 function hideSelectionAdd() {
@@ -406,7 +407,9 @@ function updateSelectionAdd() {
   const range = selection.getRangeAt(0);
   const sentence = sentenceFor(range.startContainer);
   if (!sentence || sentence !== sentenceFor(range.endContainer) ||
-      !byId("article-body").contains(sentence) || !sentence.dataset.sid) {
+      !byId("article-body").contains(sentence) ||
+      (currentMode === "passage" && !sentence.dataset.sid) ||
+      (currentMode === "script" && !sentence.classList.contains("script-sentence"))) {
     hideSelectionAdd();
     return;
   }
@@ -421,7 +424,13 @@ function updateSelectionAdd() {
     hideSelectionAdd();
     return;
   }
-  selectedPassage = { sid: sentence.dataset.sid, text, offset, length: raw.length };
+  selectedPassage = currentMode === "script"
+    ? {
+        mode: "script", paragraphIndex: Number(sentence.dataset.paragraphIndex),
+        sentenceIndex: Number(sentence.dataset.sentenceIndex),
+        text, offset, length: raw.length
+      }
+    : { mode: "passage", sid: sentence.dataset.sid, text, offset, length: raw.length };
   const rect = range.getBoundingClientRect();
   const button = byId("selection-add");
   button.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 38, rect.right + 8))) + "px";
