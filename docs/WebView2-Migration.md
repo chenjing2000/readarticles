@@ -7,6 +7,34 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Latest revision: simple notification clearing and strict lazy directory discovery (2026-11-18)
+
+The user confirmed on Windows at commit `384e970` that the Toast hover fix works (messages remain while hovered); Release build and `Test.ps1 -Suite Core` passed 10/10 groups, including 34 content checks.
+
+### Article changes and notifications
+
+The user rejected per-article notification metadata as unnecessary. The intermediate `NotificationItem.ArticlePath`, `NotificationService.ClearArticle`, and `MainViewModel.NotifyGlobal` changes have therefore been **reverted**. The implemented rule is simpler: after a **successful** `OpenArticle` commit, stop the old audio, call the existing `Notifications.Clear()`, and only then display the new article. This clears **all** visible and queued Info/Warning/Error messages in both WPF and WebView2. Failed article opens do not clear the current messages (and may report a new error). Successfully reopening/changing the library also clears prior notifications before any new library warnings.
+
+### Tree appearance and discovery
+
+- The WPF `TreeViewItem` has a fixed 20-DIP expander column. Header content and its TextBlock are explicitly left-aligned, with a 2-DIP text left margin. Dragging the left pane wider or narrower should no longer separate folder/file names from their expander glyphs.
+- Existing `ExpandDirectoryAsync` remains lazy and scans only the **immediate** directory of the expanded node; no recursive descent or eager opening of descendant files. Child folders remain as unloaded navigation nodes until clicked.
+- Direct files become visible leaves **only** if they have a `.json` extension (case-insensitive) and are parseable JSON objects with a **top-level** string property `"filetype": "passage"` (exact spelling and value). Other extensions, missing/incorrect types, non-passage JSON, nested-only filetype, and malformed JSON remain hidden.
+- Existing hidden/cache/audio directory filtering is preserved. Initial library-root discovery still recognizes Book folders using the existing `book.json` marker; this change concerns scanning expanded directory nodes.
+- Tests now exercise a successful article switch clearing both visible and queued notifications, while a failed open leaves previous notifications intact; valid/invalid JSON filetype filtering; no recursive child scan; failed-open selection rollback; and expander-to-label gap under two different left pane widths.
+
+**Windows acceptance still needed for these new commits:**
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+dotnet run --project ReadArticles -c Release -- --webview-pilot
+```
+
+Confirm an old Error plus queued notifications immediately vanish after successfully switching articles; switching to an invalid article does not erase the old error. Resize the left library column and verify symbols remain attached to names. Expand folders individually and verify only direct child folders and correctly typed Passage JSON files appear. Do not merge Draft PR #16 before Windows acceptance.
+
 ## Windows follow-up: transient Toast hover fixed (2026-11-18)
 
 At commit `1e757fd`, the user's Windows Release build and Core suite passed (**10/10 groups, 34 content checks**) with two nonfatal `CS8602` nullable warnings in `NotificationChecks.cs`. The user accepted the three-notification limit, Error manual-dismiss behavior, and FIFO refill, but reported that **Info/Warning still disappeared while the mouse was hovering**. The user also asked for current default widths: left library **310 DIP**, right vocabulary **390 DIP**; the middle pane consumes remaining width. These are startup defaults, adjusted by available window width and layout constraints.
