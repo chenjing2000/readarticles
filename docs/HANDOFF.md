@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：`feature/webview2-reader` 第六阶段的 Windows Core 10/10 组通过，但用户指出操作失败提示未纳入统一 Toast、通知缺少分类与两行展开、以及分隔条宽度重启后未恢复。**已提交针对性修复，尚待 Windows 复验**：所有提示集中到正文栏底部居中，`普通：/警告：/错误：` 分类、不同文字/背景色、统一宽度无边框、两行省略与 `...>>展开`；Script 切换失败通过 C# Error 通知统一展示；分隔条提交计算出的目标宽度并移除阻碍恢复的 45% 页面上限。最新验收命令和 settings.json 路径见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft PR #16 未合并，默认 WPF 保留。
+> **当前更新（2026-11-18）**：用户确认第六阶段普通/警告/错误分类颜色、无边框、两行折叠与上下堆叠正常，但最终调整了业务要求：**错误通知不自动消失，普通和警告可自动淡出；最多只显示 3 条，其他消息依次排队，鼠标悬停暂停计时，删除一切“还有 N 条消息”归档入口；左右分栏宽度只在当次运行中生效，重启恢复默认值，不再保存宽度。** 已在 `feature/webview2-reader` 实现 C# 三槽 FIFO（不丢失重复消息）、删除浏览器与 WPF 的溢出提示、只给 Info/Warning 启动倒计时、词汇编辑回执统一由 C# 发布、左右宽度序列化排除。已加入回归测试及模拟检查，但**这些新提交尚待 Windows 构建/Core/实机验收**。详情见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft PR #16 未合并，默认 WPF 保留。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：复验统一 Toast（颜色/前缀/居中/两行展开/错误归档）和分隔栏重启恢复，核对 userdata/config/settings.json 的 RightWidth；第六阶段通过后，再执行第七阶段旧 WPF 清理与 WebView2 UI/Full 测试。
+> **当前工作目标**：请在 Windows 验证三个通知位、FIFO 待显示队列、错误持续显示与手动关闭、悬停暂停、无“还有 N 条”控件，以及左右分栏宽度在重启后恢复默认值；通过后才推进第七阶段旧 WPF 清理与 WebView2 UI/Full 测试。
 
 ## 1. 仓库、分支和实际状态
 
@@ -23,7 +23,7 @@
 3. **由 JavaScript 负责正文内的词汇匹配和定位**，输入为 C# 发送的正文与词汇数据；由 JavaScript 根据实际 DOM 文本查找并高亮，处理点击词汇后正文滚动定位、选区、选词按钮、普通正文和 Script 的交互。
 4. **由 JavaScript 处理文本选择，点击“添加”时才把选区快照与会话标识发送给 C#**；C# 负责去重、权限、校验、保存和返回结果。网页不得直接写词汇文件。
 5. **C# 是唯一的音频时钟和音频执行者**；网页只渲染当前播放时间并发送播放/暂停/Seek/词音/句音等意图。保留现有两条协调的音频通道，不改为 HTML Audio。
-6. 浮动通知由 **HTML/CSS 绘制**，但 Info/Warning/Error 分类、队列、去重、悬停及过期规则继续沿用 C# 通知状态管理。WebView2 尚未初始化或崩溃时的关键错误须有原生 WPF 兜底。
+6. 浮动通知由 **HTML/CSS 绘制**，但 Info/Warning/Error 分类与 FIFO 队列由 C# 持有，WebView2 负责至多三张卡片的悬停与动画；重复事件仍逐条入队，错误必须手动关闭。WebView2 尚未初始化或崩溃时的关键错误须有原生 WPF 兜底。
 7. **暂不引入 React、Node.js 或任何前端构建工具**；优先原生 HTML/CSS/JavaScript。优先验证普通 `WebView2`；仅在确实需要 WPF 控件覆盖网页等场景时再评估 `WebView2CompositionControl`。
 8. 遵循第一性原理：迁移期允许旧 WPF 与新 WebView2 两套阅读界面短期共存以确保回退；新方案全面验收后，删除失去用途的 `ParagraphReader` / 旧右侧列表 / 旧 Toast **视觉实现**与重复匹配逻辑，不长期保留两套正式阅读器。
 
