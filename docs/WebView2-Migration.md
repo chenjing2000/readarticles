@@ -164,6 +164,45 @@ Commit `2350502` changes the existing timer callback to call `SendWebPilotPlayba
 
 **Required retest:** Run `dotnet build ReadArticles.Tests -c Release` and `.\tools\Test.ps1 -Suite Core`; launch `--webview-pilot` with audio. Confirm the progress bar visibly advances during playback rather than only on pause; check the Script red text follows continuously, pauses in place, resumes and seeks correctly, and clears on stop/natural end. Also verify Passage play/pause and old WPF default launch. No Windows test of this new commit has yet been received.
 
+## Stage 5 accepted and stage 6 WebView2 reading controls (2026-11-18)
+
+The user retested the live playback fix at commit `e8ec18a` on Windows and confirmed:
+
+- `dotnet build ReadArticles.Tests -c Release` passed.
+- `Test.ps1 -Suite Core`: **10/10 groups passed** (including all 30 content checks).
+- During article playback the WebView2 progress slider continuously advances and Script red foreground follows the audio. Pause/resume/seek synchronize correctly; stopping or naturally reaching the end clears the red foreground.
+
+**Stage 5 is accepted for the reported real-world scenarios.**
+
+### Stage 6 implementation submitted — Windows acceptance pending
+
+- An 8px HTML divider now separates the central article and right vocabulary pane, supports pointer drag and keyboard Left/Right, and saves the final right-panel width through the existing C# `ReaderSettings` mechanism. The hidden legacy WPF column no longer overwrites the browser's saved right width on window close or left-pane resizing.
+- The browser article toolbar has an in-page reading settings popover with the *existing* supported values only: 14/15/16 font, uk/us accent, forward 4/7/10 seconds, backward 5/8/15 seconds. The C# host validates each value, persists through `SaveSettings`, and sends back the authoritative `setSettings` snapshot. Left-side WPF setting changes also keep the browser synchronized.
+- With WebView2 displayed, WPF does not intercept article playback keyboard shortcuts. Browser Space starts/pauses playback, Left/Right use the configured seek steps, while inputs, buttons, selects, contenteditable controls and the divider retain their normal keyboard behavior. No second playback clock was introduced.
+- The browser Toast uses `NotificationService` for authoritative messages, newest-first ordering, severity, deduplication, error persistence and explicit dismiss; its own visual layer manages entry/exit animations, 4650 ms transient lifetime + 350 ms exit, and hover pause. Existing toast DOM nodes and lifetime are retained across subsequent notification snapshots. An overflow control shows all undisplayed errors with individual dismiss buttons.
+- When `--webview-pilot` is active, the hidden legacy WPF ToastHost is **not** attached, avoiding duplicate expiry controllers. If WebView2 fails, WPF ToastHost attaches for native fallback. The default WPF startup remains unchanged.
+- A new Core regression test covers allowed/rejected browser settings and C# notification dismissal. A browser-message simulation passed initialization, toast persistence, overflow, font/accent settings, divider persistence intents and error dismissal. This is not a Windows/WebView2 UI test.
+
+**Windows acceptance procedure:**
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+dotnet run --project ReadArticles -c Release -- --webview-pilot
+```
+
+Check **in a working-copy library**:
+
+1. Drag the divider both ways and restart. The vocabulary pane width should persist; left library divider should still work independently. Narrow and enlarge the window; no full-page horizontal scrollbar should appear.
+2. Open the in-page 设置 menu and change font, default accent, forward/backward seek intervals. Restart and verify persistence. Changing an interval from the existing WPF left menu should also update the browser.
+3. Click article text (not a button) then use Space and Left/Right while audio is active; verify one play/seek action per keypress, no duplicate commands. Arrow keys inside the settings selectors or the splitter should retain native/select/divider behavior.
+4. Generate warning/info/error notifications. Non-errors should disappear after ~5 seconds, hovering should pause expiry, errors should persist until explicitly dismissed. Generate at least five errors to check hidden-error overflow and per-item close.
+5. During the above, verify Script gradient, vocabulary highlights, selection/add and the audio clock still work. Restart without `--webview-pilot` and verify the original WPF Toast and settings still work.
+
+**Outstanding:** The new C# test, CSS, splitter and Toast are not yet Windows-accepted. Existing old WPF Script pixel regression remains recorded and is not suppressed. Do not merge Draft PR #16 before the remaining UI/Full tests, cleanup and user approval.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
