@@ -4,6 +4,7 @@
         xmlns:models="clr-namespace:ReadArticles.Models"
         xmlns:icons="clr-namespace:ReadArticles.Infrastructure"
         xmlns:controls="clr-namespace:ReadArticles.Controls"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="ReadArticles" Width="1500" Height="920" MinWidth="1050" MinHeight="620" PreviewKeyDown="PlaybackKeyDown"
         Background="#F3F3F3" FontFamily="Segoe UI" FontSize="11pt" Icon="{x:Static icons:UiIcons.AppIcon}">
   <Window.Resources>
