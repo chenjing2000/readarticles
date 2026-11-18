@@ -32,7 +32,7 @@ internal static class LazyTreeChecks
                 var deep = Path.Combine(empty, "deep");
                 Directory.CreateDirectory(deep);
                 File.WriteAllText(Path.Combine(book, "book.json"), "marker");
-                File.WriteAllText(Path.Combine(deep, "article.json"), "not parsed");
+                File.WriteAllText(Path.Combine(deep, "article.json"), """{"filetype":"passage"}""");
                 var repository = new LibraryRepository();
                 var first = repository.ScanDirectoryLevel(book, book);
                 Program.Check(first.IsComplete && first.Entries.Count == 1);
@@ -53,7 +53,7 @@ internal static class LazyTreeChecks
                 var repository = new LibraryRepository();
                 string first = Path.Combine(book, "First.json");
                 string second = Path.Combine(book, "Second.json");
-                File.WriteAllText(first, "{}");
+                File.WriteAllText(first, """{"filetype":"passage"}""");
                 Program.Check(repository.ScanDirectoryLevel(book, book).Entries.Single().Name == "First");
                 File.Move(first, second);
                 Program.Check(repository.ScanDirectoryLevel(book, book).Entries.Single().Name == "Second");
@@ -68,7 +68,7 @@ internal static class LazyTreeChecks
                 var book = Path.Combine(root, "Book");
                 Directory.CreateDirectory(book);
                 foreach (var name in new[] { "book.json", "One.vocabulary.json", "One.exercise.json", "Article.json" })
-                    File.WriteAllText(Path.Combine(book, name), "{}");
+                    File.WriteAllText(Path.Combine(book, name), name == "Article.json" ? """{"filetype":"passage"}""" : "{}");
                 Directory.CreateDirectory(Path.Combine(book, "__pycache__"));
                 Directory.CreateDirectory(Path.Combine(book, "userdata"));
                 Directory.CreateDirectory(Path.Combine(book, ".private"));
@@ -85,7 +85,7 @@ internal static class LazyTreeChecks
                 Directory.CreateDirectory(withJson);
                 Directory.CreateDirectory(withoutJson);
 
-                File.WriteAllText(Path.Combine(withJson, "metadata.JSON"), "not parsed");
+                File.WriteAllText(Path.Combine(withJson, "metadata.JSON"), """{"filetype":"passage"}""");
                 foreach (var name in new[]
                 {
                     "audio", "Audio", "audios", "audio_backup", "generated_audio",
@@ -108,6 +108,38 @@ internal static class LazyTreeChecks
                 Program.Check(nonJsonEntries.Where(n => !n.IsPassage).Select(n => n.Name)
                     .OrderBy(n => n).SequenceEqual(
                         new[] { "audio", "audios", "cache_backup", "images" }.OrderBy(n => n)));
+            });
+        });
+        Program.Run("only direct JSON objects tagged exactly passage become leaves", () =>
+        {
+            InTemporaryLibrary(root =>
+            {
+                string parent = Path.Combine(root, "Book");
+                Directory.CreateDirectory(parent);
+                Directory.CreateDirectory(Path.Combine(parent, "Nested"));
+                File.WriteAllText(Path.Combine(parent, "Valid.JSON"), """{"filetype":"passage"}""");
+                File.WriteAllText(Path.Combine(parent, "Script.json"), """{"filetype":"script"}""");
+                File.WriteAllText(Path.Combine(parent, "Missing.json"), """{"title":"Not a passage"}""");
+                File.WriteAllText(Path.Combine(parent, "WrongCase.json"), """{"filetype":"Passage"}""");
+                File.WriteAllText(Path.Combine(parent, "WrongType.json"), """{"filetype":5}""");
+                File.WriteAllText(Path.Combine(parent, "NestedType.json"), """{"metadata":{"filetype":"passage"}}""");
+                File.WriteAllText(Path.Combine(parent, "Broken.json"), "{not valid json");
+                File.WriteAllText(Path.Combine(parent, "ignored.txt"), """{"filetype":"passage"}""");
+                File.WriteAllText(Path.Combine(parent, "Nested", "Deep.json"), """{"filetype":"passage"}""");
+
+                var repository = new LibraryRepository();
+                var direct = repository.ScanDirectoryLevel(parent, parent);
+                Program.Check(direct.IsComplete && direct.Warnings.Count == 0);
+                Program.Check(direct.Entries.Count == 2);
+                Program.Check(direct.Entries.Any(n => n.IsPassage && n.Name == "Valid"));
+                var folder = direct.Entries.Single(n => !n.IsPassage);
+                Program.Check(folder.Name == "Nested" &&
+                    folder.LoadState == NodeLoadState.NotLoaded &&
+                    !folder.Children.Any(n => n.IsPassage));
+                var expanded = repository.ScanDirectoryLevel(folder.DirectoryPath!, parent);
+                Program.Check(expanded.Entries.Count == 1 &&
+                    expanded.Entries[0].Name == "Deep" &&
+                    expanded.Entries[0].IsPassage);
             });
         });
         Program.Run("root-level cache and audio folders are filtered when applicable", () =>
