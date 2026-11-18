@@ -179,10 +179,10 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
   display: flex; align-items: flex-start; gap: 5px;
   padding: 8px 5px;
 }
-.notification-overflow-entry > span { flex: 1; overflow-wrap: anywhere; }
+.notification-overflow-entry > .notice-message { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .notice { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
-.notice > .notice-message { flex: 1; min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
-.notice > .notice-message.clamped {
+.notice-message { flex: 1; min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.notice-message.clamped {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -190,7 +190,7 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
   max-height: 3em;
   overflow: hidden;
 }
-.notice > .notice-message.expanded { display: block; max-height: min(45vh, 280px); overflow-y: auto; }
+.notice-message.expanded { display: block; max-height: min(45vh, 280px); overflow-y: auto; }
 .notice-prefix { font-weight: 700; margin-right: 2px; }
 .notice-actions { display: flex; gap: 7px; align-items: start; white-space: nowrap; }
 .notice-expand { border: none; background: transparent; cursor: pointer; font-size: .84em; padding: 1px 0; }
@@ -203,7 +203,7 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 .notice.info .notice-expand { color: #256d9c; }
 .notice.warning .notice-expand { color: #976015; }
 .notice.error .notice-expand { color: #a62e48; }
-.notice .notice-close, .notification-overflow-entry > button {
+.notice .notice-close, .notification-overflow-entry .notice-close {
   border: none; background: transparent; cursor: pointer;
   font-size: 18px; color: #5b6670; line-height: 1;
 }
