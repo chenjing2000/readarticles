@@ -36,6 +36,38 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
 #article-title:empty { display: none; }
 #article-body { font-family: Georgia, "Segoe UI", serif; font-size: var(--reader-font, 15px); line-height: 1.7; }
 .article-paragraph { margin: 0 0 16px; text-indent: 2em; overflow-wrap: break-word; }
+.script-paragraph { position: relative; }
+.script-paint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: block;
+  overflow-wrap: inherit;
+  text-indent: inherit;
+  font: inherit;
+  line-height: inherit;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+  white-space: normal;
+}
+.script-paint .script-timed-unit { color: #b81a35; }
+.script-clips { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+.word-pronunciations { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.word-pronunciations button {
+  background: #eef4f9;
+  color: #2b678e;
+  border: 1px solid #cbdde9;
+  border-radius: 5px;
+  font: inherit;
+  font-size: .78em;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.word-pronunciations button:disabled { cursor: default; color: #9da7ad; background: #f4f4f4; }
+.sentence[data-can-audio="true"] { cursor: context-menu; }
+
 .empty { color: #65717c; text-indent: 0; margin-top: 30px; }
 .pane-heading {
   font-weight: 600;
