@@ -1,17 +1,17 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：Windows Release 构建通过；UI 测试 12/13 组通过，仅旧 WPF Script 词汇粉色背景像素测试失败。最新诊断 `local=0; global=0; layer=0; validCells=4; visibleBrush=#FFF9D3E3; hiddenBrush=#00FFFFFF; overlaySize=160.0x242.7; visibleDrawing=Empty; hiddenDrawing=Empty`，证明旧 `AdornerLayer.Update` 修改不足以生成可检测绘图。本轮已针对旧 WPF `ParagraphReader.ScriptVocabularyAdorner` 将直接 `OnRender` 更换为 **`DrawingVisual` 保留式绘图**，在 Loaded、排版变化和词汇可见性更新后显式 `Redraw()`，不改 Script 计时单位结构或 WebView2。测试加强为开启时绘图区域非空、关闭时为空，且仍要求截图像素差异 `changes > 0`。**新代码尚待 Windows 构建与 UI 验证，不能宣称修复通过。** 第六阶段已验收；详见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft PR #16 未合并。
+> **当前更新（2026-11-18）**：**第七阶段 UI / Full 回归已通过 Windows 验收。** 在 `021666d` 上 Release 测试构建成功、无警告；`Test.ps1 -Suite UI` **13/13 组通过**（window-only 15/15、controls-only 18/18）；`Test.ps1 -Suite Full` **6/6 组通过**，完整应用回归 **130/130 项通过**，源文件保护 **2/2 项通过**。旧 WPF Script 粉色词汇背景原有像素断言现已真正通过（`local=1590;global=1500;layer=1500`，开启绘图非空、关闭后为空）；最终修复是 `DrawingVisual` 保留式绘制，不再需要继续排查原 `OnRender`。第六阶段用户实机功能验收也已完成。发布及改名安装测试曾在较早提交通过，但**最新代码的便携式发布版 WebView2 功能实机验收尚未完成**；旧 WPF 回退界面与 Draft PR #16 均保持不变。查看 [`WebView2-Migration.md`](WebView2-Migration.md)。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：Windows 拉取 `feature/webview2-reader` 后执行 Release 构建与 `.\tools\Test.ps1 -Suite UI`，如果失败提供最新 `Script vocabulary highlight pixels` 诊断行；UI 全通过后再运行 Full 和已发布版本的 WebView2 交互检查。不得为通过测试而删除像素断言或旧 WPF 回退界面，PR 不合并。
+> **当前工作目标**：先基于最新分支复验 `Publish.ps1` 和 `Test-PublishedApp.ps1`，然后以便携式 `dist\ReadArticles\ReadArticles.exe --webview-pilot` 实机检查文章/Script 切换、词汇编辑、音频、三槽通知、分栏重启恢复默认和 WebView2 失败回退。确认后制定逐文件删除旧 WPF 阅读视觉代码的审查清单；保留 WPF 左目录树及 C# 业务/测试，旧视图未获允许不得提前删除，PR 不合并。
 
 ## 1. 仓库、分支和实际状态
 
 - GitHub：`chenjing2000/readarticles`；用户 Windows 本地工作目录：`C:\Projects\ReadArticles`。
 - 当前开发分支：`feature/webview2-reader`，Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16)，基于 `feature/script-reading-mode`；其 Draft [PR #15](https://github.com/chenjing2000/readarticles/pull/15) 仍未合并到 `main`。开始新任务先检查远程 HEAD、PR 状态和本地 `git status`。
 - `main` 仍是原有 WPF 阅读方案；WebView2 工作区已加入 `feature/webview2-reader` 分支，**尚未合并到 `main`**。过去的 `feature/exercise` 为历史性功能分支，不属于当前 WebView2 迁移范围。
-- 上一轮已在功能分支实现可按需切换的 Script 模式及 WPF 的多次渐变/高亮修复，但没有解决所有 UI 验收问题（见第 3 节）。不得直接宣称 PR #15 已达到合并条件。
+- 上一轮已在功能分支实现可按需切换的 Script 模式及 WPF 的多次渐变/高亮修复，旧版 WPF UI 回归及 Script 像素高亮问题后来已全部修复并通过验收（见本文件最新状态及迁移记录）。不得直接宣称 PR #15 已达到合并条件。
 - 本文件是**交接说明和设计决定**，不是迁移代码或测试通过的证明；不隐含合并授权。
 
 ## 2. 用户确认的目标架构与边界
