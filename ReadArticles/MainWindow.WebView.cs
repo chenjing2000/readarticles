@@ -254,6 +254,8 @@ public partial class MainWindow
                     PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
                     return;
                 }
+                string expectedSession = webPilotSessionId;
+                int expectedRevision = webPilotVocabularyRevision;
                 var dialog = new OpenFileDialog
                 {
                     Filter = "Vocabulary JSON|*.json",
@@ -268,8 +270,8 @@ public partial class MainWindow
                 }
                 // A modal dialog may allow a library/article switch. Require
                 // the original committed context after it closes.
-                if (actionSession != webPilotSessionId ||
-                    value != webPilotVocabularyRevision)
+                if (expectedSession != webPilotSessionId ||
+                    expectedRevision != webPilotVocabularyRevision)
                 {
                     PostWebPilot("actionResult", new { status = "stale" }, requestId);
                     return;
