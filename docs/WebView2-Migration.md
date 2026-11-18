@@ -38,6 +38,16 @@ The earlier `Publish.ps1` and `Test-PublishedApp.ps1` passed, but **only for the
 
 **Do not claim complete UI/Full acceptance.** The collapsed-element test fix has been committed but not yet retested on the user's Windows desktop. The original Script pixel test remains failing.
 
+## Direct `--window-only` invocation caveat
+
+On the later Windows run at commit `21c43e6`, the previously failing floating-notification layout check **passed** after excluding collapsed pilot elements. The direct command
+
+`dotnet run --project ReadArticles.Tests -c Release -- --window-only`
+
+then reported an unrelated failure at `ReaderWindowChecks.cs:31`: the fixed article's first vocabulary entry requires both UK and US audio eligibility. The standalone invocation uses `tests/TestData/Library` without the sibling recordings from `tests/TestData/Audio`. The canonical `tools/Test.ps1 -Suite UI` stages both sources under a temporary library using `Prepare-TestWorkspace` and sets `READARTICLES_TEST_LIBRARY`; the same assertion passed in the earlier full UI run with that isolated setup. **Do not weaken the audio eligibility assertion** or edit source fixtures to address this.
+
+The old WPF Script visual assertion continues to report `Script vocabulary highlight changed pixels: 0`; the new browser rendering has not yet undergone its own pixel acceptance. Re-run the canonical UI and Full suites after code changes, and test `--webview-pilot` in an interactive Windows process.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
