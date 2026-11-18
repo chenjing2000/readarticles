@@ -29,6 +29,7 @@ internal static class Program
                 ReaderControlsChecks.Run();
                 IconChecks.Run();
                 VocabularyEditingChecks.Run();
+                WebViewVocabularyEditChecks.Run();
                 BackupChecks.Run();
                 AppLoggerChecks.Run();
                 NotificationChecks.Run();
@@ -41,7 +42,7 @@ internal static class Program
             case "--webview-pilot-only": WebViewPilotChecks.Run(); break;
             case "--unified-audio-only": UnifiedAudioChecks.Run(); break;
             case "--window-only": WindowChecks.Run(); ReaderWindowChecks.Run(); ScriptChecks.RunUi(); break;
-            case "--editing-only": VocabularyEditingChecks.Run(); break;
+            case "--editing-only": VocabularyEditingChecks.Run(); WebViewVocabularyEditChecks.Run(); break;
             case "--icons-only": IconChecks.Run(); break;
             case "--controls-only": ReaderControlsChecks.Run(); BackupChecks.Run(); break;
             case "--backup-only": BackupChecks.Run(); break;
