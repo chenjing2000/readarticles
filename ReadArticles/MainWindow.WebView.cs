@@ -314,20 +314,26 @@ public partial class MainWindow
 
     private void PostWebPilot(string type, object payload, string? requestId = null)
     {
-        if (!webPilotReady || webPilotClosed || webPilotPageId is null ||
-            ReaderWebView.CoreWebView2 is null) return;
-        string json = JsonSerializer.Serialize(new
+        if (webPilotClosed || webPilotFailureShown) return;
+        if (!Dispatcher.CheckAccess())
         {
-            version = 1,
-            type,
-            pageId = webPilotPageId,
-            sessionId = webPilotSessionId,
-            vocabularyRevision = webPilotVocabularyRevision,
-            requestId,
-            payload
-        });
+            Dispatcher.BeginInvoke(new Action(() => PostWebPilot(type, payload, requestId)));
+            return;
+        }
+        if (!webPilotReady || webPilotPageId is null || ReaderWebView.CoreWebView2 is null)
+            return;
         try
         {
+            string json = JsonSerializer.Serialize(new
+            {
+                version = 1,
+                type,
+                pageId = webPilotPageId,
+                sessionId = webPilotSessionId,
+                vocabularyRevision = webPilotVocabularyRevision,
+                requestId,
+                payload
+            });
             ReaderWebView.CoreWebView2.PostWebMessageAsJson(json);
         }
         catch (Exception error)
@@ -340,6 +346,11 @@ public partial class MainWindow
     private void WebPilotFailure(string message)
     {
         if (webPilotClosed || webPilotFailureShown) return;
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(new Action(() => WebPilotFailure(message)));
+            return;
+        }
         webPilotFailureShown = true;
         webPilotReady = false;
         webPilotPageId = null;
