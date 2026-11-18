@@ -521,7 +521,7 @@ function createToast(item) {
   const isError = String(item.severity ?? "").toLowerCase() === "error";
   const entry = {
     card, item, remaining: toastDisplayMs, started: null, timeout: null,
-    exiting: false, checkOverflow
+    exiting: false, hovered: false, checkOverflow
   };
   const pause = () => {
     if (entry.exiting) return;
@@ -545,12 +545,22 @@ function createToast(item) {
     }, toastFadeMs);
   };
   const resume = () => {
-    // Errors remain on-screen until manually dismissed. Waiting toasts
-    // have no DOM or timer, and begin timing only when admitted.
-    if (entry.exiting || isError) return;
+    // A stable DOM card keeps its own remaining time when hover ends.
+    // If the pointer is still physically over the card, even after a
+    // layout shift or mouse event ordering race, do not restart its timer.
+    if (entry.exiting || isError || entry.hovered || card.matches(":hover")) return;
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
     entry.started = performance.now();
-    entry.timeout = window.setTimeout(fadeOut, Math.max(0, entry.remaining));
+    entry.timeout = window.setTimeout(() => {
+      entry.timeout = null;
+      // Check the actual pointer position again at the expiry boundary.
+      // This prevents an already-queued timeout from hiding hovered text.
+      if (entry.hovered || card.matches(":hover")) {
+        pause();
+        return;
+      }
+      fadeOut();
+    }, Math.max(0, entry.remaining));
   };
   entry.dispose = () => {
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
@@ -558,8 +568,21 @@ function createToast(item) {
     entry.started = null;
     card.remove();
   };
-  card.addEventListener("mouseenter", pause);
-  card.addEventListener("mouseleave", resume);
+  const hoverEnter = () => {
+    entry.hovered = true;
+    pause();
+  };
+  const hoverLeave = () => {
+    // A card can move under the pointer when a different message leaves.
+    // Treat the card as hovered while the browser still reports :hover.
+    if (card.matches(":hover")) return;
+    entry.hovered = false;
+    resume();
+  };
+  card.addEventListener("pointerenter", hoverEnter);
+  card.addEventListener("pointerleave", hoverLeave);
+  card.addEventListener("mouseenter", hoverEnter);
+  card.addEventListener("mouseleave", hoverLeave);
   close.addEventListener("click", fadeOut);
   resume();
   return entry;
@@ -581,10 +604,15 @@ function renderNotifications(notifications) {
     const key = String(item.id);
     if (!toastEntries.has(key)) toastEntries.set(key, createToast(item));
   }
-  for (const item of visible) {
-    const entry = toastEntries.get(String(item.id));
+  for (let index = 0; index < visible.length; index++) {
+    const entry = toastEntries.get(String(visible[index].id));
     if (!entry) continue;
-    host.append(entry.card);
+    // append() unconditionally moves an existing DOM node. During ordinary
+    // C# state refreshes that generates artificial mouseleave events, which
+    // restart an otherwise hovered toast's expiry timer.
+    // Only insert when the order truly changes; leave stable cards untouched.
+    if (host.children[index] !== entry.card)
+      host.insertBefore(entry.card, host.children[index] ?? null);
     window.requestAnimationFrame(entry.checkOverflow);
   }
 }
