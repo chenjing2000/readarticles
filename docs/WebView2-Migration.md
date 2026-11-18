@@ -22,6 +22,22 @@ The first code checkpoint introduces a **read-only pilot**, not a replacement of
 
 **Not yet implemented:** Script mode in WebView2, DOM vocabulary matching and highlights, live selection/add, user actions, continuous 33 ms playback coloring, notification animations, production settings and input. The pilot intentionally renders a first-pass, non-interactive Passage preview only. The existing WPF implementation remains authoritative.
 
+## Windows acceptance results supplied on 2026-11-18
+
+On commit `ec41182`, the user ran:
+
+- `dotnet build ReadArticles.Tests -c Release`: **passed**.
+- `--webview-pilot-only`: **1 passed / 0 failed**, verifying bundled assets.
+- `Test.ps1 -Suite Core`: **10 groups passed / 0 failed**.
+- `Test.ps1 -Suite UI`: **12 groups passed / 1 group failed**, with two WPF assertions:
+  1. `WindowChecks.cs`: the old test counted the hidden WebView2 pilot as a fourth root-grid pane. Commit `3a16b73` filters out collapsed elements; rerun required.
+  2. `ScriptChecks.cs`: `Script vocabulary highlight changed pixels: 0`. This is a pre-existing failure on the old WPF Script renderer, unchanged by the WebView2 pilot. The failing assertion is preserved until the new WebView2 renderer has a real visual test.
+- `Test.ps1 -Suite Full`: **120 checks passed / 2 failed** (the same two UI assertions).
+
+The earlier `Publish.ps1` and `Test-PublishedApp.ps1` passed, but **only for the default WPF launch path**. There is no submitted run log yet for `--webview-pilot`, including the published EXE.
+
+**Do not claim complete UI/Full acceptance.** The collapsed-element test fix has been committed but not yet retested on the user's Windows desktop. The original Script pixel test remains failing.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
