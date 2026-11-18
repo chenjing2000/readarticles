@@ -16,6 +16,8 @@ public partial class MainWindow
     private bool webPilotEnabled;
     private bool webPilotReady;
     private bool webPilotClosed;
+    private bool webPilotFailureShown;
+    private int webPilotVocabularyRevision;
 
     // Migration-only pilot. All original WPF controls and business commands remain intact.
     private void InitializeWebPilot()
@@ -105,7 +107,7 @@ public partial class MainWindow
 
     private void WebPilotMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
-        if (webPilotClosed || !string.Equals(args.Source, WebPilotDocument, StringComparison.OrdinalIgnoreCase))
+        if (webPilotClosed || webPilotFailureShown || !string.Equals(args.Source, WebPilotDocument, StringComparison.OrdinalIgnoreCase))
             return;
         try
         {
@@ -168,6 +170,7 @@ public partial class MainWindow
         PostWebPilot("initialize", new
         {
             article = passage,
+            vocabularyRevision = webPilotVocabularyRevision,
             vocabulary = words,
             settings = new
             {
@@ -206,6 +209,7 @@ public partial class MainWindow
     {
         // A previous display is never presented as the newly committed article.
         webPilotSessionId = Guid.NewGuid().ToString("N");
+        webPilotVocabularyRevision = 0;
         if (webPilotReady)
         {
             WebPilotOverlay.Visibility = Visibility.Collapsed;
@@ -215,6 +219,7 @@ public partial class MainWindow
 
     private void WebPilotVocabularyChanged()
     {
+        webPilotVocabularyRevision++;
         if (webPilotReady) SendWebPilotInitialize();
     }
 
@@ -238,6 +243,7 @@ public partial class MainWindow
             type,
             pageId = webPilotPageId,
             sessionId = webPilotSessionId,
+            vocabularyRevision = webPilotVocabularyRevision,
             payload
         });
         ReaderWebView.CoreWebView2.PostWebMessageAsJson(json);
@@ -245,7 +251,8 @@ public partial class MainWindow
 
     private void WebPilotFailure(string message)
     {
-        if (webPilotClosed) return;
+        if (webPilotClosed || webPilotFailureShown) return;
+        webPilotFailureShown = true;
         webPilotReady = false;
         webPilotPageId = null;
         WebPilotOverlay.Visibility = Visibility.Collapsed;
