@@ -12,6 +12,9 @@ let canWriteVocabulary = false;
 let matches = [];
 let selectedPassage = null;
 let pendingMutation = null;
+let currentSettings = {};
+const toastEntries = new Map();
+let splitting = null;
 let currentMode = "passage";
 let pendingModeRequest = null;
 let currentPlayback = {};
@@ -462,20 +465,111 @@ function renderPlayback(playback) {
   paintScriptProgress(playback);
 }
 
-function renderNotifications(notifications) {
-  const host = byId("notifications");
-  host.replaceChildren();
-  for (const item of notifications.visible ?? [])
-    host.append(element("div", "notice " + (item.severity ?? "").toLowerCase(), item.message));
+function dismissNotification(id) {
+  if (sessionId) send("notificationDismiss", { payload: { id } });
 }
 
+function createToast(item) {
+  const key = String(item.id);
+  const card = element("div", "notice " + String(item.severity ?? "").toLowerCase());
+  card.dataset.id = key;
+  card.classList.add("entering");
+  const message = element("span", "notice-message", item.message);
+  const close = element("button", "notice-close", "×");
+  close.type = "button";
+  close.setAttribute("aria-label", "关闭通知");
+  card.append(message, close);
+  const entry = { card, item, remaining: 4650, started: null, timeout: null, exiting: false };
+  const pause = () => {
+    if (entry.timeout !== null) window.clearTimeout(entry.timeout);
+    entry.timeout = null;
+    if (entry.started !== null) entry.remaining -= performance.now() - entry.started;
+    entry.started = null;
+  };
+  const expire = (duration) => {
+    if (entry.exiting) return;
+    pause();
+    entry.exiting = true;
+    card.classList.remove("entering");
+    card.classList.add("exiting");
+    entry.timeout = window.setTimeout(() => dismissNotification(item.id), duration);
+  };
+  const resume = () => {
+    if (entry.exiting || item.severity === "Error") return;
+    if (entry.timeout !== null) window.clearTimeout(entry.timeout);
+    entry.started = performance.now();
+    entry.timeout = window.setTimeout(() => expire(350), Math.max(0, entry.remaining));
+  };
+  const dispose = () => {
+    if (entry.timeout !== null) window.clearTimeout(entry.timeout);
+    entry.timeout = null;
+    entry.started = null;
+    card.remove();
+  };
+  entry.dispose = dispose;
+  card.addEventListener("mouseenter", pause);
+  card.addEventListener("mouseleave", resume);
+  close.addEventListener("click", () => expire(180));
+  resume();
+  return entry;
+}
+
+function renderNotifications(notifications) {
+  const host = byId("notification-cards");
+  const visible = notifications.visible ?? [];
+  const wanted = new Set(visible.map(item => String(item.id)));
+  for (const [key, entry] of toastEntries) {
+    if (!wanted.has(key)) {
+      entry.dispose();
+      toastEntries.delete(key);
+    }
+  }
+  // Preserve each card, timer and hover state between authoritative snapshots.
+  visible.forEach(item => {
+    const key = String(item.id);
+    let entry = toastEntries.get(key);
+    if (!entry) {
+      entry = createToast(item);
+      toastEntries.set(key, entry);
+    }
+    host.append(entry.card);
+  });
+
+  const overflow = notifications.overflowErrors ?? [];
+  const toggle = byId("notification-overflow-toggle");
+  const list = byId("notification-overflow-list");
+  toggle.hidden = overflow.length === 0;
+  toggle.textContent = "还有 " + overflow.length + " 条错误";
+  if (!overflow.length) list.hidden = true;
+  list.replaceChildren();
+  for (const item of overflow) {
+    const line = element("div", "notification-overflow-entry");
+    line.append(element("span", "", item.message));
+    const close = element("button", "", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "关闭错误消息");
+    close.addEventListener("click", () => dismissNotification(item.id));
+    line.append(close);
+    list.append(line);
+  }
+  toggle.setAttribute("aria-expanded", String(!list.hidden && !toggle.hidden));
+}
 function renderSettings(settings) {
   const fontSize = Number(settings.fontSize);
   const rightWidth = Number(settings.rightWidth);
   document.documentElement.style.setProperty("--reader-font",
     (Number.isFinite(fontSize) && fontSize >= 10 && fontSize <= 30 ? fontSize : 15) + "px");
   document.documentElement.style.setProperty("--word-width",
-    (Number.isFinite(rightWidth) && rightWidth >= 200 && rightWidth <= 1000 ? rightWidth : 390) + "px");
+    (Number.isFinite(rightWidth) && rightWidth >= 220 && rightWidth <= 1000 ? rightWidth : 390) + "px");
+  currentSettings = { ...settings };
+  for (const [id, value] of [
+    ["reader-font-size", settings.fontSize],
+    ["reader-accent", settings.accent],
+    ["reader-forward-step", settings.forwardStep],
+    ["reader-backward-step", settings.backwardStep]
+  ]) {
+    if (value !== undefined) byId(id).value = String(value);
+  }
   highlightsVisible = settings.highlightsVisible === true;
   byId("highlight-toggle").setAttribute("aria-pressed", String(highlightsVisible));
   refreshHighlights(false);
@@ -573,6 +667,104 @@ function selectedWordPayload() {
   if (selectedIndex < 0 || selectedIndex >= vocabulary.length) return null;
   return { index: selectedIndex, word: vocabulary[selectedIndex].word };
 }
+
+function setSettingsOpen(open) {
+  byId("reader-settings-panel").hidden = !open;
+  byId("reader-settings-toggle").setAttribute("aria-expanded", String(open));
+}
+byId("reader-settings-toggle").addEventListener("click", () =>
+  setSettingsOpen(byId("reader-settings-panel").hidden));
+document.addEventListener("pointerdown", event => {
+  if (!byId("reader-settings-panel").hidden &&
+      !byId("reader-settings-panel").contains(event.target) &&
+      !byId("reader-settings-toggle").contains(event.target))
+    setSettingsOpen(false);
+});
+
+for (const [id, type, field, convert] of [
+  ["reader-font-size", "setFontSize", "size", Number],
+  ["reader-accent", "setAccent", "accent", String],
+  ["reader-forward-step", "setForwardStep", "seconds", Number],
+  ["reader-backward-step", "setBackwardStep", "seconds", Number]
+]) {
+  byId(id).addEventListener("change", () => {
+    if (!sessionId) return;
+    send(type, { payload: { [field]: convert(byId(id).value) } });
+  });
+}
+
+const splitter = byId("reader-splitter");
+function clampDividerWidth(width) {
+  const max = Math.max(250, Math.round(byId("article-scroll").closest(".workspace").clientWidth * 0.45));
+  return Math.round(Math.max(250, Math.min(max, width)));
+}
+function setDividerWidth(width) {
+  document.documentElement.style.setProperty("--word-width", clampDividerWidth(width) + "px");
+  scheduleScriptGeometry();
+}
+splitter.addEventListener("pointerdown", event => {
+  if (event.button !== 0 || !sessionId) return;
+  event.preventDefault();
+  splitting = { pointerId: event.pointerId, width: byId("vocabulary-scroll").getBoundingClientRect().width,
+    x: event.clientX };
+  splitter.setPointerCapture(event.pointerId);
+  splitter.classList.add("dragging");
+  document.body.classList.add("splitter-dragging");
+});
+splitter.addEventListener("pointermove", event => {
+  if (!splitting || event.pointerId !== splitting.pointerId) return;
+  setDividerWidth(splitting.width + splitting.x - event.clientX);
+});
+function finishDivider(event, save) {
+  if (!splitting || event.pointerId !== splitting.pointerId) return;
+  splitting = null;
+  splitter.classList.remove("dragging");
+  document.body.classList.remove("splitter-dragging");
+  if (splitter.hasPointerCapture(event.pointerId)) splitter.releasePointerCapture(event.pointerId);
+  if (save) {
+    const width = byId("vocabulary-scroll").getBoundingClientRect().width;
+    send("setPanelWidth", { payload: { width: clampDividerWidth(width) } });
+  } else renderSettings(currentSettings);
+}
+splitter.addEventListener("pointerup", event => finishDivider(event, true));
+splitter.addEventListener("pointercancel", event => finishDivider(event, false));
+splitter.addEventListener("keydown", event => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  const current = byId("vocabulary-scroll").getBoundingClientRect().width;
+  const next = clampDividerWidth(current + (event.key === "ArrowLeft" ? 16 : -16));
+  setDividerWidth(next);
+  send("setPanelWidth", { payload: { width: next } });
+});
+
+byId("notification-overflow-toggle").addEventListener("click", () => {
+  const list = byId("notification-overflow-list");
+  list.hidden = !list.hidden;
+  byId("notification-overflow-toggle").setAttribute("aria-expanded", String(!list.hidden));
+});
+
+document.addEventListener("keydown", event => {
+  if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
+      event.target?.closest("input, select, textarea, button, [contenteditable='true'], [role='separator']"))
+    return;
+  if (event.key === " " || event.key === "Spacebar") {
+    if (currentPlayback.canPlay !== true || event.repeat) return;
+    event.preventDefault();
+    send("playArticle");
+  } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    if (currentPlayback.canSeek !== true) return;
+    event.preventDefault();
+    const step = event.key === "ArrowLeft"
+      ? -(Number(currentSettings.backwardStep) || 5)
+      : Number(currentSettings.forwardStep) || 4;
+    const target = Math.max(0, Math.min(Number(currentPlayback.duration) || 0,
+      (Number(currentPlayback.position) || 0) + step));
+    send("seekArticle", { payload: { position: target } });
+  } else if (event.key === "Escape") {
+    setSettingsOpen(false);
+    byId("notification-overflow-list").hidden = true;
+  }
+});
 
 byId("article-play").addEventListener("click", () => {
   if (!byId("article-play").disabled) send("playArticle");
