@@ -5,12 +5,15 @@
   background: #f3f3f3;
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
+html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
 .workspace {
   display: grid;
-  height: 100vh;
+  height: 100%;
   width: 100%;
-  grid-template-columns: minmax(260px, 1fr) minmax(250px, var(--word-width, 390px));
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) minmax(0, clamp(250px, var(--word-width, 390px), 45%));
   gap: 8px;
   padding: 0;
   position: relative;
@@ -20,7 +23,7 @@ html, body { height: 100%; margin: 0; }
   min-height: 0;
   background: #fff;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 48px;
+  grid-template-rows: minmax(0, 1fr) minmax(48px, auto);
 }
 .scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; }
 #article-scroll { padding: 22px 26px 20px 28px; }
@@ -55,7 +58,16 @@ html, body { height: 100%; margin: 0; }
   padding: 0 8px;
   background: #f3f3f3;
   white-space: nowrap;
+  min-width: 0;
 }
+.vocabulary-toolbar {
+  flex-wrap: wrap;
+  align-content: center;
+  row-gap: 2px;
+  column-gap: 3px;
+  padding: 0 4px;
+}
+.vocabulary-toolbar button { padding: 3px 5px; font-size: .85em; }
 .toolbar button {
   padding: 5px 8px;
   color: #516678;
@@ -81,6 +93,6 @@ html, body { height: 100%; margin: 0; }
 .notice.error { border-color: #d7a6ae; background: #fff2f4; }
 .notice.warning { border-color: #e1cca5; background: #fff8e5; }
 @media (max-width: 700px) {
-  .workspace { grid-template-columns: minmax(220px, 1fr) minmax(200px, 38%); gap: 5px; }
+  .workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 43%); gap: 5px; }
   #article-scroll { padding: 16px; }
 }
