@@ -481,6 +481,7 @@ function createToast(item) {
   card.append(message, close);
   const entry = { card, item, remaining: 4650, started: null, timeout: null, exiting: false };
   const pause = () => {
+    if (entry.exiting) return;
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
     entry.timeout = null;
     if (entry.started !== null) entry.remaining -= performance.now() - entry.started;
