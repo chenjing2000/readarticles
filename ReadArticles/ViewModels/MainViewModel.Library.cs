@@ -55,6 +55,9 @@ public sealed partial class MainViewModel
         ++librarySession;
         CancelAllDirectoryScans();
         workspace.CommitLibrary(prepared);
+        // The active article has changed to none. Discard all previous
+        // visible and queued feedback before any new library warnings.
+        Notifications.Clear();
         playback.Stop();
         Books.Clear();
         foreach (var book in prepared.Books) Books.Add(book);
@@ -191,6 +194,9 @@ public sealed partial class MainViewModel
         var words = PrepareWords(prepared);
         string user = ReadUser(path);
         workspace.CommitArticle(prepared);
+        // Clear *all* old visible and queued messages only after the new
+        // article has loaded successfully. Failed opens keep their warnings.
+        Notifications.Clear();
         playback.Stop();
         Words.Clear();
         foreach (var word in words) Words.Add(word);
