@@ -295,13 +295,17 @@ internal static class ScriptChecks
                     .Any(a => !a.IsHitTestVisible) == true);
                 var visibleBrush = reader.GetScriptVocabularyBackground(0, 6);
                 var overlay = adornerLayer!.GetAdorners(reader)!.Single(a => !a.IsHitTestVisible);
-                Rect visibleDrawing = VisualTreeHelper.GetDrawing(overlay)?.Bounds ?? Rect.Empty;
+                // The overlay owns one retained DrawingVisual so its geometry
+                // can be inspected independently from the WPF screenshot.
+                Program.Check(VisualTreeHelper.GetChildrenCount(overlay) == 1);
+                var drawing = (Visual)VisualTreeHelper.GetChild(overlay, 0);
+                Rect visibleDrawing = VisualTreeHelper.GetDrawing(drawing)?.Bounds ?? Rect.Empty;
                 byte[] withBackground = CapturePixels(adornedRoot, out int width, out int height);
                 byte[] visibleLayer = CapturePixels(adornerLayer!, out int layerWidth, out int layerHeight);
                 reader.SetVocabulary(["beta"], false);
                 WpfTestHelpers.Pump();
                 var hiddenBrush = reader.GetScriptVocabularyBackground(0, 6);
-                Rect hiddenDrawing = VisualTreeHelper.GetDrawing(overlay)?.Bounds ?? Rect.Empty;
+                Rect hiddenDrawing = VisualTreeHelper.GetDrawing(drawing)?.Bounds ?? Rect.Empty;
                 byte[] withoutBackground = CapturePixels(adornedRoot, out int sameWidth, out int sameHeight);
                 byte[] hiddenLayer = CapturePixels(adornerLayer!, out int hiddenLayerWidth, out int hiddenLayerHeight);
                 Program.Check(layerWidth == hiddenLayerWidth && layerHeight == hiddenLayerHeight);
@@ -327,8 +331,9 @@ internal static class ScriptChecks
                 int layerChanges = ChangedPixels(visibleLayer, hiddenLayer,
                     layerWidth, layerHeight, 0, 0, layerWidth, layerHeight);
                 Console.WriteLine($"  Script vocabulary highlight pixels: local={changes}; global={globalChanges}; layer={layerChanges}; validCells={validCells}; visibleBrush={visibleBrush}; hiddenBrush={hiddenBrush}; adornerSize={adornerLayer!.ActualWidth:F1}x{adornerLayer.ActualHeight:F1}; overlaySize={overlay.RenderSize.Width:F1}x{overlay.RenderSize.Height:F1}; visibleDrawing={visibleDrawing}; hiddenDrawing={hiddenDrawing}");
-                // Preserve this actual pixel assertion until the WPF implementation
-                // is fixed or superseded by equivalent WebView2 rendering coverage.
+                // Both the retained drawing instructions and the actual WPF
+                // screenshot must change with vocabulary visibility.
+                Program.Check(!visibleDrawing.IsEmpty && hiddenDrawing.IsEmpty);
                 Program.Check(changes > 0);
             }
             finally { host.Close(); WpfTestHelpers.Pump(); }
