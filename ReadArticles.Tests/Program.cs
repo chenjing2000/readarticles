@@ -37,7 +37,7 @@ internal static class Program
                 break;
             case "--rendering-only": MatchingChecks.Run(); RenderingChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
-            case "--content-only": UnifiedAudioChecks.Run(); ContentChecks.Run(); ScriptChecks.Run(); WebViewPilotChecks.Run(); break;
+            case "--content-only": UnifiedAudioChecks.Run(); ContentChecks.Run(); ScriptChecks.Run(); WebViewPilotChecks.Run(); WebViewScriptBridgeChecks.Run(); break;
             case "--script-only": ScriptChecks.Run(); ScriptChecks.RunUi(); break;
             case "--webview-pilot-only": WebViewPilotChecks.Run(); break;
             case "--unified-audio-only": UnifiedAudioChecks.Run(); break;
