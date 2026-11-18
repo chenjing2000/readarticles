@@ -221,7 +221,7 @@ internal static class ContentChecks
             Program.Check(model.OpenArticle(Path.Combine(book, "Reading.json")));
             Program.Check(model.ArticleTitle == "Reading" && notifications == 1 && model.CurrentUser.Contains("无法读取"));
         });
-        RunCopyTest("normal operations stay quiet while warnings and errors remain visible", (root, passage) =>
+        RunCopyTest("normal edits stay quiet and article switches clear previous notifications", (root, passage) =>
         {
             using var player = new WpfAudioPlayer();
             using var pronunciationPlayer = new WpfAudioPlayer();
@@ -253,7 +253,6 @@ internal static class ContentChecks
             model.DeleteWord(model.Words[0].Entry);
             Program.Check(model.Words.Count == 121 && model.Notifications.Messages.Any(n =>
                 n.Key == "UserOperationFailed" && n.Severity == NotificationSeverity.Error));
-            var existingError = model.Notifications.Messages.Last(n => n.Key == "UserOperationFailed");
             // A successful article switch clears both displayed and queued
             // notifications, including old errors.
             Program.Check(model.OpenArticle(TestData.ArticlePath) &&
