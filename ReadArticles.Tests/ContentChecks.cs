@@ -254,8 +254,10 @@ internal static class ContentChecks
             Program.Check(model.Words.Count == 121 && model.Notifications.Messages.Any(n =>
                 n.Key == "UserOperationFailed" && n.Severity == NotificationSeverity.Error));
             var existingError = model.Notifications.Messages.Last(n => n.Key == "UserOperationFailed");
+            // A successful article switch clears both displayed and queued
+            // notifications, including old errors.
             Program.Check(model.OpenArticle(TestData.ArticlePath) &&
-                model.Notifications.Messages.Any(n => n.Id == existingError.Id));
+                model.Notifications.Messages.Count == 0);
             model.PlaySegment("s011");
             Program.Check(model.Notifications.Messages.Any(n =>
                 n.Key == "PlaybackFailure" && n.Message == "句子 s011 的英音录音文件缺失。" &&
@@ -265,11 +267,13 @@ internal static class ContentChecks
             Program.Check(model.Notifications.Messages.Any(n =>
                 n.Key == "PlaybackFailure" && n.Message == "句子 s011 的美音录音文件缺失。" &&
                 n.Severity == NotificationSeverity.Warning));
+            // Reopening a library also clears messages from the old reading
+            // session. A subsequently failed article open reports one error.
             Program.Check(model.OpenLibrary(TestData.LibraryRoot) &&
-                model.Notifications.Messages.Any(n => n.Id == existingError.Id));
+                model.Notifications.Messages.Count == 0);
             Program.Check(!model.OpenArticle(Path.Combine(root, "Missing.json")) &&
                 model.Notifications.Messages.Count(n => n.Key == "UserOperationFailed" &&
-                    n.Severity == NotificationSeverity.Error) == 2);
+                    n.Severity == NotificationSeverity.Error) == 1);
         });
         RunCopyTest("import and later edits preserve vocabulary metadata and notify once per commit", (root, passage) =>
         {
