@@ -33,12 +33,12 @@ internal static class NotificationChecks
                 new[] { items[4].Id, items[3].Id, items[2].Id }));
         });
 
-        Program.Run("duplicate transient warnings coalesce while pending", () =>
+        Program.Run("repeated warnings are queued as distinct notifications", () =>
         {
             var service = new NotificationService();
             var first = service.Publish("missing-sentence", "No recording", NotificationSeverity.Warning);
             var second = service.Publish("missing-sentence", "No recording", NotificationSeverity.Warning);
-            Program.Check(first?.Id == second?.Id && service.Messages.Count == 1);
+            Program.Check(first?.Id != second?.Id && service.Messages.Count == 2);
         });
 
         Program.Run("errors remain queued and no message is silently discarded", () =>
@@ -67,16 +67,18 @@ internal static class NotificationChecks
             Program.Check(service.Messages.Count == 0 && changes == 3);
         });
 
-        Program.Run("transient deduplication requires identical key message and severity", () =>
+        Program.Run("all notice types preserve arrival order even when keys repeat", () =>
         {
             var service = new NotificationService();
             var first = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning);
-            var duplicate = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning);
+            var repeated = service.Publish("audio", "Missing UK audio", NotificationSeverity.Warning);
             var differentMessage = service.Publish("audio", "Missing US audio", NotificationSeverity.Warning);
             var differentSeverity = service.Publish("audio", "Missing UK audio", NotificationSeverity.Info);
-            Program.Check(first?.Id == duplicate?.Id);
-            Program.Check(differentMessage?.Id != first?.Id && differentSeverity?.Id != first?.Id);
-            Program.Check(service.Messages.Count == 3);
+            Program.Check(first is not null && repeated is not null && first.Id != repeated.Id);
+            Program.Check(differentMessage?.Id != first.Id && differentSeverity?.Id != first.Id);
+            Program.Check(service.Messages.Count == 4);
+            Program.Check(service.Visible.Select(n => n.Id).SequenceEqual(
+                new[] { differentMessage!.Id, repeated.Id, first.Id }));
         });
 
         Program.Run("ordinary notifications are queued without trimming or priority eviction", () =>
