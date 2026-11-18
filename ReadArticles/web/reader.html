@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReadArticles</title>
+  <link rel="stylesheet" href="reader.css">
+  <script src="reader.js" defer></script>
+</head>
+<body>
+  <div class="workspace">
+    <section class="pane article-pane" aria-label="文章正文">
+      <main id="article-scroll" class="scroll">
+        <h1 id="article-title"></h1>
+        <div id="article-body" aria-live="off">
+          <p class="empty">阅读界面正在初始化…</p>
+        </div>
+      </main>
+      <footer class="toolbar">
+        <label class="progress-label">文章音频 <input id="progress" type="range" min="0" max="1" value="0" disabled></label>
+        <output id="playback-time">00:00 / 00:00</output>
+        <button disabled title="后续阶段接入播放">播放</button>
+        <button disabled title="后续阶段接入停止">停止</button>
+      </footer>
+    </section>
+    <section class="pane vocabulary-pane" aria-label="词汇表">
+      <div id="vocabulary-scroll" class="scroll">
+        <div class="pane-heading">词汇表 <span id="vocabulary-count"></span></div>
+        <div id="vocabulary-list"></div>
+      </div>
+      <footer class="toolbar vocabulary-toolbar">
+        <button disabled title="后续阶段接入上移">上移</button>
+        <button disabled title="后续阶段接入下移">下移</button>
+        <button disabled title="后续阶段接入删除">删除</button>
+        <button disabled title="后续阶段接入 Script 切换">Script</button>
+        <button disabled title="后续阶段接入高亮">高亮</button>
+        <button disabled title="后续阶段接入词表导入">导入</button>
+      </footer>
+    </section>
+    <aside id="notifications" aria-label="通知"></aside>
+  </div>
+</body>
+</html>
