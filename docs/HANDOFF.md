@@ -1,10 +1,10 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：**第六阶段及后续文章通知/目录树修改已通过用户 Windows 实机验收。** `b0dacaf` 的 `dotnet build ReadArticles.Tests -c Release` 成功，`Test.ps1 -Suite Core` 10/10 组全部通过（content 34、rendering 13、tree 5、editing 2、notifications 8、lazy-tree 7）。用户确认切换文章后所有旧 Error 和等待消息立即清空；左侧分隔栏拖动时展开符号与文件/目录名称始终贴近；展开目录只查看当层子目录及顶层 `"filetype":"passage"` JSON。此前用户还确认 WebView2 Script 同步着色、音频、词汇持久化、Toast 三槽 FIFO、错误常驻和普通/警告悬停暂停。**目前进入第七阶段审计，尚未运行 UI/Full/正式发布验收，不能删除默认 WPF 阅读器或宣称可以合并。** 详见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。
+> **当前更新（2026-11-18）**：第六阶段验收通过；第七阶段 Windows 测试已取得首轮结果：`Test.ps1 -Suite UI` 11/13 组通过、`Test.ps1 -Suite Full` 完整应用回归 125 通过/5 失败；`Publish.ps1` 成功，`Test-PublishedApp.ps1` 3/3 通过。失败中**4 项**是旧 `ReaderControlsChecks` 仍要求保存左右分隔栏宽度或不检查 JSON 内容；已按用户确定的重启默认 310/390 DIP 和仅显示 `filetype:"passage"` 的逐层扫描规则修订测试。另**1 项**是旧 WPF `ParagraphReader` Script 粉色高亮像素测试（实测局部变更像素 0）；没有删除或跳过断言，已加入实际绘制/范围/画刷诊断输出，待 Windows 复测。修订源码已提交到 `feature/webview2-reader`，**新提交的 UI/Full 结果尚未验证**。详情见 [`WebView2-Migration.md`](WebView2-Migration.md)。Draft [PR #16](https://github.com/chenjing2000/readarticles/pull/16) 未合并。
 >
 > **新会话入口**：先读本文件、[`WebView2-Migration.md`](WebView2-Migration.md)、[`AGENTS.md`](../AGENTS.md) 及 [`project-contract.md`](project-contract.md)。目标仍是单个 WebView2 承载正文、词表、工具栏与通知，C#/WPF 保留左侧导航、音频与词汇文件的最终管理；当前已部分实现，不得误认为完成迁移。
 >
-> **当前工作目标**：先检查 `Test.ps1 -Suite UI`、`Test.ps1 -Suite Full`、`Publish.ps1`、`Test-PublishedApp.ps1` 的 Windows 实测结果，并逐文件评估旧 WPF 阅读视图与对应 UI 测试的替代覆盖；在真实 WebView2 运行和发布验收完整通过后，再单独规划删除旧阅读视图。保留 WPF 左侧目录树、C# 音频与文件业务、错误回退；未获合并授权。
+> **当前工作目标**：重新运行 Windows Release 构建和 UI 套件；若仍仅有旧 WPF Script 像素测试失败，提供 `Script vocabulary highlight pixels: ...` 诊断并确定是叠加层渲染缺陷还是截图区域问题，修复或用真实 WebView2 渲染测试等价替代后，才继续 Full 和正式 UI 清理。已发布 EXE 的隔离/改名测试通过，但还未完成 WebView2 发布版交互验收；不直接删除旧 WPF 阅读器。
 
 ## 1. 仓库、分支和实际状态
 
