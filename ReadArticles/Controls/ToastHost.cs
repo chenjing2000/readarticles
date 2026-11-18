@@ -22,7 +22,6 @@ public sealed class ToastHost : Grid
     private readonly Dictionary<long, Point> previousPositions = new();
     private NotificationService? service;
     private bool disposed;
-    private bool showingOverflow;
 
     public ToastHost()
     {
@@ -125,19 +124,6 @@ public sealed class ToastHost : Grid
             }
             visual.Card.Margin = new Thickness(0, 0, 0, index == visible.Count - 1 ? 0 : 2);
             stack.Children.Add(visual.Card);
-        }
-        int hiddenErrors = service.OverflowErrors.Count;
-        if (hiddenErrors > 0)
-        {
-            var button = new Button
-            {
-                Content = $"还有 {hiddenErrors} 条错误",
-                Padding = new Thickness(10, 5, 10, 5),
-                Margin = new Thickness(0, 0, 0, 2),
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            button.Click += (_, _) => ShowOverflow();
-            stack.Children.Insert(0, button);
         }
         UpdateWidths();
         Dispatcher.BeginInvoke(new Action(AnimateReflow), DispatcherPriority.Loaded);
@@ -272,42 +258,6 @@ public sealed class ToastHost : Grid
             var animation = new DoubleAnimation(delta, 0, TimeSpan.FromMilliseconds(200));
             ((TranslateTransform)card.RenderTransform).BeginAnimation(TranslateTransform.YProperty, animation);
         }
-    }
-
-    private void ShowOverflow()
-    {
-        if (disposed || service is null || showingOverflow) return;
-        showingOverflow = true;
-        var window = Window.GetWindow(this);
-        var dialog = new Window
-        {
-            Title = "未处理的错误",
-            Owner = window,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Width = 440, Height = 360,
-            MinWidth = 320, MinHeight = 220,
-            Background = Brushes.White
-        };
-        var list = new StackPanel { Margin = new Thickness(12) };
-        foreach (var error in service.OverflowErrors.ToArray())
-        {
-            var line = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
-            var close = new Button { Content = "关闭", MinWidth = 54, Height = 28 };
-            System.Windows.Automation.AutomationProperties.SetName(close, "关闭错误消息");
-            close.Click += (_, _) =>
-            {
-                service.Dismiss(error.Id);
-                list.Children.Remove(line);
-            };
-            DockPanel.SetDock(close, Dock.Right);
-            line.Children.Add(close);
-            line.Children.Add(new TextBlock { Text = error.Message, TextWrapping = TextWrapping.Wrap,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-            list.Children.Add(line);
-        }
-        dialog.Content = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-        dialog.Closed += (_, _) => showingOverflow = false;
-        dialog.Show();
     }
 
     private sealed class ToastVisual(NotificationItem item, Border card, Stopwatch elapsed)
