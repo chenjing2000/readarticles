@@ -1,4 +1,7 @@
 using System.IO;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
+using ReadArticles.ViewModels;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -195,13 +198,151 @@ public partial class MainWindow
                 PostWebPilot("actionResult", new { status = "success" }, requestId);
                 return;
             }
-            // All file mutations and playback actions remain unavailable.
+            if (type == "addWord")
+            {
+                if (!root.TryGetProperty("payload", out var selected) ||
+                    !WebPilotValidateSelection(selected, out string? text))
+                {
+                    PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                    return;
+                }
+                var result = ViewModel.TryAddWord(text!);
+                PostWebPilot("actionResult", new
+                {
+                    status = WebPilotResultName(result),
+                    index = result == VocabularyEditResult.Success ? ViewModel.Words.Count - 1 : -1
+                }, requestId);
+                return;
+            }
+            if (type is "moveWord" or "deleteWord")
+            {
+                if (!root.TryGetProperty("payload", out var target) ||
+                    !WebPilotTryWordTarget(target, out int index))
+                {
+                    PostWebPilot("actionResult", new { status = "stale" }, requestId);
+                    return;
+                }
+                var word = ViewModel.Words[index].Entry;
+                VocabularyEditResult result;
+                int nextIndex = -1;
+                if (type == "moveWord")
+                {
+                    if (!target.TryGetProperty("direction", out var directionValue) ||
+                        directionValue.ValueKind != JsonValueKind.Number ||
+                        !directionValue.TryGetInt32(out int direction) ||
+                        (direction != -1 && direction != 1))
+                    {
+                        PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                        return;
+                    }
+                    result = ViewModel.TryMoveWord(word, direction);
+                    if (result == VocabularyEditResult.Success) nextIndex = index + direction;
+                }
+                else result = ViewModel.TryDeleteWord(word);
+
+                PostWebPilot("actionResult", new
+                {
+                    status = WebPilotResultName(result),
+                    index = nextIndex
+                }, requestId);
+                return;
+            }
+            if (type == "importVocabulary")
+            {
+                if (!ViewModel.CanWriteVocabulary)
+                {
+                    PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
+                    return;
+                }
+                var dialog = new OpenFileDialog
+                {
+                    Filter = "Vocabulary JSON|*.json",
+                    CheckFileExists = true
+                };
+                if (dialog.ShowDialog(this) != true ||
+                    MessageBox.Show(this, "用导入词表替换当前词表？",
+                        "导入词汇表", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+                {
+                    PostWebPilot("actionResult", new { status = "cancelled" }, requestId);
+                    return;
+                }
+                // A modal dialog may allow a library/article switch. Require
+                // the original committed context after it closes.
+                if (actionSession != webPilotSessionId ||
+                    value != webPilotVocabularyRevision)
+                {
+                    PostWebPilot("actionResult", new { status = "stale" }, requestId);
+                    return;
+                }
+                var result = ViewModel.TryImportVocabulary(dialog.FileName);
+                PostWebPilot("actionResult", new { status = WebPilotResultName(result) }, requestId);
+                return;
+            }
+            // Audio, Script and remaining settings commands are stage 5/6.
             PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or FormatException)
         {
             AppLogger.Default.Warning("WebViewPilotInvalidMessage", error);
         }
+    }
+
+    private static string WebPilotResultName(VocabularyEditResult result) => result switch
+    {
+        VocabularyEditResult.Success => "success",
+        VocabularyEditResult.Duplicate => "duplicate",
+        VocabularyEditResult.Unavailable => "unavailable",
+        _ => "failed"
+    };
+
+    private bool WebPilotTryWordTarget(JsonElement payload, out int index)
+    {
+        index = -1;
+        if (payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("index", out var indexValue) ||
+            indexValue.ValueKind != JsonValueKind.Number ||
+            !indexValue.TryGetInt32(out index) ||
+            index < 0 || index >= ViewModel.Words.Count ||
+            !payload.TryGetProperty("word", out var wordValue) ||
+            wordValue.ValueKind != JsonValueKind.String)
+            return false;
+        return string.Equals(ViewModel.Words[index].Word, wordValue.GetString(),
+            StringComparison.Ordinal);
+    }
+
+    private bool WebPilotValidateSelection(JsonElement payload, out string? text)
+    {
+        text = null;
+        if (payload.ValueKind != JsonValueKind.Object ||
+            !TryMessageString(payload, "sid", out string? sid) ||
+            !payload.TryGetProperty("text", out var selectedText) ||
+            selectedText.ValueKind != JsonValueKind.String ||
+            !payload.TryGetProperty("offset", out var offsetValue) ||
+            !payload.TryGetProperty("length", out var lengthValue) ||
+            offsetValue.ValueKind != JsonValueKind.Number ||
+            lengthValue.ValueKind != JsonValueKind.Number ||
+            !offsetValue.TryGetInt32(out int offset) ||
+            !lengthValue.TryGetInt32(out int length) ||
+            offset < 0 || length <= 0 || length > 2048)
+            return false;
+
+        string? candidate = selectedText.GetString();
+        if (string.IsNullOrWhiteSpace(candidate) || candidate.Length > 2048)
+            return false;
+        var segment = ViewModel.Article?.Segments.FirstOrDefault(s => s.Sid == sid);
+        if (segment is null) return false;
+
+        // Match the exact Passage display text. Blank markers change visible
+        // UTF-16 offsets and must not be compared against source JSON offsets.
+        string visible = Regex.Replace(segment.Text, @"\[\[(\d+)\]\]",
+            match => "____" + match.Groups[1].Value + "____");
+        if (offset > visible.Length || length > visible.Length - offset)
+            return false;
+        string normalized = Regex.Replace(visible.Substring(offset, length), @"\s+", " ").Trim();
+        if (!string.Equals(candidate, normalized, StringComparison.Ordinal))
+            return false;
+        text = candidate;
+        return true;
     }
 
     private static bool TryMessageString(JsonElement root, string property, out string? value)
@@ -231,6 +372,7 @@ public partial class MainWindow
         PostWebPilot("initialize", new
         {
             article = passage,
+            canWriteVocabulary = ViewModel.CanWriteVocabulary,
             vocabulary = WebPilotVocabularyRows(),
             settings = WebPilotSettingsSnapshot(),
             playback = WebPilotPlaybackSnapshot(),
@@ -302,7 +444,11 @@ public partial class MainWindow
         webPilotVocabularyIdentity = identity;
         webPilotVocabularyRevision++;
         if (webPilotReady)
-            PostWebPilot("setVocabulary", new { vocabulary = WebPilotVocabularyRows() });
+            PostWebPilot("setVocabulary", new
+            {
+                vocabulary = WebPilotVocabularyRows(),
+                canWriteVocabulary = ViewModel.CanWriteVocabulary
+            });
     }
 
     private void WebPilotPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
