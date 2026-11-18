@@ -50,7 +50,14 @@ public partial class MainWindow
             core.NavigationStarting += (_, args) =>
             {
                 if (!string.Equals(args.Uri, WebPilotDocument, StringComparison.OrdinalIgnoreCase))
+                {
                     args.Cancel = true;
+                    return;
+                }
+                // Reload creates a new JS page identity. Do not accept the old page.
+                webPilotReady = false;
+                webPilotPageId = null;
+                WebPilotOverlay.Visibility = Visibility.Collapsed;
             };
             core.NewWindowRequested += (_, args) => args.Handled = true;
             core.NavigationCompleted += (_, args) =>
