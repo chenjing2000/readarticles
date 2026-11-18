@@ -7,6 +7,38 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Current acceptance decision: three-slot FIFO and resettable divider widths
+
+**2026-11-18 — new user requirements override earlier Toast/archive and width-persistence designs.** Stage 6 has *not* yet passed Windows validation for these changes.
+
+### Notifications
+
+- At most **three** notifications are visible at the bottom-center of the article pane. Every published message enters one FIFO queue in the C# `NotificationService`; only the earliest three pending messages occupy slots. The newest *within those admitted three* is displayed at the top. Further notifications wait without any overflow-count button, archive panel, silent eviction, or automatic dismissal while queued.
+- **Error** messages never auto-fade. They retain the visible slot until manually closed, with the normal 1-second exit fade. **Info** and **Warning** begin a ~4.65-second visual countdown only when first displayed, then exit with a 1-second downward fade. Hover pauses and resumes the countdown for transient notifications; hovering an Error leaves it visible because it has no countdown.
+- All three types retain their colored, borderless, equal-width (responsive maximum 520px) cards, `普通：/警告：/错误：` prefixes, centered layout, two-line truncation and `...>>展开` / `<<收起` controls.
+- User-visible vocabulary edit results are now published by C# to that same queue. Duplicate and failed-save actions continue to use their existing authoritative ViewModel notifications, so no duplicate result is synthesized in JavaScript. Repeatedly published messages remain distinct and queued in arrival order.
+- The old `还有 N 条错误` UI and its browser/WPF fallback handlers have been deleted. The existing `AppLogger` continues diagnostic logging; no new raw article or vocabulary content is copied to persistent notification-history files.
+
+### Pane widths
+
+- **Left and right pane widths are session-only.** Every fresh launch uses the existing defaults (`LeftWidth = 310`, `RightWidth = 390`), subject to minimum sizes/available window width. The user may resize them freely while that session remains running.
+- `ReaderSettings.LeftWidth` and `RightWidth` are now excluded from JSON serialization and deserialization via `[JsonIgnore]`. Historical width keys in an existing `settings.json` are ignored; future saves omit them. The persisted font size, accent, volume, skip intervals and library path are unchanged.
+- New C# tests verify FIFO ordering, exactly three admitted messages, lack of silent eviction even when keys repeat, and the width JSON round-trip defaults. A JavaScript host simulation verified three active cards, a two-item waiting queue, no timer on Error, hover pause on Info, delayed admission after a full 1-second fade, and manual Error dismissal.
+
+### Windows acceptance (required)
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite Core
+dotnet run --project ReadArticles -c Release -- --webview-pilot
+```
+
+Generate **five** messages of mixed types. Only three should appear, oldest three admitted first; close an Error or let a transient finish and observe one queued message enter from above. An Error must not disappear by itself even after a long wait. Hover over a transient before its expiry to confirm it remains visible. Verify the archive/count button has disappeared entirely. Move left and right dividers; close and reopen the same build and verify they return to defaults (font and seek-step preferences may remain persisted).
+
+**Do not treat older notes below about automatic Error fading, error archive counts or divider-width persistence as active requirements.** They record earlier implementation checkpoints that have now been superseded.
+
 ## First checkpoint: opt-in skeleton
 
 The first code checkpoint introduces a **read-only pilot**, not a replacement of the production UI:
