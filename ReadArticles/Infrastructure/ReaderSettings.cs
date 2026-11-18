@@ -5,7 +5,11 @@ namespace ReadArticles.Infrastructure;
 
 public sealed class ReaderSettings
 {
+    // Pane widths are session-only. Legacy JSON widths are deliberately
+    // ignored on load and omitted on save, so each launch starts at defaults.
+    [JsonIgnore]
     public double LeftWidth { get; set; } = 310;
+    [JsonIgnore]
     public double RightWidth { get; set; } = 390;
     public double FontSize { get; set; } = 15;
     public double Volume { get; set; } = 0.65;
