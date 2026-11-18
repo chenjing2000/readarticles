@@ -7,6 +7,17 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## 2026-11-18 follow-up: Core test expectations updated
+
+The Windows build at `54c8d80` passed without errors, but `Test.ps1 -Suite Core` reported **9 groups passed, 1 failed**: content-only had two failing assertions, while rendering, tree, editing, notifications and lazy-tree groups passed.
+
+The failures were **outdated test expectations** from before the user's approved changes, not evidence of an application build failure:
+
+- `ContentChecks` expected an old error to survive a successful article/library switch; now it verifies that successful switches clear all visible and queued notifications, while a later failed article open still reports an error.
+- `ScriptChecks` expected `Another.json` containing `{}` to be listed as a passage; now it verifies that only `Example.json` with `filetype: "passage"` is visible and Script/untyped JSON are excluded.
+
+Only these two test files were changed. The corrected test source is committed, but **the user has not yet provided a Windows build/Core result for the new commit**. Retest with `dotnet build ReadArticles.Tests -c Release` followed by `.\tools\Test.ps1 -Suite Core`.
+
 ## Latest revision: simple notification clearing and strict lazy directory discovery (2026-11-18)
 
 The user confirmed on Windows at commit `384e970` that the Toast hover fix works (messages remain while hovered); Release build and `Test.ps1 -Suite Core` passed 10/10 groups, including 34 content checks.
