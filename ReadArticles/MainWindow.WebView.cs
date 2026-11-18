@@ -706,7 +706,11 @@ public partial class MainWindow
             new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray(),
         overflowErrorCount = ViewModel.Notifications.OverflowErrors.Count,
         overflowErrors = ViewModel.Notifications.OverflowErrors.Select(n =>
-            new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray()
+            new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray(),
+        // Error popups also fade visually. Their underlying records remain
+        // accessible after fading until the user explicitly acknowledges them.
+        errors = ViewModel.Notifications.Messages.Where(n => n.Severity == NotificationSeverity.Error)
+            .Select(n => new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray()
     };
 
     private void WebPilotArticleChanged()
