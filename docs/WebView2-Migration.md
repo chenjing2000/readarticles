@@ -7,6 +7,30 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Windows acceptance at `b0dacaf` — stage 6 complete (2026-11-18)
+
+The user ran `git pull --ff-only origin feature/webview2-reader`, `dotnet build ReadArticles.Tests -c Release`, and `.\tools\Test.ps1 -Suite Core` on Windows. **Release test build passed; Core passed 10/10 groups, zero failures and zero skips.** Notable passing checks: content 34/34, rendering 13/13, tree 5/5, editing 2/2, notification 8/8, and lazy-tree 7/7.
+
+The user additionally confirmed the following in the running application:
+
+- After switching articles, all old Error messages and the queued notifications disappear immediately.
+- Resizing the left tree pane does not separate folder/file names from their expand/collapse glyphs.
+- Expanding a folder inspects only that directory level; it displays direct subdirectories and only direct JSON files with top-level `"filetype": "passage"`.
+- Earlier Windows acceptance already established Toast hover pause, three visible cards with FIFO refill, persistent Error until manual close, Script timing/audio interaction and vocabulary writes.
+
+**Stage 6 plus the follow-up article-switch/tree-filter changes are accepted.** Core success does **not** establish that UI, Full, published binary, or removal of the WPF reader are accepted. Historical sections below are implementation history and may describe superseded behavior; this section and the handoff give the current state.
+
+### Stage 7 — audit first; do not delete WPF reader yet
+
+The default WPF reader and pilot WebView2 reader are still intentionally coexisting. A first source audit identifies the following legacy UI surfaces and test dependencies:
+
+- `ReadArticles/Rendering/ParagraphReader.cs` and `SelectionAddAdorner.cs` implement the WPF text rendering, selection and scripted gradient.
+- `ReadArticles/MainWindow.xaml` contains `ArticleTitleText`, `VocabularyList`, the native `ToastHost`, old reader toolbars and the `WebPilotOverlay`.
+- `MainWindow.Vocabulary.cs`, `MainWindow.Playback.cs`, `MainWindow.Settings.cs`, and `MainWindow.xaml.cs` reference WPF reader controls in ways that must be separated from the C# business services before removal.
+- Existing tests `ReaderWindowChecks`, `ScriptChecks.RunUi`, `ReaderControlsChecks`, `TreeNavigationChecks` and others exercise old WPF controls. Do not simply delete these assertions: replace or preserve equivalent coverage for the one-WebView2 intended end state.
+
+Next validation sequence: run `.\tools\Test.ps1 -Suite UI`, `.\tools\Test.ps1 -Suite Full`, `.\tools\Publish.ps1`, and `.\tools\Test-PublishedApp.ps1` on Windows, record exact failures, and verify the published WebView2 pilot/renamed executable. Add real WebView2 rendering and browser-host lifecycle coverage for the behaviors that old WPF tests previously protected. Only then plan a separate, reviewable removal of obsolete WPF visual code. Continue to preserve left WPF lazy tree, C# audio, file operations, notification service, settings, and WPF fallback for WebView2 initialization failure. **No merge to main without explicit user approval.**
+
 ## 2026-11-18 follow-up: Core test expectations updated
 
 The Windows build at `54c8d80` passed without errors, but `Test.ps1 -Suite Core` reported **9 groups passed, 1 failed**: content-only had two failing assertions, while rendering, tree, editing, notifications and lazy-tree groups passed.
@@ -16,7 +40,7 @@ The failures were **outdated test expectations** from before the user's approved
 - `ContentChecks` expected an old error to survive a successful article/library switch; now it verifies that successful switches clear all visible and queued notifications, while a later failed article open still reports an error.
 - `ScriptChecks` expected `Another.json` containing `{}` to be listed as a passage; now it verifies that only `Example.json` with `filetype: "passage"` is visible and Script/untyped JSON are excluded.
 
-Only these two test files were changed. The corrected test source is committed, but **the user has not yet provided a Windows build/Core result for the new commit**. Retest with `dotnet build ReadArticles.Tests -c Release` followed by `.\tools\Test.ps1 -Suite Core`.
+The two test expectations were subsequently corrected, and the user **confirmed the full Windows Release/Core pass at `b0dacaf`** (10/10 groups). See the acceptance note above.
 
 ## Latest revision: simple notification clearing and strict lazy directory discovery (2026-11-18)
 
