@@ -29,7 +29,14 @@ public partial class MainWindow
         pronunciationPlayer.Dispose();
     }
 
-    private void ProgressTimerTick(object? sender, EventArgs e) => UpdateProgress();
+    private void ProgressTimerTick(object? sender, EventArgs e)
+    {
+        UpdateProgress();
+        // The existing audio player is the only clock. The timer must also
+        // publish its current position to the WebView2 visual workspace.
+        if (webPilotEnabled && ViewModel.Playback.IsArticleActive)
+            SendWebPilotPlayback();
+    }
 
     private void RefreshPlayback()
     {
