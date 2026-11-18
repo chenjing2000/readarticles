@@ -260,15 +260,12 @@ public partial class MainWindow
                 if (!root.TryGetProperty("payload", out var selected) ||
                     !WebPilotValidateSelection(selected, out string? text))
                 {
-                    PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                    WebPilotEditResult(requestId, "invalid");
                     return;
                 }
                 var result = ViewModel.TryAddWord(text!);
-                PostWebPilot("actionResult", new
-                {
-                    status = WebPilotResultName(result),
-                    index = result == VocabularyEditResult.Success ? ViewModel.Words.Count - 1 : -1
-                }, requestId);
+                WebPilotEditResult(requestId, WebPilotResultName(result),
+                    result == VocabularyEditResult.Success ? ViewModel.Words.Count - 1 : -1);
                 return;
             }
             if (type is "moveWord" or "deleteWord")
@@ -276,7 +273,7 @@ public partial class MainWindow
                 if (!root.TryGetProperty("payload", out var target) ||
                     !WebPilotTryWordTarget(target, out int index))
                 {
-                    PostWebPilot("actionResult", new { status = "stale" }, requestId);
+                    WebPilotEditResult(requestId, "stale");
                     return;
                 }
                 var word = ViewModel.Words[index].Entry;
@@ -289,7 +286,7 @@ public partial class MainWindow
                         !directionValue.TryGetInt32(out int direction) ||
                         (direction != -1 && direction != 1))
                     {
-                        PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                        WebPilotEditResult(requestId, "invalid");
                         return;
                     }
                     result = ViewModel.TryMoveWord(word, direction);
@@ -297,18 +294,14 @@ public partial class MainWindow
                 }
                 else result = ViewModel.TryDeleteWord(word);
 
-                PostWebPilot("actionResult", new
-                {
-                    status = WebPilotResultName(result),
-                    index = nextIndex
-                }, requestId);
+                WebPilotEditResult(requestId, WebPilotResultName(result), nextIndex);
                 return;
             }
             if (type == "importVocabulary")
             {
                 if (!ViewModel.CanWriteVocabulary)
                 {
-                    PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
+                    WebPilotEditResult(requestId, "unavailable");
                     return;
                 }
                 string expectedSession = webPilotSessionId;
@@ -322,7 +315,7 @@ public partial class MainWindow
                     MessageBox.Show(this, "用导入词表替换当前词表？",
                         "导入词汇表", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
                 {
-                    PostWebPilot("actionResult", new { status = "cancelled" }, requestId);
+                    WebPilotEditResult(requestId, "cancelled");
                     return;
                 }
                 // A modal dialog may allow a library/article switch. Require
@@ -330,11 +323,11 @@ public partial class MainWindow
                 if (expectedSession != webPilotSessionId ||
                     expectedRevision != webPilotVocabularyRevision)
                 {
-                    PostWebPilot("actionResult", new { status = "stale" }, requestId);
+                    WebPilotEditResult(requestId, "stale");
                     return;
                 }
                 var result = ViewModel.TryImportVocabulary(dialog.FileName);
-                PostWebPilot("actionResult", new { status = WebPilotResultName(result) }, requestId);
+                WebPilotEditResult(requestId, WebPilotResultName(result));
                 return;
             }
             // Audio, Script and remaining settings commands are stage 5/6.
@@ -344,6 +337,27 @@ public partial class MainWindow
         {
             AppLogger.Default.Warning("WebViewPilotInvalidMessage", error);
         }
+    }
+
+    // Only the C# notification service owns queued user-visible feedback.
+    // The ViewModel already publishes duplicate and failed-save messages.
+    private void WebPilotEditResult(string requestId, string status, int index = -1)
+    {
+        if (status is not ("duplicate" or "failed"))
+        {
+            string message = status switch
+            {
+                "success" => "词汇表已保存",
+                "cancelled" => "已取消导入",
+                "stale" => "文章或词表已变化，请重新操作",
+                "invalid" => "选区或词条无效，请重新选择",
+                _ => "当前词表不可编辑"
+            };
+            var severity = status is "success" or "cancelled"
+                ? NotificationSeverity.Info : NotificationSeverity.Warning;
+            ViewModel.Notify("WebPilotVocabulary" + status, message, severity);
+        }
+        PostWebPilot("actionResult", new { status, index }, requestId);
     }
 
     private void WebPilotSettingIntent(string type, JsonElement root, string requestId)
@@ -710,15 +724,11 @@ public partial class MainWindow
 
     private object WebPilotNotificationSnapshot() => new
     {
+        // Service.Visible is the first three FIFO messages, newest first
+        // within the admitted group. Queued messages are not transmitted
+        // until a displayed notification has completed dismissal.
         visible = ViewModel.Notifications.Visible.Select(n =>
-            new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray(),
-        overflowErrorCount = ViewModel.Notifications.OverflowErrors.Count,
-        overflowErrors = ViewModel.Notifications.OverflowErrors.Select(n =>
-            new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray(),
-        // Error popups also fade visually. Their underlying records remain
-        // accessible after fading until the user explicitly acknowledges them.
-        errors = ViewModel.Notifications.Messages.Where(n => n.Severity == NotificationSeverity.Error)
-            .Select(n => new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray()
+            new { id = n.Id, message = n.Message, severity = n.Severity.ToString() }).ToArray()
     };
 
     private void WebPilotArticleChanged()
