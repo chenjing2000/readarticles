@@ -1,4 +1,6 @@
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.IO;
 using ReadArticles.Models;
 
@@ -112,6 +114,36 @@ internal static class TreeNavigationChecks
                 WpfTestHelpers.Pump();
                 Directory.Delete(root, true);
             }
+        });
+
+        Program.Run("tree labels stay next to expanders when left pane changes width", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                window.Show();
+                Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
+                WpfTestHelpers.Pump();
+                var tree = (TreeView)window.FindName("LibraryTree");
+                var left = (ColumnDefinition)window.FindName("LeftColumn");
+                double Gap()
+                {
+                    window.UpdateLayout();
+                    var item = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(0);
+                    item.ApplyTemplate();
+                    var expander = (ToggleButton)item.Template.FindName("Expander", item);
+                    var label = WpfTestHelpers.Descendants(item).OfType<TextBlock>()
+                        .First(text => text.Text == window.ViewModel.Books[0].Name);
+                    return label.TranslatePoint(new Point(), expander).X - expander.ActualWidth;
+                }
+
+                left.Width = new GridLength(230);
+                double narrow = Gap();
+                left.Width = new GridLength(510);
+                double wide = Gap();
+                Program.Check(narrow >= 0 && narrow <= 5 && Math.Abs(narrow - wide) < 0.5);
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
         Program.Run("tree expands one level at a time and collapse invalidates descendants", () =>
