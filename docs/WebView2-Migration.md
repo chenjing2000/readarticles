@@ -48,6 +48,23 @@ then reported an unrelated failure at `ReaderWindowChecks.cs:31`: the fixed arti
 
 The old WPF Script visual assertion continues to report `Script vocabulary highlight changed pixels: 0`; the new browser rendering has not yet undergone its own pixel acceptance. Re-run the canonical UI and Full suites after code changes, and test `--webview-pilot` in an interactive Windows process.
 
+## Pilot visual acceptance and stage 2 protocol checkpoint (2026-11-18)
+
+The user launched `dotnet run --project ReadArticles -c Release -- --webview-pilot` on Windows and supplied a screenshot showing the left WPF tree, the Passage title/body, and the right WebView2 vocabulary list (81 entries). No browser initialization error occurred. **The read-only pilot's initial WebView2 loading/rendering milestone is confirmed.**
+
+The screenshot also revealed a horizontal page scrollbar at the bottom and partially clipped right toolbar buttons. The CSS has since been changed to constrain the root/workspace overflow, allow grid tracks to shrink, and wrap the vocabulary footer buttons. **These CSS changes have not yet been verified by a new Windows screenshot.**
+
+Stage 2 groundwork now includes:
+
+- Each host `initialize` carries a unique `requestId`; only a matching `rendered` acknowledgment for the active page and article session can show the overlay. `renderFailed` falls back to WPF.
+- On trusted navigation/reload, pending acknowledgments and page identity are invalidated.
+- Incoming messages are length-limited and checked for protocol version, string types, valid page/request UUIDs, known operations, current article session and vocabulary revision.
+- Pilot operations are explicitly **read-only**: recognized action attempts receive `actionResult` with `unavailable` or `stale`. No vocabulary or audio command is executed.
+- Vocabulary revisions advance only on committed vocabulary snapshot replacement, not merely on a highlight-visibility toggle. C# emits incremental `setVocabulary` and `setSettings` changes without reconstructing the Passage DOM.
+- JS rejects older vocabulary revisions and messages for a prior article session, and acknowledges the latest full snapshot ID. Frontend test simulation confirmed `ready`, `rendered` ID, incremental vocabulary refresh, stale revision/session filtering and settings refresh.
+
+**Next validation:** rebuild and rerun the Windows pilot, switch between two articles rapidly, check the title/word list follow the selected article, inspect whether the bottom horizontal scrollbar is absent and every disabled toolbar button remains visible. Then run Core and the portable publish checks. Real WebView2 DOM integration tests, audio/Script, mutation action success/failure and final legacy renderer deletion are *not yet accepted*.
+
 ## Local Windows acceptance — required
 
 From a clean checkout of this branch:
