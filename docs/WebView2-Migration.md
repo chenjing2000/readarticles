@@ -7,6 +7,29 @@ Branch: `feature/webview2-reader` (based on `feature/script-reading-mode`, not `
 
 One WebView2 renders the middle reader, title, right vocabulary pane, both footers, selection affordances, and notifications. C#/WPF keeps the left navigation tree, all file and audio business logic, settings and durable state. No React, Node, HTML audio, or second WebView2.
 
+## Stage 7: Script overlay drawing moved out of WPF OnRender (2026-11-18)
+
+At the latest Windows UI test after `AdornerLayer.Update(this)`, Release build succeeded but UI stayed at **12/13 groups passed**. The sole failing WPF Script vocabulary background check reported:
+
+`local=0; global=0; layer=0; validCells=4; visibleBrush=#FFF9D3E3; hiddenBrush=#00FFFFFF; adornerSize=215.3x242.7; overlaySize=160.0x242.7; visibleDrawing=Empty; hiddenDrawing=Empty`.
+
+This is stronger evidence than earlier captures: the adorner was attached and measured, yet did not retain any background drawing. The previous invalidation-only patch was insufficient.
+
+**New targeted production fix (pending Windows verification):** `ParagraphReader.ScriptVocabularyAdorner` now owns a single `DrawingVisual` child and calls `RenderOpen()` from an explicit `Redraw()` method. It computes `GetCharacterRect` geometry **outside** the WPF `OnRender` callback, after loaded/reflow or when vocabulary visibility/focus changes. The retained drawing visual paints the same rectangles, colors, and 0.45 opacity as before, without splitting Script timed-unit Runs. The previous bare `Adorner.OnRender` and ineffective `AdornerLayer.Update(this)` approach were removed.
+
+**Regression strengthened, not suppressed:** `ScriptChecks.RunUi` now reads `GetDrawing` from the retained child visual rather than the parent adorner. It requires **both** a nonempty visible drawing and empty hidden drawing, *and* preserves the old positive local pixel-difference assertion. The diagnostic reports drawable bounds as `visibleDrawing` and `hiddenDrawing`.
+
+Windows retest:
+
+```powershell
+cd C:\Projects\ReadArticles
+git pull --ff-only origin feature/webview2-reader
+dotnet build ReadArticles.Tests -c Release
+.\tools\Test.ps1 -Suite UI
+```
+
+If UI passes, run `.\tools\Test.ps1 -Suite Full`. If it still fails, provide the full `Script vocabulary highlight pixels` diagnostic line. **Do not merge PR #16 or delete the WPF fallback yet.**
+
 ## Stage 7 WPF Script overlay: zero pixels inside layer — render invalidation fix submitted (2026-11-18)
 
 The user reran the UI suite after the explicit `AdornerDecorator` diagnostic fixture. **Release build passed. UI remains 12/13 groups passed; controls-only is 18/18.** The one failure in the old WPF Script test still showed `local=0; global=0; layer=0; validCells=4; visibleBrush=#FFF9D3E3; hiddenBrush=#00FFFFFF`. This rules out simply capturing the wrong parent, since the adorner layer itself showed no pixel changes.
