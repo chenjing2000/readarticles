@@ -1,16 +1,16 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
-> **当前更新（2026-11-18）**：在 `feature/webview2-reader` 分支已开始阶段 1 的只读 WebView2 Pilot，默认 WPF 阅读器不变。详情及本机验收命令见 [`WebView2-Migration.md`](WebView2-Migration.md)。该分支尚未完成真实 Windows 构建/发布/UI 验收。此说明仅针对当前 WebView2 开发分支。
+> **当前更新（2026-11-18）**：`feature/webview2-reader` 已通过 Windows 上第一至第三阶段的基础阅读实机验收：WebView2 正文/词表、切换文章、独立滚动、高亮、词条定位和单句跨行选区均正常。现已提交第四阶段的词汇新增/移动/删除/导入与 C# 保存回执，**尚待 Windows 编译、Core 和文件写入实机验收**。默认 WPF 阅读器不变，PR [#16](https://github.com/chenjing2000/readarticles/pull/16) 保持 Draft，未合并到 `main`。逐阶段进度及测试见 [`WebView2-Migration.md`](WebView2-Migration.md)。
 >
-> **新会话入口**：先读本文件，再读 [`AGENTS.md`](../AGENTS.md)、[`project-contract.md`](project-contract.md) 和涉及模块的源码。**下一阶段的已确认方向是：用单个 WebView2 统一接管中央正文、右侧词汇展示、两区底部工具栏和浮动通知的 UI；C# / WPF 保留数据与音频业务的最终管理。** 尚未实施；不要误认为迁移已完成。
+> **新会话入口**：先读本文件，再读 [`AGENTS.md`](../AGENTS.md)、[`project-contract.md`](project-contract.md) 和涉及模块的源码。**下一阶段的已确认方向是：用单个 WebView2 统一接管中央正文、右侧词汇展示、两区底部工具栏和浮动通知的 UI；C# / WPF 保留数据与音频业务的最终管理。** 部分已实施，但迁移尚未完成；请优先阅读 WebView2-Migration.md 的最新进度。
 >
-> **当前工作目标**：先制定逐文件迁移与测试计划，再按用户在新会话中的授权实施。暂不引入 React、Node.js、前端构建工具，不重写整个桌面程序。
+> **当前工作目标**：验收第四阶段词汇提交与失败回执，然后依次完成 Script/音频、工具栏/设置/Toast、旧 WPF 清理。继续坚持无 React/Node.js、保留单 EXE 发布及原有 C# 数据所有权。
 
 ## 1. 仓库、分支和实际状态
 
 - GitHub：`chenjing2000/readarticles`；用户 Windows 本地工作目录：`C:\Projects\ReadArticles`。
 - 当前功能分支：`feature/script-reading-mode`；Draft [PR #15](https://github.com/chenjing2000/readarticles/pull/15)；**尚未合并到 `main`**。本 handoff 编写前该分支 HEAD 为 `93c0b0e63f97ac1fefbeadf98443d2e8cf83d790`；开始新任务须重新检查远程 HEAD、PR、`git status`，不可假设版本未变。
-- `main` 仍是原有 WPF 阅读方案；新 WebView2 工作区**尚未加入仓库**。过去的 `feature/exercise` 为历史性功能分支，不属于当前 WebView2 迁移范围。
+- `main` 仍是原有 WPF 阅读方案；WebView2 工作区已加入 `feature/webview2-reader` 分支，**尚未合并到 `main`**。过去的 `feature/exercise` 为历史性功能分支，不属于当前 WebView2 迁移范围。
 - 上一轮已在功能分支实现可按需切换的 Script 模式及 WPF 的多次渐变/高亮修复，但没有解决所有 UI 验收问题（见第 3 节）。不得直接宣称 PR #15 已达到合并条件。
 - 本文件是**交接说明和设计决定**，不是迁移代码或测试通过的证明；不隐含合并授权。
 
