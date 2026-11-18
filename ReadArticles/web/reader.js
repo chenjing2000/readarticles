@@ -14,7 +14,6 @@ let selectedPassage = null;
 let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
-const localFeedback = [];
 let noticeSequence = 0;
 let splitting = null;
 let currentMode = "passage";
@@ -473,7 +472,7 @@ function dismissNotification(id) {
 // remain in the C# notification service after their cards disappear.
 const toastDisplayMs = 4650;
 const toastFadeMs = 1000;
-let latestNotifications = { visible: [], errors: [], overflowErrors: [] };
+let latestNotifications = { visible: [] };
 
 function noticePrefix(severity) {
   const kind = String(severity ?? "").toLowerCase();
@@ -521,49 +520,39 @@ function createToast(item) {
   close.setAttribute("aria-label", "关闭通知");
   actions.append(close);
   card.append(message, actions);
-
-  const local = key.startsWith("local-");
   const isError = String(item.severity ?? "").toLowerCase() === "error";
   const entry = {
     card, item, remaining: toastDisplayMs, started: null, timeout: null,
-    exiting: false, expired: false, checkOverflow, arrival: ++noticeSequence
+    exiting: false, checkOverflow
   };
   const pause = () => {
-    if (entry.exiting || entry.expired) return;
+    if (entry.exiting) return;
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
     entry.timeout = null;
     if (entry.started !== null) entry.remaining = Math.max(0,
       entry.remaining - (performance.now() - entry.started));
     entry.started = null;
   };
-  const fadeOut = (manual) => {
-    if (entry.exiting || entry.expired) return;
+  const fadeOut = () => {
+    if (entry.exiting) return;
     pause();
     entry.exiting = true;
     card.classList.remove("entering");
     card.classList.add("exiting");
     entry.timeout = window.setTimeout(() => {
       entry.timeout = null;
-      entry.expired = true;
-      card.remove();
-      if (local) {
-        const index = localFeedback.findIndex(n => String(n.id) === key);
-        if (index >= 0) localFeedback.splice(index, 1);
-        renderNotifications(latestNotifications);
-      } else if (!isError || manual) {
-        dismissNotification(item.id);
-      } else {
-        // Errors disappear visually but remain in the authoritative archive.
-        renderErrorArchive(latestNotifications);
-      }
+      // A queue slot is freed only after the fade completes and the C#
+      // NotificationService has acknowledged the dismissal.
+      dismissNotification(item.id);
     }, toastFadeMs);
   };
   const resume = () => {
-    if (entry.exiting || entry.expired) return;
+    // Errors remain on-screen until manually dismissed. Waiting toasts
+    // have no DOM or timer, and begin timing only when admitted.
+    if (entry.exiting || isError) return;
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
     entry.started = performance.now();
-    entry.timeout = window.setTimeout(() => fadeOut(false),
-      Math.max(0, entry.remaining));
+    entry.timeout = window.setTimeout(fadeOut, Math.max(0, entry.remaining));
   };
   entry.dispose = () => {
     if (entry.timeout !== null) window.clearTimeout(entry.timeout);
@@ -573,44 +562,15 @@ function createToast(item) {
   };
   card.addEventListener("mouseenter", pause);
   card.addEventListener("mouseleave", resume);
-  close.addEventListener("click", () => fadeOut(true));
+  close.addEventListener("click", fadeOut);
   resume();
   return entry;
-}
-
-function renderErrorArchive(notifications) {
-  const visibleIds = new Set((notifications.visible ?? []).map(item => String(item.id)));
-  const allErrors = notifications.errors ?? notifications.overflowErrors ?? [];
-  const archived = allErrors.filter(item =>
-    !visibleIds.has(String(item.id)) || toastEntries.get(String(item.id))?.expired);
-  const toggle = byId("notification-overflow-toggle");
-  const list = byId("notification-overflow-list");
-  toggle.hidden = archived.length === 0;
-  toggle.textContent = "还有 " + archived.length + " 条错误";
-  if (!archived.length) list.hidden = true;
-  list.replaceChildren();
-  for (const item of archived) {
-    const line = element("div", "notification-overflow-entry");
-    const body = noticeText(item.message, "Error");
-    const actions = element("div", "notice-actions");
-    const checkOverflow = attachNoticeExpansion(body, actions);
-    const close = element("button", "notice-close", "×");
-    close.type = "button";
-    close.setAttribute("aria-label", "关闭错误消息");
-    close.addEventListener("click", () => dismissNotification(item.id));
-    actions.append(close);
-    line.append(body, actions);
-    line.refreshExpansion = checkOverflow;
-    list.append(line);
-    if (!list.hidden) window.requestAnimationFrame(checkOverflow);
-  }
-  toggle.setAttribute("aria-expanded", String(!list.hidden && !toggle.hidden));
 }
 
 function renderNotifications(notifications) {
   latestNotifications = notifications;
   const host = byId("notification-cards");
-  const visible = [...localFeedback].reverse().concat(notifications.visible ?? []);
+  const visible = (notifications.visible ?? []).slice(0, 3);
   const wanted = new Set(visible.map(item => String(item.id)));
   for (const [key, entry] of toastEntries) {
     if (!wanted.has(key)) {
@@ -618,23 +578,19 @@ function renderNotifications(notifications) {
       toastEntries.delete(key);
     }
   }
-  // Create unseen notifications oldest-first, then order the actual
-  // visual stack by arrival across both C# and local feedback.
+  // C# owns the FIFO. Only three admitted cards have active DOM/timers.
+  // Create oldest-to-newest, then place newest above the older messages.
   for (const item of [...visible].reverse()) {
     const key = String(item.id);
     if (!toastEntries.has(key)) toastEntries.set(key, createToast(item));
   }
-  const ordered = visible
-    .map(item => toastEntries.get(String(item.id)))
-    .filter(entry => entry && !entry.expired)
-    .sort((a, b) => b.arrival - a.arrival);
-  for (const entry of ordered) {
+  for (const item of visible) {
+    const entry = toastEntries.get(String(item.id));
+    if (!entry) continue;
     host.append(entry.card);
     window.requestAnimationFrame(entry.checkOverflow);
   }
-  renderErrorArchive(notifications);
 }
-
 function renderSettings(settings) {
   const fontSize = Number(settings.fontSize);
   const rightWidth = Number(settings.rightWidth);
@@ -730,17 +686,6 @@ function updateEditControls() {
   updateReadingModeButton();
 }
 
-function showEditStatus(value, severity = "Info") {
-  // Operation results are transient UI feedback. They share the same bottom
-  // notification host, classification and lifetime as C# notifications.
-  localFeedback.push({
-    id: "local-" + crypto.randomUUID(),
-    severity, message: value
-  });
-  if (localFeedback.length > 4) localFeedback.shift();
-  renderNotifications(latestNotifications);
-}
-
 function requestVocabularyEdit(type, payload) {
   if (!sessionId || !canWriteVocabulary || pendingMutation) return;
   const requestId = send(type, { payload });
@@ -829,15 +774,6 @@ splitter.addEventListener("keydown", event => {
   send("setPanelWidth", { payload: { width: next } });
 });
 
-byId("notification-overflow-toggle").addEventListener("click", () => {
-  const list = byId("notification-overflow-list");
-  list.hidden = !list.hidden;
-  byId("notification-overflow-toggle").setAttribute("aria-expanded", String(!list.hidden));
-  if (!list.hidden) window.requestAnimationFrame(() => {
-    for (const row of list.children) row.refreshExpansion?.();
-  });
-});
-
 document.addEventListener("keydown", event => {
   if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
       event.target?.closest("input, select, textarea, button, [contenteditable='true'], [role='separator']"))
@@ -857,7 +793,6 @@ document.addEventListener("keydown", event => {
     send("seekArticle", { payload: { position: target } });
   } else if (event.key === "Escape") {
     setSettingsOpen(false);
-    byId("notification-overflow-list").hidden = true;
   }
 });
 
@@ -989,21 +924,8 @@ if (window.chrome?.webview) {
         renderVocabulary(vocabulary);
         refreshHighlights(false);
       }
-      const statuses = {
-        success: "词汇表已保存",
-        duplicate: "词汇表中已存在该词条",
-        stale: "文章或词表已变化，请重新操作",
-        invalid: "选区或词条无效，请重新选择",
-        unavailable: "当前词表不可编辑",
-        cancelled: "已取消导入",
-        failed: "保存失败，请检查文件及备份状态"
-      };
-      // Duplicate and file-write failures have already produced authoritative
-      // warning/error notifications in the C# ViewModel.
-      if (result !== "duplicate" && result !== "failed")
-        showEditStatus(statuses[result] ?? "操作未完成",
-          result === "invalid" || result === "stale" || result === "unavailable"
-            ? "Warning" : "Info");
+      // Operation results are published by C# to its single FIFO notification
+      // service; the browser never starts a competing message queue.
       updateEditControls();
     }
   });
