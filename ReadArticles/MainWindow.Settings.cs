@@ -23,14 +23,13 @@ public partial class MainWindow
         Left = Math.Round(Math.Round(workArea.Left) + (Math.Round(workArea.Width) - Width) / 2);
         Top = Math.Round(Math.Round(workArea.Top) + (Math.Round(workArea.Height) - Height) / 2);
 
-        // Keep all three columns within the smaller startup window.
+        // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
         double contentWidth = Math.Max(0, Width - 40);
         double panelScale = Math.Min(1, contentWidth / 906);
         LeftColumn.MinWidth = Math.Round(200 * panelScale);
         CenterColumn.MinWidth = Math.Round(410 * panelScale);
-        RightColumn.MinWidth = Math.Round(280 * panelScale);
-        LeftColumn.Width = new GridLength(Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth, Math.Max(LeftColumn.MinWidth, Math.Round(contentWidth * 0.22))));
-        RightColumn.Width = new GridLength(Math.Clamp(settings.RightWidth, RightColumn.MinWidth, Math.Max(RightColumn.MinWidth, Math.Round(contentWidth * 0.28))));
+        LeftColumn.Width = new GridLength(Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth,
+            Math.Max(LeftColumn.MinWidth, Math.Round(contentWidth * 0.22))));
 
         ApplyReadingFont((int)settings.FontSize);
         player.Volume = settings.Volume;
@@ -43,13 +42,12 @@ public partial class MainWindow
     {
         if (!persistSettings) return;
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
-        settings.RightWidth = Math.Round(RightColumn.ActualWidth);
         SaveSettings(player.Volume, showDialogOnFailure: true);
     }
 
-    private void SaveSettings(double volume, bool showDialogOnFailure = false)
+    private bool SaveSettings(double volume, bool showDialogOnFailure = false)
     {
-        if (!persistSettings) return;
+        if (!persistSettings) return true;
 
         settings.Volume = volume;
         settings.Accent = ViewModel.Accent;
@@ -57,6 +55,7 @@ public partial class MainWindow
         try
         {
             settings.Save();
+            return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
@@ -66,6 +65,7 @@ public partial class MainWindow
                 MessageBox.Show(this, message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
             else
                 Dispatcher.BeginInvoke(() => ViewModel.Notify("SettingsSaveFailed", "无法保存配置文件，请检查配置文件内容及目录权限。", NotificationSeverity.Error));
+            return false;
         }
     }
 
@@ -78,10 +78,9 @@ public partial class MainWindow
     private void ColumnsResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
     {
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
-        settings.RightWidth = Math.Round(RightColumn.ActualWidth);
         LeftColumn.Width = new GridLength(settings.LeftWidth);
-        RightColumn.Width = new GridLength(settings.RightWidth);
         SaveSettings(player.Volume);
+        SendWebPilotSettings();
     }
 
     private void AccentClicked(object sender, RoutedEventArgs e)
@@ -108,9 +107,8 @@ public partial class MainWindow
     private void ApplyReadingFont(int size)
     {
         settings.FontSize = size;
-        foreach (var reader in readers) reader.FontSize = settings.FontSize;
-        VocabularyList.FontSize = settings.FontSize;
         RefreshSettingsChecks();
+        SendWebPilotSettings();
     }
 
     private void RefreshSettingsChecks()
@@ -132,6 +130,7 @@ public partial class MainWindow
         else settings.BackwardStep = step;
         RefreshSettingsChecks();
         SaveSettings(player.Volume);
+        SendWebPilotSettings();
     }
 
     private static void RefreshStepChecks(MenuItem menu, double step)

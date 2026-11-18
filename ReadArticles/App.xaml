@@ -5,13 +5,6 @@
         <Setter.Value><ControlTemplate TargetType="Control"/></Setter.Value>
       </Setter>
     </Style>
-    <SolidColorBrush x:Key="VocabularyHighlightBrush" Color="#F9D3E3"/>
-    <SolidColorBrush x:Key="SelectedVocabularyBrush" Color="#F6BEC8"/>
-    <SolidColorBrush x:Key="SegmentHoverBrush" Color="#E3EFF9"/>
-    <SolidColorBrush x:Key="PlayingSegmentBrush" Color="#FFF0B6"/>
-    <SolidColorBrush x:Key="SelectionBrush" Color="#F6BEC8"/>
-    <SolidColorBrush x:Key="BlankBrush" Color="#566B85"/>
-    <SolidColorBrush x:Key="AccentBrush" Color="#285B87"/>
     <SolidColorBrush x:Key="ButtonFocusBrush" Color="#D7EFEB"/>
     <Style TargetType="Button">
       <Setter Property="Padding" Value="10,6"/>

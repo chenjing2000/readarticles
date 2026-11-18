@@ -35,7 +35,7 @@ A failed build, unexpected dependency, locked EXE, or copy-validation failure do
 
 The earlier `dist/ReadArticles.exe` and `dist/userdata/` are deliberately **not deleted** by migration. After validating the new portable installation and verifying the user's configuration, the user may manually archive or remove obsolete root-level files. Do not delete them before checking the new installation. Previous EXE copies may also be removed manually after a version has been verified.
 
-The publish script validates the package structure and safe EXE replacement, **not** actual WPF startup. Always run the published-app check on an interactive local Windows desktop before declaring the new version usable.
+The publish script validates the package structure and safe EXE replacement, **not** a full interactive WebView2 reading-session check. Always run the published-app check on an interactive local Windows desktop before declaring the new version usable.
 
 ## Tests and runtime verification
 

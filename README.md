@@ -4,11 +4,17 @@ ReadArticles is a local C# / WPF application for English reading, vocabulary edi
 
 ## Run
 
-On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch), launch `dist/ReadArticles/ReadArticles.exe`. User settings are stored under `dist/ReadArticles/userdata/config/`; keep the entire application folder together and place it in a location where the current user has write permission. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
+On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch) and the Microsoft Edge WebView2 Evergreen Runtime, launch `dist/ReadArticles/ReadArticles.exe`. User settings are stored under `dist/ReadArticles/userdata/config/`; keep the entire application folder together and place it in a location where the current user has write permission. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
 
 Startup loads only a collapsed library tree. It does not restore a passage or vocabulary. Routine successful actions are quiet; informational and warning notifications expire automatically, while unacknowledged errors remain accessible until dismissed. The former bottom status row is removed.
 
 The bottom play/pause, stop, and progress controls own only the first sorted MP3 directly beside the passage JSON, or the first sorted WAV if no MP3 exists. Sentence audio uses `audio_sentences/`; word audio uses `audio/`. Both use derived filenames, with MP3 preferred by existence and WAV used only when MP3 is absent; decoding failure does not retry WAV. JSON audio path fields are ignored on load. Vocabulary saves remove its old fields; passage JSON is not saved by the application, so external preparation tools remove its fields when regenerating content. No old-directory, naming, or index fallback or resource migration is provided. These pronunciations share a second player: starting pronunciation pauses the article, and starting or resuming the article stops pronunciation. Vocabulary editing writes the active companion JSON, so use working copies for experiments.
+
+## Script reading mode
+
+A passage `<name>.json` can optionally have a read-only `<name>.script.json` in the same directory. The music button to the left of the vocabulary-highlighting button loads that companion only when clicked, then toggles between Passage and Script views. Script files do not appear separately in the library tree. Missing or invalid Script companions leave Passage and article audio untouched.
+
+Script JSON requires `"filetype": "script"`, a string `"title"` (empty is allowed), and `"paragraphs"` of sentences containing `"text"` and `"timed_units"`. Each timed unit is `[text, startSeconds, endSeconds]`; a pair of null times means no coloring. No cross-file text matching is required. The script view has no sentence pronunciation, but retains word selection, vocabulary highlights, and whole-article audio. Its `#B81A35` foreground follows the absolute article playback position; Seek/rewind updates it, and stop/end clears it. Source Script and Passage JSON are never rewritten.
 
 ## Documentation
 

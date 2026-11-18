@@ -3,13 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:ReadArticles.Models"
         xmlns:icons="clr-namespace:ReadArticles.Infrastructure"
-        xmlns:controls="clr-namespace:ReadArticles.Controls"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="ReadArticles" Width="1500" Height="920" MinWidth="1050" MinHeight="620" PreviewKeyDown="PlaybackKeyDown"
         Background="#F3F3F3" FontFamily="Segoe UI" FontSize="11pt" Icon="{x:Static icons:UiIcons.AppIcon}">
   <Window.Resources>
-    <Style x:Key="FooterButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="3,0"/>
-    </Style>
     <Style x:Key="SettingsSurface" TargetType="Border">
       <Setter Property="Background" Value="#FCFCFD"/><Setter Property="BorderBrush" Value="#E0E5EB"/>
       <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="10"/>
@@ -65,8 +62,6 @@
       <ColumnDefinition x:Name="LeftColumn" Width="310" MinWidth="200"/>
       <ColumnDefinition Width="8"/>
       <ColumnDefinition x:Name="CenterColumn" Width="*" MinWidth="410"/>
-      <ColumnDefinition Width="8"/>
-      <ColumnDefinition x:Name="RightColumn" Width="390" MinWidth="280"/>
     </Grid.ColumnDefinitions>
     <DockPanel Grid.Column="0" Margin="0,0,7,0">
       <Button DockPanel.Dock="Top" Content="选择图书馆" Click="LibraryClicked" Margin="0,0,0,12"/>
@@ -114,7 +109,7 @@
                 SelectedItemChanged="TreeSelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <TreeView.Resources>
           <HierarchicalDataTemplate DataType="{x:Type models:NavigationNode}" ItemsSource="{Binding Children}">
-            <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="260" Margin="0,5"/>
+            <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="260" Margin="2,5,0,5" HorizontalAlignment="Left"/>
           </HierarchicalDataTemplate>
         </TreeView.Resources>
         <TreeView.ItemContainerStyle>
@@ -129,7 +124,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <ToggleButton x:Name="Expander" Style="{StaticResource TreeExpander}" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" ClickMode="Press"/>
-                    <Border x:Name="HeaderArea" Grid.Column="1" Background="Transparent"><ContentPresenter x:Name="PART_Header" ContentSource="Header" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/></Border>
+                    <Border x:Name="HeaderArea" Grid.Column="1" Background="Transparent"><ContentPresenter x:Name="PART_Header" ContentSource="Header" HorizontalAlignment="Left"/></Border>
                     <ItemsPresenter x:Name="Children" Grid.Row="1" Grid.Column="1" Visibility="Collapsed"/>
                   </Grid>
                   <ControlTemplate.Triggers>
@@ -145,78 +140,24 @@
       </TreeView>
     </DockPanel>
     <GridSplitter DragCompleted="ColumnsResized" Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="Transparent"/>
-    <Grid Grid.Column="2" Background="Transparent">
-      <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <ScrollViewer x:Name="PassageScroll" Background="White" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="28,20,26,18">
-        <StackPanel>
-          <TextBlock x:Name="EmptyMessage" Text="选择图书馆，然后在左侧打开文章。" TextWrapping="Wrap" Foreground="#666666" Margin="5,30"/>
-          <TextBlock x:Name="ArticleTitleText" Text="{Binding ArticleTitle}" TextAlignment="Center" TextWrapping="Wrap" FontSize="12pt" FontWeight="Bold" Margin="8,4,8,28"/>
-          <StackPanel x:Name="ParagraphHost"/>
-        </StackPanel>
-      </ScrollViewer>
-      <controls:ToastHost x:Name="NotificationHost" Grid.Row="0" Panel.ZIndex="5"/>
-      <Border x:Name="PassageToolbar" Grid.Row="1" Height="48" Margin="0,8,0,0" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Window}}">
-        <Grid x:Name="PassageControls">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-          <Slider x:Name="PlaybackProgress" Visibility="Collapsed" Minimum="0" Maximum="1" SmallChange="0.5" FocusVisualStyle="{x:Null}" IsEnabled="False" Margin="8,0,10,0" VerticalAlignment="Center" IsMoveToPointEnabled="True" ToolTip="拖动调整当前音频的播放位置" ValueChanged="ProgressChanged" Thumb.DragStarted="ProgressDragStarted" Thumb.DragCompleted="ProgressDragCompleted"/>
-          <TextBlock Grid.Column="1" x:Name="PlaybackTime" Text="00:00/00:00" VerticalAlignment="Center" Margin="0,0,6,0" Visibility="{Binding Visibility, ElementName=PlaybackProgress}" ToolTip="当前播放时长/总时长"/>
-          <Button Grid.Column="2" x:Name="ReadAllButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="1" ToolTip="播放文章音频" AutomationProperties.Name="播放文章音频" Click="ArticleAudioClicked"><Image x:Name="ReadAllImage" Source="{x:Static icons:UiIcons.Play}" Width="26" Height="26"/></Button>
-          <Button Grid.Column="3" x:Name="StopButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="1" ToolTip="停止正文音频" AutomationProperties.Name="停止正文音频" Click="StopClicked"><Image x:Name="StopImage" Source="{x:Static icons:UiIcons.Stop}" Width="26" Height="26"/></Button>
-        </Grid>
-      </Border>
+    <!-- The sole reader is hosted in WebView2; native WPF retains the library tree. -->
+    <Grid x:Name="WebPilotOverlay" Grid.Column="2" Panel.ZIndex="20"
+          Visibility="Collapsed" Background="White">
+      <wv2:WebView2 x:Name="ReaderWebView" />
     </Grid>
-    <GridSplitter DragCompleted="ColumnsResized" Grid.Column="3" Width="5" HorizontalAlignment="Center" Background="Transparent"/>
-    <DockPanel Grid.Column="4" Margin="7,0,0,0" PreviewMouseDown="IgnoreVocabularyRightClick" PreviewMouseUp="IgnoreVocabularyRightClick">
-      <StackPanel DockPanel.Dock="Bottom" Height="48" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-        <StackPanel x:Name="VocabularyActions" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-          <Button x:Name="MoveUpButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="2" ToolTip="上移" AutomationProperties.Name="上移" Click="MoveUpClicked"><Image Source="{x:Static icons:UiIcons.MoveUp}" Width="24" Height="24"/></Button>
-          <Button x:Name="MoveDownButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="2" ToolTip="下移" AutomationProperties.Name="下移" Click="MoveDownClicked"><Image Source="{x:Static icons:UiIcons.MoveDown}" Width="24" Height="24"/></Button>
-          <Button x:Name="DeleteWordButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="2" ToolTip="删除" AutomationProperties.Name="删除" Click="DeleteWordClicked"><Image Source="{x:Static icons:UiIcons.Delete}" Width="24" Height="24"/></Button>
-        </StackPanel>
-        <Button x:Name="HighlightButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="2" ToolTip="显示正文词汇高亮" AutomationProperties.Name="{Binding ToolTip, RelativeSource={RelativeSource Self}}" Click="HighlightClicked"><Image x:Name="HighlightImage" Source="{x:Static icons:UiIcons.HighlightOn}" Width="24" Height="24"/></Button>
-        <Button x:Name="ImportButton" Style="{StaticResource FooterButton}" Width="32" Height="32" Padding="1" ToolTip="导入词汇表" AutomationProperties.Name="导入词汇表" Click="ImportClicked"><Image Source="{x:Static icons:UiIcons.Import}" Width="26" Height="26"/></Button>
+    <!-- A browser failure must not expose the legacy WPF reader behind it. -->
+    <Grid x:Name="WebFailurePanel" Grid.Column="0" Grid.ColumnSpan="3" Panel.ZIndex="30"
+          Visibility="Collapsed" Background="#F3F3F3">
+      <StackPanel Width="540" MaxWidth="540" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="阅读界面无法启动" FontSize="20" FontWeight="SemiBold"
+                   HorizontalAlignment="Center" Margin="0,0,0,18"/>
+        <TextBlock x:Name="WebFailureMessage" TextWrapping="Wrap" TextAlignment="Center"
+                   FontSize="14" Margin="0,0,0,12"/>
+        <TextBlock Text="请检查 WebView2 Evergreen Runtime 和程序目录的写入权限，修复后重新启动 ReadArticles。"
+                   TextWrapping="Wrap" TextAlignment="Center" Foreground="#666666" Margin="0,0,0,24"/>
+        <Button x:Name="WebFailureExitButton" Content="退出程序" Width="120" Height="36"
+                HorizontalAlignment="Center" Click="WebFailureExitClicked"/>
       </StackPanel>
-      <ListBox x:Name="VocabularyList" FontSize="15" ItemsSource="{Binding Words}" AlternationCount="2" BorderThickness="0" Padding="0"
-               Background="White" HorizontalContentAlignment="Stretch" SelectionChanged="VocabularySelectionChanged"
-               ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False">
-        <ListBox.ItemContainerStyle>
-          <Style TargetType="ListBoxItem">
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/>
-            <Setter Property="Template">
-              <Setter.Value>
-                <ControlTemplate TargetType="ListBoxItem">
-                  <Border x:Name="Row" Background="White"><ContentPresenter/></Border>
-                  <ControlTemplate.Triggers>
-                    <Trigger Property="ItemsControl.AlternationIndex" Value="1"><Setter TargetName="Row" Property="Background" Value="#F5F7F3"/></Trigger>
-                    <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="#EDF3F8"/></Trigger>
-                  </ControlTemplate.Triggers>
-                </ControlTemplate>
-              </Setter.Value>
-            </Setter>
-          </Style>
-        </ListBox.ItemContainerStyle>
-        <ListBox.ItemTemplate>
-          <DataTemplate>
-            <StackPanel Margin="10,10,10,9">
-              <TextBlock Text="{Binding Word}" Foreground="#2C78B9" FontWeight="Bold" TextWrapping="Wrap"/>
-              <WrapPanel Margin="0,5,0,4">
-                <TextBlock Text="{Binding PhoneticUk}" VerticalAlignment="Center" ToolTip="British / UK"/>
-                <Button Content="🔊" Command="{Binding PlayUk}" IsEnabled="{Binding CanPlayUk}" ToolTip="播放 UK" Padding="3,0" Background="Transparent" BorderThickness="0"/>
-                <TextBlock Text="{Binding PhoneticUs}" VerticalAlignment="Center" Margin="10,0,0,0" ToolTip="American / US"/>
-                <Button Content="🔊" Command="{Binding PlayUs}" IsEnabled="{Binding CanPlayUs}" ToolTip="播放 US" Padding="3,0" Background="Transparent" BorderThickness="0"/>
-              </WrapPanel>
-              <ItemsControl ItemsSource="{Binding Meanings}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <TextBlock TextWrapping="Wrap" Margin="0,2,0,0"><Run Text="{Binding Pos}" FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding Text}"/></TextBlock>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-    </DockPanel>
-
+    </Grid>
   </Grid>
 </Window>

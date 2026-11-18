@@ -56,6 +56,9 @@ public sealed partial class MainViewModel
         CancelAllDirectoryScans();
         workspace.CommitLibrary(prepared);
         playback.Stop();
+        // Clear after stopping the previous audio, before reporting any
+        // warnings from the newly opened library.
+        Notifications.Clear();
         Books.Clear();
         foreach (var book in prepared.Books) Books.Add(book);
         Words.Clear();
@@ -192,6 +195,9 @@ public sealed partial class MainViewModel
         string user = ReadUser(path);
         workspace.CommitArticle(prepared);
         playback.Stop();
+        // Discard the previous article's visible and queued messages after
+        // the new article has committed. Failed opens do not clear anything.
+        Notifications.Clear();
         Words.Clear();
         foreach (var word in words) Words.Add(word);
         CurrentUser = user;

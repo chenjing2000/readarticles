@@ -1,4 +1,6 @@
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.IO;
 using ReadArticles.Models;
 
@@ -14,7 +16,7 @@ internal static class TreeNavigationChecks
             try
             {
                 File.WriteAllText(Path.Combine(root, "book.json"), "marker");
-                File.WriteAllText(Path.Combine(root, "Article.json"), "{}");
+                File.WriteAllText(Path.Combine(root, "Article.json"), """{"filetype":"passage"}""");
                 window.Show();
                 var node = new NavigationNode("Book", root, null, Array.Empty<NavigationNode>(), root);
                 node.IsExpanded = true;
@@ -49,7 +51,7 @@ internal static class TreeNavigationChecks
             try
             {
                 File.WriteAllText(Path.Combine(root, "book.json"), "marker");
-                File.WriteAllText(Path.Combine(root, "Article.json"), "{}");
+                File.WriteAllText(Path.Combine(root, "Article.json"), """{"filetype":"passage"}""");
                 window.Show();
                 var stale = new NavigationNode("Old book", root, null, Array.Empty<NavigationNode>(), root)
                     { IsExpanded = true };
@@ -82,7 +84,7 @@ internal static class TreeNavigationChecks
                 string goodPath = Path.Combine(book, "Good.json");
                 string badPath = Path.Combine(book, "Bad.json");
                 File.Copy(TestData.ArticlePath, goodPath);
-                File.WriteAllText(badPath, "{ invalid article");
+                File.WriteAllText(badPath, """{"filetype":"passage","paragraphs":123}""");
                 window.Show();
                 Program.Check(window.ViewModel.OpenLibrary(root));
                 WpfTestHelpers.Pump();
@@ -112,6 +114,36 @@ internal static class TreeNavigationChecks
                 WpfTestHelpers.Pump();
                 Directory.Delete(root, true);
             }
+        });
+
+        Program.Run("tree labels stay next to expanders when left pane changes width", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                window.Show();
+                Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
+                WpfTestHelpers.Pump();
+                var tree = (TreeView)window.FindName("LibraryTree");
+                var left = (ColumnDefinition)window.FindName("LeftColumn");
+                double Gap()
+                {
+                    window.UpdateLayout();
+                    var item = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromIndex(0);
+                    item.ApplyTemplate();
+                    var expander = (ToggleButton)item.Template.FindName("Expander", item);
+                    var label = WpfTestHelpers.Descendants(item).OfType<TextBlock>()
+                        .First(text => text.Text == window.ViewModel.Books[0].Name);
+                    return label.TranslatePoint(new Point(), expander).X - expander.ActualWidth;
+                }
+
+                left.Width = new GridLength(230);
+                double narrow = Gap();
+                left.Width = new GridLength(510);
+                double wide = Gap();
+                Program.Check(narrow >= 0 && narrow <= 5 && Math.Abs(narrow - wide) < 0.5);
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
         Program.Run("tree expands one level at a time and collapse invalidates descendants", () =>
@@ -154,14 +186,8 @@ internal static class TreeNavigationChecks
 
                 Program.Check(window.SelectPassage(TestData.ArticlePath));
                 WpfTestHelpers.Pump(); window.UpdateLayout();
-                var scroll = WpfTestHelpers.Descendants((ListBox)window.FindName("VocabularyList"))
-                    .OfType<System.Windows.Controls.Primitives.ScrollBar>()
-                    .First(s => s.Orientation == Orientation.Vertical);
-                Program.Check(Math.Abs(scroll.ActualWidth -
-                    Math.Round(Math.Round(System.Windows.SystemParameters.VerticalScrollBarWidth) / 2)) < 0.01);
                 Program.Check(Math.Abs(tree.FontSize - 11.0 * 96 / 72) < 0.001);
-                Program.Check(Math.Abs(((TextBlock)window.FindName("ArticleTitleText")).FontSize - 12.0 * 96 / 72) < 0.001);
-                Program.Check(Math.Abs(((ListBox)window.FindName("VocabularyList")).FontSize - 15) < 0.001);
+                Program.Check(window.FindName("ReaderWebView") is not null);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });

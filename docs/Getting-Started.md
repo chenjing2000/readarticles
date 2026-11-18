@@ -1,6 +1,6 @@
 # Getting started
 
-Use Windows x64 with a compatible .NET 10 Windows Desktop Runtime x64. End users do not need the SDK; the ordinary .NET Runtime does not include WPF.
+Use Windows x64 with a compatible .NET 10 Windows Desktop Runtime x64 and the Microsoft Edge WebView2 Evergreen Runtime. End users do not need the SDK; the ordinary .NET Runtime does not include WPF.
 
 Launch `dist/ReadArticles/ReadArticles.exe` from the portable folder (or its equivalent from a release archive) in a writable directory. Use the application's folder/dictionary selector to choose your own content. Libraries, dictionaries, and recordings are external user data.
 

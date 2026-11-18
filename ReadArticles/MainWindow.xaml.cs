@@ -20,16 +20,12 @@ public partial class MainWindow : Window
         DataContext = ViewModel;
         InitializeWindowSettings();
         ViewModel.HighlightsVisible = false;
-
-        ViewModel.ArticleChanged += RenderArticle;
-        ViewModel.VocabularyChanged += RefreshVocabularyHighlights;
         InitializePlayback();
-        NotificationHost.Attach(ViewModel.Notifications);
         ViewModel.PropertyChanged += SettingsChanged;
+        InitializeWebPilot();
         Closing += WindowClosing;
         Closed += WindowClosed;
 
-        RenderArticle();
         if (settingsWarning != null)
         {
             AppLogger.Default.Warning("SettingsLoadWarning");
@@ -39,7 +35,7 @@ public partial class MainWindow : Window
 
     private void WindowClosed(object? sender, EventArgs e)
     {
-        NotificationHost.Detach();
+        CloseWebPilot();
         ViewModel.CloseNavigation();
         ClosePlayback();
     }

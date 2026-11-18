@@ -1,20 +1,14 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using Microsoft.Win32;
 using ReadArticles.Models;
-using ReadArticles.Rendering;
 using ReadArticles.ViewModels;
 
 namespace ReadArticles;
 
 public partial class MainWindow
 {
-    private readonly List<ParagraphReader> readers = new List<ParagraphReader>();
-
-    public IReadOnlyList<ParagraphReader> Readers => readers;
-
     public async void RestoreContent(string? library = null) =>
         await RestoreContentAsync(library);
 
@@ -67,37 +61,6 @@ public partial class MainWindow
             if (container.IsExpanded && SelectTreeNode(container, target)) return true;
         }
         return false;
-    }
-
-    private void RenderArticle()
-    {
-        ParagraphHost.Children.Clear();
-        readers.Clear();
-        var article = ViewModel.Article;
-        EmptyMessage.Visibility = article is null ? Visibility.Visible : Visibility.Collapsed;
-        ArticleTitleText.Visibility = article is null ? Visibility.Collapsed : Visibility.Visible;
-        RefreshVocabularyHighlights();
-        if (article is null)
-        {
-            RefreshPlayback();
-            return;
-        }
-        var words = ViewModel.Words.Select(w => w.Word).ToArray();
-        foreach (var paragraph in article.Paragraphs)
-        {
-            var reader = new ParagraphReader(paragraph, words, ViewModel.HighlightsVisible)
-            {
-                FontSize = settings.FontSize,
-                FontFamily = new FontFamily("Segoe UI"),
-                Margin = new Thickness(0, 3, 0, 15)
-            };
-            reader.SelectionRequested += ViewModel.AddSelection;
-            reader.SegmentPlaybackRequested += ViewModel.PlaySegment;
-            readers.Add(reader);
-            ParagraphHost.Children.Add(reader);
-        }
-        PassageScroll.ScrollToTop();
-        RefreshPlayback();
     }
 
     private bool restoringTreeSelection;

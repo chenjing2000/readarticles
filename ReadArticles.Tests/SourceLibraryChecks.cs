@@ -24,7 +24,7 @@ internal static class SourceLibraryChecks
             Program.Check(Path.GetFileName(Path.GetDirectoryName(new AudioResources().Segment(article.Directory, article.Segments.First(), "uk"))) == "audio_sentences");
             CheckUnchanged(before);
         });
-        Program.Run("current source library renders its current article and vocabulary without writes", () =>
+        Program.Run("current source library loads its article and vocabulary without writes", () =>
         {
             var before = Fingerprints();
             var article = new ArticleRepository().Load(ArticlePath);
@@ -35,9 +35,9 @@ internal static class SourceLibraryChecks
                 Program.Check(window.ViewModel.OpenLibrary(Path.GetDirectoryName(Path.GetDirectoryName(ArticlePath)!)!));
                 Program.Check(window.SelectPassage(ArticlePath));
                 WpfTestHelpers.Pump();
-                Program.Check(window.Readers.Count == article.Paragraphs.Count);
+                Program.Check(window.ViewModel.Article?.Paragraphs.Count == article.Paragraphs.Count);
                 Program.Check(window.ViewModel.Words.Select(w => w.Word).SequenceEqual(article.Vocabulary.Data.Words.Select(w => w.Word)));
-                Program.Check(window.Readers.SelectMany(r => r.Ranges).Select(r => r.Segment.Sid).SequenceEqual(article.Segments.Select(s => s.Sid)));
+                Program.Check(window.ViewModel.Article!.Segments.Select(s => s.Sid).SequenceEqual(article.Segments.Select(s => s.Sid)));
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
             CheckUnchanged(before);

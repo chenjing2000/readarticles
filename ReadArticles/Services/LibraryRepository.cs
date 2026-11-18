@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using ReadArticles.Models;
 
 namespace ReadArticles.Services;
@@ -56,18 +57,28 @@ public sealed class LibraryRepository
                 if (!IsJsonFile(file)) continue;
                 hasJsonFile = true;
                 if (ShouldSkip(file, warnings)) continue;
-                string name = Path.GetFileName(file);
-                if (name.Equals("book.json", StringComparison.OrdinalIgnoreCase) ||
-                    name.EndsWith(".vocabulary.json", StringComparison.OrdinalIgnoreCase) ||
-                    name.EndsWith(".exercise.json", StringComparison.OrdinalIgnoreCase)) continue;
+                // Never traverse descendants here. Only direct JSON files whose
+                // top-level filetype is exactly "passage" become tree leaves.
                 try
                 {
+                    using var stream = File.OpenRead(file);
+                    using var json = JsonDocument.Parse(stream);
+                    if (json.RootElement.ValueKind != JsonValueKind.Object ||
+                        !json.RootElement.TryGetProperty("filetype", out var type) ||
+                        type.ValueKind != JsonValueKind.String ||
+                        !string.Equals(type.GetString(), "passage", StringComparison.Ordinal))
+                        continue;
                     nodes.Add(new NavigationNode(Path.GetFileNameWithoutExtension(file), bookRoot,
                         Path.GetFullPath(file), Array.Empty<NavigationNode>()));
                 }
+                catch (JsonException)
+                {
+                    // Invalid JSON cannot be a discoverable passage.
+                }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException)
                 {
-                    warnings.Add("某个正文文件无法读取。");
+                    complete = false;
+                    warnings.Add("某个 JSON 文件无法读取。");
                 }
             }
         }
