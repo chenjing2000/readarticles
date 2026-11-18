@@ -315,15 +315,43 @@ function refreshHighlights(recalculate) {
   if (recalculate) {
     matches = [];
     const words = vocabulary.map(entry => entry.word);
-    // Match each text fragment separately, preserving legacy blank boundaries.
-    for (const sentence of byId("article-body").querySelectorAll(".sentence")) {
-      for (const child of sentence.childNodes) {
-        if (child.nodeType !== Node.TEXT_NODE || !child.textContent) continue;
-        for (const hit of matchVocabulary(child.textContent, words)) {
+    if (currentMode === "script") {
+      // Match the complete sentence, even when a vocabulary phrase crosses
+      // two timed units. Range endpoints may sit in different text nodes.
+      for (const sentence of byId("article-body").querySelectorAll(
+        ".script-paragraph > .script-sentence")) {
+        const parts = [];
+        let source = "";
+        const walker = document.createTreeWalker(sentence, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode;
+          const length = node.textContent?.length ?? 0;
+          if (!length) continue;
+          parts.push({ node, start: source.length, length });
+          source += node.textContent;
+        }
+        for (const hit of matchVocabulary(source, words)) {
+          const begin = parts.find(p => hit.start >= p.start && hit.start < p.start + p.length);
+          const endOffset = hit.start + hit.length;
+          const end = parts.find(p => endOffset > p.start && endOffset <= p.start + p.length);
+          if (!begin || !end) continue;
           const range = document.createRange();
-          range.setStart(child, hit.start);
-          range.setEnd(child, hit.start + hit.length);
+          range.setStart(begin.node, hit.start - begin.start);
+          range.setEnd(end.node, endOffset - end.start);
           matches.push({ word: hit.key, range });
+        }
+      }
+    } else {
+      // Match each Passage text fragment separately, preserving blank boundaries.
+      for (const sentence of byId("article-body").querySelectorAll(".sentence")) {
+        for (const child of sentence.childNodes) {
+          if (child.nodeType !== Node.TEXT_NODE || !child.textContent) continue;
+          for (const hit of matchVocabulary(child.textContent, words)) {
+            const range = document.createRange();
+            range.setStart(child, hit.start);
+            range.setEnd(child, hit.start + hit.length);
+            matches.push({ word: hit.key, range });
+          }
         }
       }
     }
