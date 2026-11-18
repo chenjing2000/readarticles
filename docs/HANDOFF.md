@@ -1,5 +1,7 @@
 # ReadArticles — 开发交接 / Handoff（2026-11-18）
 
+> **当前更新（2026-11-18）**：在 `feature/webview2-reader` 分支已开始阶段 1 的只读 WebView2 Pilot，默认 WPF 阅读器不变。详情及本机验收命令见 [`WebView2-Migration.md`](WebView2-Migration.md)。该分支尚未完成真实 Windows 构建/发布/UI 验收。此说明仅针对当前 WebView2 开发分支。
+>
 > **新会话入口**：先读本文件，再读 [`AGENTS.md`](../AGENTS.md)、[`project-contract.md`](project-contract.md) 和涉及模块的源码。**下一阶段的已确认方向是：用单个 WebView2 统一接管中央正文、右侧词汇展示、两区底部工具栏和浮动通知的 UI；C# / WPF 保留数据与音频业务的最终管理。** 尚未实施；不要误认为迁移已完成。
 >
 > **当前工作目标**：先制定逐文件迁移与测试计划，再按用户在新会话中的授权实施。暂不引入 React、Node.js、前端构建工具，不重写整个桌面程序。
