@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ReadArticles.Infrastructure;
 
 namespace ReadArticles;
@@ -87,6 +88,17 @@ public partial class MainWindow
     }
 
     private void ColumnsResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        RememberLeftColumnWidth();
+    }
+
+    private void ColumnSplitterKeyUp(object sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Left or Key.Right)
+            RememberLeftColumnWidth();
+    }
+
+    private void RememberLeftColumnWidth()
     {
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
         LeftColumn.Width = new GridLength(settings.LeftWidth);

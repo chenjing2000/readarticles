@@ -30,6 +30,37 @@ internal static class ReaderControlsChecks
             finally { window.Close(); }
         });
 
+        Program.Run("left splitter keyboard width survives window resize", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                window.Show();
+                var grid = (Grid)window.Content;
+                var splitter = grid.Children.OfType<GridSplitter>().Single();
+                var left = (ColumnDefinition)window.FindName("LeftColumn");
+                var source = PresentationSource.FromVisual(window);
+                Program.Check(source is not null);
+
+                // Simulate the width change followed by the splitter's arrow-key release.
+                left.Width = new GridLength(280);
+                window.UpdateLayout();
+                splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, source!, 0, Key.Right)
+                {
+                    RoutedEvent = Keyboard.PreviewKeyUpEvent
+                });
+                var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
+                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                Program.Check(settings.LeftWidth == 280 && left.ActualWidth == 280);
+
+                window.Width += 50;
+                WpfTestHelpers.Pump();
+                Program.Check(Math.Abs(left.ActualWidth - 280) < 1);
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
+        });
+
         Program.Run("settings own value normalization on load and save", () =>
         {
             string path = ReaderSettings.PathName;

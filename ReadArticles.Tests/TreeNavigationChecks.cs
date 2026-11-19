@@ -166,8 +166,9 @@ internal static class TreeNavigationChecks
 
                 left.Width = new GridLength(230);
                 double narrow = Gap();
-                left.Width = new GridLength(510);
+                left.Width = new GridLength(390);
                 double wide = Gap();
+                Program.Check(Math.Abs(left.ActualWidth - 390) < 1);
                 Program.Check(narrow >= 0 && narrow <= 5 && Math.Abs(narrow - wide) < 0.5);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }

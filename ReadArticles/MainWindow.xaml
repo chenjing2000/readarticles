@@ -139,7 +139,7 @@
         </TreeView.ItemContainerStyle>
       </TreeView>
     </DockPanel>
-    <GridSplitter DragCompleted="ColumnsResized" Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
+    <GridSplitter DragCompleted="ColumnsResized" PreviewKeyUp="ColumnSplitterKeyUp" Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
     <!-- The sole reader is hosted in WebView2; native WPF retains the library tree. -->
     <Grid x:Name="WebPilotOverlay" Grid.Column="2" Panel.ZIndex="20"
           Visibility="Collapsed" Background="White">

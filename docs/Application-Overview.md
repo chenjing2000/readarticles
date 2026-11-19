@@ -41,7 +41,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `Infrastructure/ResourcePaths.cs` | Relative-path and reparse-point checks |
 | `Infrastructure/ReaderSettings.cs` | Load and save preferences under the portable `userdata/config/` directory |
 | `Infrastructure/UiIcons.cs` | Load remaining native window/tree icons |
-| `Infrastructure/WpfAudioPlayer.cs` / `RelayCommand.cs` | Native audio adapter and retained command support |
+| `Infrastructure/WpfAudioPlayer.cs` | Native audio playback adapter |
 | `MainWindow.WebView.cs` | Browser initialization, verified bridge messages and native terminal failure handling |
 | `web/reader.html`, `reader.css`, `reader.js` | Article/Script DOM, vocabulary matching and editing UI, selection, playback visuals, settings and notifications |
 
@@ -94,13 +94,13 @@ On close, normal application windows save final settings during `Closing`, befor
 
 ## Display and settings
 
-- Startup width and height are the rounded 70% of the primary screen's working area, centered to whole DIP coordinates; previous window dimensions are not restored.
+- The window starts centered. Height is 70% of the rounded work-area height; width is the larger of 70% of the rounded work-area width or 796 DIP, capped at the work-area width. Previous window dimensions are not restored.
 - The native tree uses 11 pt. Browser article/word text uses the shared 14/15/16 px font setting, default 15; browser headings and controls have their own CSS. The native settings menu uses 10 pt.
-- Each paragraph has a two-em first-line indent. All panes scroll independently and column splitters allow resizing.
+- Each paragraph has a two-em first-line indent. All panes scroll independently. Library width defaults to 250 DIP (200–400), vocabulary width to 300 DIP (200–400), the article width has a 200-DIP minimum, and both splitters are 3 DIP. The native WebView2 host has a 403-DIP minimum to cover the article, splitter and vocabulary.
 - The two reading-workspace toolbars live in WebView2. Playback controls remain present when disabled.
 - Highlighting starts off. A browser-owned selection-add control follows the active selection and hides when invalid or outside the viewport.
 - Progress settings provide Forward (4/7/10 seconds) and Backward (5/8/15 seconds) steps. Browser focus handles Space for article play/pause and Left/Right for seek; native controls retain only their own focus behavior.
-- Font size, accent, progress steps, library, column widths, and player volume are retained as applicable. Window dimensions, active passage, and highlighting are not saved. Old settings containing these fields remain readable; the unused fields are ignored.
+- Font size, accent, progress steps, library and player volume are persisted. Pane widths can change during a session but reset to their defaults on restart; window dimensions, active passage and highlighting are not saved. Legacy width fields in settings JSON are ignored.
 
 ## Current boundaries
 

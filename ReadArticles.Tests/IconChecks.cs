@@ -18,7 +18,14 @@ internal static class IconChecks
             try
             {
                 var work = SystemParameters.WorkArea;
-                Program.Check(Math.Abs(window.Width - Math.Round(Math.Round(work.Width) * 0.7)) < 1);
+                double workWidth = Math.Round(work.Width);
+                double expectedWidth = Math.Min(workWidth,
+                    Math.Max(Math.Round(workWidth * 0.7), 250 + 3 + 200 + 3 + 300 + 40));
+                Program.Check(Math.Abs(window.Width - expectedWidth) < 1);
+                Program.Check(Math.Abs(window.MinWidth -
+                    Math.Min(200 + 3 + 200 + 3 + 200 + 40, expectedWidth)) < 1);
+                Program.Check(Math.Abs(window.Left -
+                    Math.Round(Math.Round(work.Left) + (workWidth - expectedWidth) / 2)) < 1);
                 Program.Check(Math.Abs(window.Height - Math.Round(Math.Round(work.Height) * 0.7)) < 1);
                 Program.Check(window.FindName("LibraryTree") is TreeView &&
                     window.FindName("ReaderWebView") is not null &&
