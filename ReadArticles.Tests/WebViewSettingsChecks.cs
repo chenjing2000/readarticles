@@ -41,24 +41,24 @@ internal static class WebViewSettingsChecks
                 Program.Check(window.ViewModel.Accent == "us");
                 Apply("setAccent", """{"accent":"invalid"}""");
                 Program.Check(window.ViewModel.Accent == "us");
-                Apply("setPanelWidth", """{"width":360}""");
-                Program.Check(settings.RightWidth == 360);
-                Apply("setPanelWidth", """{"width":299}""");
-                Program.Check(settings.RightWidth == 360);
-                Apply("setPanelWidth", """{"width":501}""");
-                Program.Check(settings.RightWidth == 360);
                 Apply("setPanelWidth", """{"width":300}""");
                 Program.Check(settings.RightWidth == 300);
-                Apply("setPanelWidth", """{"width":500}""");
-                Program.Check(settings.RightWidth == 500);
-                Apply("setPanelWidth", """{"width":360}""");
-                Program.Check(settings.RightWidth == 360);
+                Apply("setPanelWidth", """{"width":199}""");
+                Program.Check(settings.RightWidth == 300);
+                Apply("setPanelWidth", """{"width":401}""");
+                Program.Check(settings.RightWidth == 300);
+                Apply("setPanelWidth", """{"width":200}""");
+                Program.Check(settings.RightWidth == 200);
+                Apply("setPanelWidth", """{"width":400}""");
+                Program.Check(settings.RightWidth == 400);
+                Apply("setPanelWidth", """{"width":300}""");
+                Program.Check(settings.RightWidth == 300);
                 var getSnapshot = type.GetMethod("WebPilotSettingsSnapshot",
                     BindingFlags.Instance | BindingFlags.NonPublic);
                 Program.Check(getSnapshot is not null);
                 using (var settingsJson = JsonDocument.Parse(JsonSerializer.Serialize(
                     getSnapshot!.Invoke(window, null))))
-                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() == 360);
+                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() == 300);
                 Apply("setForwardStep", """{"seconds":7}""");
                 Apply("setBackwardStep", """{"seconds":8}""");
                 Program.Check(settings.ForwardStep == 7 && settings.BackwardStep == 8);
@@ -112,7 +112,7 @@ internal static class WebViewSettingsChecks
                 """
                 {"LeftWidth":720,"RightWidth":850,"FontSize":16,"Accent":"us","ForwardStep":7}
                 """)!;
-            Program.Check(restored.LeftWidth == 360 && restored.RightWidth == 400);
+            Program.Check(restored.LeftWidth == 250 && restored.RightWidth == 300);
             Program.Check(restored.FontSize == 16 && restored.Accent == "us" &&
                 restored.ForwardStep == 7);
             restored.LeftWidth = 540;
@@ -120,7 +120,7 @@ internal static class WebViewSettingsChecks
             string saved = JsonSerializer.Serialize(restored);
             Program.Check(!saved.Contains("LeftWidth", StringComparison.Ordinal) &&
                 !saved.Contains("RightWidth", StringComparison.Ordinal));
-            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 400);
+            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 300);
         });
 
         Program.Run("WebView2 notification dismiss retains errors until acknowledged", () =>

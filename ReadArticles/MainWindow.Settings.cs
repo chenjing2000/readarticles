@@ -17,8 +17,8 @@ public partial class MainWindow
         Resources[SystemParameters.VerticalScrollBarWidthKey] = Math.Round(Math.Round(SystemParameters.VerticalScrollBarWidth) / 2);
         var workArea = SystemParameters.WorkArea;
         // Reserve enough room for the default pane widths when the screen permits.
-        const double minimumWindowWidth = 200 + 3 + 400 + 3 + 300 + 40;
-        const double defaultWindowWidth = 360 + 3 + 400 + 3 + 400 + 40;
+        const double minimumWindowWidth = 200 + 3 + 200 + 3 + 200 + 40;
+        const double defaultWindowWidth = 250 + 3 + 200 + 3 + 300 + 40;
         Width = Math.Min(Math.Round(workArea.Width),
             Math.Max(Math.Round(Math.Round(workArea.Width) * 0.7), defaultWindowWidth));
         Height = Math.Round(Math.Round(workArea.Height) * 0.7);
@@ -77,7 +77,7 @@ public partial class MainWindow
     private void WorkspaceResized(object sender, SizeChangedEventArgs e)
     {
         // Keep the requested left width when it fits; shrink it before the
-        // 400-DIP article or 300-DIP vocabulary would be squeezed.
+        // 200-DIP article or 200-DIP vocabulary would be squeezed.
         double maxLeft = Math.Max(LeftColumn.MinWidth,
             e.NewSize.Width - 3 - CenterColumn.MinWidth);
         double target = Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth,

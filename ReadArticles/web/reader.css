@@ -13,7 +13,7 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  grid-template-columns: minmax(400px, 1fr) 3px clamp(300px, var(--word-width, 400px), min(500px, calc(100% - 403px)));
+  grid-template-columns: minmax(200px, 1fr) 3px clamp(200px, var(--word-width, 300px), min(400px, calc(100% - 203px)));
   gap: 0;
   padding: 0;
   position: relative;

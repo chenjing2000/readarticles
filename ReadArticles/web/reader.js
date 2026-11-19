@@ -623,7 +623,7 @@ function renderSettings(settings) {
   document.documentElement.style.setProperty("--reader-font",
     (Number.isFinite(fontSize) && fontSize >= 10 && fontSize <= 30 ? fontSize : 15) + "px");
   document.documentElement.style.setProperty("--word-width",
-    (Number.isFinite(rightWidth) && rightWidth >= 300 && rightWidth <= 500 ? rightWidth : 400) + "px");
+    (Number.isFinite(rightWidth) && rightWidth >= 200 && rightWidth <= 400 ? rightWidth : 300) + "px");
   currentSettings = { ...settings };
   for (const [id, value] of [
     ["reader-font-size", settings.fontSize],
@@ -753,8 +753,8 @@ for (const [id, type, field, convert] of [
 const splitter = byId("reader-splitter");
 function clampDividerWidth(width) {
   const available = byId("article-scroll").closest(".workspace").clientWidth;
-  const max = Math.max(300, Math.min(500, Math.round(available - 403)));
-  return Math.round(Math.max(300, Math.min(max, width)));
+  const max = Math.max(200, Math.min(400, Math.round(available - 203)));
+  return Math.round(Math.max(200, Math.min(max, width)));
 }
 function setDividerWidth(width) {
   const actual = clampDividerWidth(width);

@@ -391,7 +391,7 @@ public partial class MainWindow
                 if (payload.TryGetProperty("width", out var width) &&
                     width.ValueKind == JsonValueKind.Number &&
                     width.TryGetDouble(out double px) && double.IsFinite(px) &&
-                    px >= 300 && px <= 500)
+                    px >= 200 && px <= 400)
                 {
                     settings.RightWidth = Math.Round(px);
                     valid = true;

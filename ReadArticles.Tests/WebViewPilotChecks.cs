@@ -142,12 +142,12 @@ internal static class WebViewPilotChecks
                       };
                     })()
                     """);
-                Program.Check(widths.GetProperty("article").GetDouble() >= 400 &&
-                    widths.GetProperty("vocabulary").GetDouble() >= 300 &&
-                    widths.GetProperty("vocabulary").GetDouble() <= 500 &&
+                Program.Check(widths.GetProperty("article").GetDouble() >= 200 &&
+                    widths.GetProperty("vocabulary").GetDouble() >= 200 &&
+                    widths.GetProperty("vocabulary").GetDouble() <= 400 &&
                     widths.GetProperty("splitter").GetDouble() == 3 &&
-                    widths.GetProperty("minimum").GetDouble() == 300 &&
-                    widths.GetProperty("maximum").GetDouble() <= 500);
+                    widths.GetProperty("minimum").GetDouble() == 200 &&
+                    widths.GetProperty("maximum").GetDouble() <= 400);
 
                 // Scrolling the long Passage and its 120-word list must be independent.
                 JsonElement scroll = Evaluate(browser, """
