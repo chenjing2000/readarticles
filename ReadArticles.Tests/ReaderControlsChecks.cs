@@ -72,11 +72,14 @@ internal static class ReaderControlsChecks
                 var grid = (Grid)window.Content;
                 var splitter = grid.Children.OfType<GridSplitter>().Single();
                 var left = (ColumnDefinition)window.FindName("LeftColumn");
+                var center = (ColumnDefinition)window.FindName("CenterColumn");
                 var source = PresentationSource.FromVisual(window);
                 Program.Check(source is not null);
 
-                // Simulate the width change followed by the splitter's arrow-key release.
-                left.Width = new GridLength(280);
+                // A narrow work area may cap the left pane before 280 DIP.
+                double target = Math.Min(280, Math.Max(left.MinWidth, Math.Floor(
+                    grid.ActualWidth - grid.ColumnDefinitions[1].ActualWidth - center.MinWidth)));
+                left.Width = new GridLength(target);
                 window.UpdateLayout();
                 splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, source!, 0, Key.Right)
                 {
@@ -85,11 +88,12 @@ internal static class ReaderControlsChecks
                 var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
                     .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
                     .GetValue(window)!;
-                Program.Check(settings.LeftWidth == 280 && left.ActualWidth == 280);
+                Program.Check(settings.LeftWidth == target &&
+                    Math.Abs(left.ActualWidth - target) < 1);
 
                 window.Width += 50;
                 WpfTestHelpers.Pump();
-                Program.Check(Math.Abs(left.ActualWidth - 280) < 1);
+                Program.Check(Math.Abs(left.ActualWidth - target) < 1);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
