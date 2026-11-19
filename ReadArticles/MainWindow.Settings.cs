@@ -28,11 +28,7 @@ public partial class MainWindow
         Top = Math.Round(Math.Round(workArea.Top) + (Math.Round(workArea.Height) - Height) / 2);
 
         // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
-        // WebView2 contains the 400-DIP article, 3-DIP divider and 300-DIP vocabulary.
-        double maxLeft = Math.Max(LeftColumn.MinWidth,
-            Width - 40 - 3 - CenterColumn.MinWidth);
-        LeftColumn.Width = new GridLength(Math.Clamp(settings.LeftWidth,
-            LeftColumn.MinWidth, Math.Min(LeftColumn.MaxWidth, maxLeft)));
+        LeftColumn.Width = new GridLength(settings.LeftWidth);
 
         ApplyReadingFont((int)settings.FontSize);
         player.Volume = settings.Volume;
@@ -76,6 +72,18 @@ public partial class MainWindow
     {
         if (e.PropertyName == nameof(ViewModel.Accent) || e.PropertyName == nameof(ViewModel.LibraryRoot))
             SaveSettings(player.Volume);
+    }
+
+    private void WorkspaceResized(object sender, SizeChangedEventArgs e)
+    {
+        // Keep the requested left width when it fits; shrink it before the
+        // 400-DIP article or 300-DIP vocabulary would be squeezed.
+        double maxLeft = Math.Max(LeftColumn.MinWidth,
+            e.NewSize.Width - 3 - CenterColumn.MinWidth);
+        double target = Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth,
+            Math.Min(LeftColumn.MaxWidth, maxLeft));
+        if (Math.Abs(LeftColumn.Width.Value - target) >= 0.5)
+            LeftColumn.Width = new GridLength(target);
     }
 
     private void ColumnsResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
