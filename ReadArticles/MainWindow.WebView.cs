@@ -446,7 +446,9 @@ public partial class MainWindow
         // Width changes are session-only; saving them would rotate a backup
         // without changing any persisted setting. Other intents still save.
         bool saved = type == "setPanelWidth" || SaveSettings(player.Volume);
-        SendWebPilotSettings();
+        // The width solver already sent the authoritative pane value.
+        // Replaying all settings here would create a second browser resize.
+        if (type != "setPanelWidth") SendWebPilotSettings();
         PostWebPilot("actionResult", new { status = saved ? "success" : "failed" }, requestId);
     }
 

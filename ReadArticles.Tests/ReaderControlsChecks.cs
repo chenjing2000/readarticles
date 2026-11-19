@@ -90,22 +90,29 @@ internal static class ReaderControlsChecks
                 var source = PresentationSource.FromVisual(window);
                 Program.Check(source is not null);
 
-                double before = left.ActualWidth;
+                var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
+                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                double before = settings.LeftWidth;
+                double available = Math.Floor(Math.Max(606, grid.ActualWidth) - 6);
+                double target = Math.Clamp(Math.Round(before + 16), 200,
+                    Math.Min(400, available - 400));
                 splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, source!, 0, Key.Right)
                 {
                     RoutedEvent = Keyboard.PreviewKeyDownEvent
                 });
-                double target = Math.Min(400, Math.Min(Math.Floor(
-                    Math.Max(606, grid.ActualWidth) - 6) - 400, Math.Round(before) + 16));
-                var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
-                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .GetValue(window)!;
-                Program.Check(settings.LeftWidth == target &&
-                    Math.Abs(left.ActualWidth - target) < 1);
+                WpfTestHelpers.Pump();
+                if (Math.Abs(settings.LeftWidth - target) >= 1 ||
+                    Math.Abs(left.ActualWidth - target) >= 1)
+                    throw new Exception($"Keyboard pane resize: expected={target}, " +
+                        $"session={settings.LeftWidth}, actual={left.ActualWidth}, " +
+                        $"grid={grid.ActualWidth}, initial={before}");
 
                 window.Width += 50;
                 WpfTestHelpers.Pump();
-                Program.Check(Math.Abs(left.ActualWidth - target) < 1);
+                if (Math.Abs(left.ActualWidth - target) >= 1)
+                    throw new Exception($"Pane width changed after window resize: " +
+                        $"expected={target}, actual={left.ActualWidth}, grid={grid.ActualWidth}");
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });

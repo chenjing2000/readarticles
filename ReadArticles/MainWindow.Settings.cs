@@ -42,7 +42,6 @@ public partial class MainWindow
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
         if (!persistSettings) return;
-        settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
         SaveSettings(player.Volume, showDialogOnFailure: true);
     }
 
@@ -112,8 +111,8 @@ public partial class MainWindow
         double available = AvailablePaneWidth();
         double right = Math.Clamp(Math.Round(requestedRight), 200, Math.Min(400, available - 400));
         double left = Math.Min(settings.LeftWidth, available - right - 200);
-        // The browser already paints its requested width during its own drag.
-        SetPaneWidths(left, right, notifyBrowser: false);
+        // Only C# decides the applied width; the browser waits for the result.
+        SetPaneWidths(left, right, notifyBrowser: true);
     }
 
     private void WorkspaceResized(object sender, SizeChangedEventArgs e)

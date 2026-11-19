@@ -130,10 +130,14 @@ internal static class WebViewPilotChecks
                       const article = document.getElementById('article-scroll');
                       const vocabulary = document.getElementById('vocabulary-scroll');
                       const splitter = document.getElementById('reader-splitter');
-                      const original = document.documentElement.style.getPropertyValue('--word-width');
-                      const minimum = setDividerWidth(0);
-                      const maximum = setDividerWidth(1000);
-                      document.documentElement.style.setProperty('--word-width', original);
+                      const original = currentSettings.rightWidth;
+                      applyPaneWidth(200);
+                      const minimum = vocabulary.getBoundingClientRect().width;
+                      const maximumAllowed = Math.max(200, Math.min(400,
+                        Math.floor(document.querySelector('.workspace').clientWidth - 203)));
+                      applyPaneWidth(maximumAllowed);
+                      const maximum = vocabulary.getBoundingClientRect().width;
+                      applyPaneWidth(original);
                       return {
                         article: article.getBoundingClientRect().width,
                         vocabulary: vocabulary.getBoundingClientRect().width,
