@@ -139,7 +139,12 @@
         </TreeView.ItemContainerStyle>
       </TreeView>
     </DockPanel>
-    <GridSplitter DragCompleted="ColumnsResized" PreviewKeyUp="ColumnSplitterKeyUp" Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
+    <Thumb x:Name="LibrarySplitter" Grid.Column="1" Cursor="SizeWE" Focusable="True"
+           DragDelta="LibrarySplitterDragged" PreviewKeyDown="ColumnSplitterKeyDown">
+      <Thumb.Template>
+        <ControlTemplate TargetType="Thumb"><Border Background="Transparent"/></ControlTemplate>
+      </Thumb.Template>
+    </Thumb>
     <!-- The sole reader is hosted in WebView2; native WPF retains the library tree. -->
     <Grid x:Name="WebPilotOverlay" Grid.Column="2" Panel.ZIndex="20"
           Visibility="Collapsed" Background="White">

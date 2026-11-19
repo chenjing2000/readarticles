@@ -149,41 +149,33 @@ internal static class WebViewPilotChecks
                     widths.GetProperty("minimum").GetDouble() == 200 &&
                     widths.GetProperty("maximum").GetDouble() <= 400);
 
-                // When the native left divider expands, the browser vocabulary
-                // must stay put; the native left pane reaches its limit first.
+                // Native and browser widths are coordinated by one layout solver.
+                // Expanding left consumes article space before vocabulary space.
                 double previousWindowWidth = window.Width;
-                var nativeLeft = (ColumnDefinition)window.FindName("LeftColumn");
-                double previousLeftWidth = nativeLeft.Width.Value;
                 try
                 {
                     window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
                     WpfTestHelpers.Pump();
-                    JsonElement beforeLeftResize = Evaluate(browser, """
-                        (() => ({
-                          vocabulary: document.getElementById('vocabulary-scroll')
-                            .getBoundingClientRect().width,
-                          article: document.getElementById('article-scroll')
-                            .getBoundingClientRect().width
-                        }))()
-                        """);
-                    nativeLeft.Width = new GridLength(400);
-                    window.UpdateLayout();
-                    WpfTestHelpers.Pump();
-                    JsonElement afterLeftResize = Evaluate(browser, """
-                        (() => ({
-                          vocabulary: document.getElementById('vocabulary-scroll')
-                            .getBoundingClientRect().width,
-                          article: document.getElementById('article-scroll')
-                            .getBoundingClientRect().width
-                        }))()
-                        """);
-                    Program.Check(Math.Abs(afterLeftResize.GetProperty("vocabulary").GetDouble() -
-                        beforeLeftResize.GetProperty("vocabulary").GetDouble()) < 2 &&
-                        afterLeftResize.GetProperty("article").GetDouble() >= 200);
+                    var settingsField = typeof(ReadArticles.MainWindow).GetField("settings",
+                        BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    var paneSettings = (ReaderSettings)settingsField.GetValue(window)!;
+                    var resize = typeof(ReadArticles.MainWindow).GetMethod("ResizeLibraryPane",
+                        BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    double initialRight = paneSettings.RightWidth;
+                    resize.Invoke(window, [400d]);
+                    WaitFor(() => Math.Abs(Evaluate(browser, """
+                        document.getElementById('vocabulary-scroll').getBoundingClientRect().width
+                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        "coordinated vocabulary width after library resize");
+                    Program.Check(paneSettings.RightWidth <= initialRight);
+                    resize.Invoke(window, [200d]);
+                    WaitFor(() => Math.Abs(Evaluate(browser, """
+                        document.getElementById('vocabulary-scroll').getBoundingClientRect().width
+                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        "vocabulary stays steady when library shrinks");
                 }
                 finally
                 {
-                    nativeLeft.Width = new GridLength(previousLeftWidth);
                     window.Width = previousWindowWidth;
                     WpfTestHelpers.Pump();
                 }

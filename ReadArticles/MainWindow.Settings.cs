@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using ReadArticles.Infrastructure;
 
@@ -30,7 +31,6 @@ public partial class MainWindow
 
         // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
         LeftColumn.Width = new GridLength(settings.LeftWidth);
-        ProtectVocabularyWidth(0);
 
         ApplyReadingFont((int)settings.FontSize);
         player.Volume = settings.Volume;
@@ -76,46 +76,68 @@ public partial class MainWindow
             SaveSettings(player.Volume);
     }
 
-    private void ProtectVocabularyWidth(double workspaceWidth)
+    // One layout authority for both splitters. The center absorbs changes
+    // first; only after it reaches 200 DIP does the opposite side shrink.
+    private double AvailablePaneWidth()
     {
-        // During left-divider dragging, preserve the selected vocabulary width.
-        // Only a narrower window may reduce it, down to the 200-DIP minimum.
-        double desired = 200 + 3 + settings.RightWidth;
-        double minimum = 200 + 3 + 200;
-        CenterColumn.MinWidth = workspaceWidth > 0
-            ? Math.Min(desired, Math.Max(minimum, workspaceWidth - 3 - LeftColumn.MinWidth))
-            : desired;
+        double width = ((Grid)Content).ActualWidth;
+        if (width <= 0) width = Math.Max(646, Width) - 40;
+        return Math.Floor(Math.Max(606, width) - 6);
+    }
+
+    private void SetPaneWidths(double left, double right, bool notifyBrowser)
+    {
+        double available = AvailablePaneWidth();
+        left = Math.Clamp(Math.Round(left), 200, Math.Min(400, available - 400));
+        right = Math.Clamp(Math.Round(right), 200, Math.Min(400, available - left - 200));
+        bool rightChanged = Math.Abs(settings.RightWidth - right) >= 0.5;
+        settings.LeftWidth = left;
+        settings.RightWidth = right;
+        if (Math.Abs(LeftColumn.Width.Value - left) >= 0.5)
+            LeftColumn.Width = new GridLength(left);
+        if (rightChanged && notifyBrowser && webPilotReady)
+            PostWebPilot("setPaneWidth", new { rightWidth = right });
+    }
+
+    private void ResizeLibraryPane(double requestedLeft)
+    {
+        double available = AvailablePaneWidth();
+        double left = Math.Clamp(Math.Round(requestedLeft), 200, Math.Min(400, available - 400));
+        double right = Math.Min(settings.RightWidth, available - left - 200);
+        SetPaneWidths(left, right, notifyBrowser: true);
+    }
+
+    private void ResizeVocabularyPane(double requestedRight)
+    {
+        double available = AvailablePaneWidth();
+        double right = Math.Clamp(Math.Round(requestedRight), 200, Math.Min(400, available - 400));
+        double left = Math.Min(settings.LeftWidth, available - right - 200);
+        // The browser already paints its requested width during its own drag.
+        SetPaneWidths(left, right, notifyBrowser: false);
     }
 
     private void WorkspaceResized(object sender, SizeChangedEventArgs e)
     {
-        ProtectVocabularyWidth(e.NewSize.Width);
-        // Keep the requested left width when it fits; shrink it before the
-        // 200-DIP article or vocabulary width would be squeezed.
-        double maxLeft = Math.Max(LeftColumn.MinWidth,
-            e.NewSize.Width - 3 - CenterColumn.MinWidth);
-        double target = Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth,
-            Math.Min(LeftColumn.MaxWidth, maxLeft));
-        if (Math.Abs(LeftColumn.Width.Value - target) >= 0.5)
-            LeftColumn.Width = new GridLength(target);
+        double available = AvailablePaneWidth();
+        double left = settings.LeftWidth;
+        double right = settings.RightWidth;
+        double overflow = Math.Max(0, left + right + 200 - available);
+        double rightReduction = Math.Min(overflow, right - 200);
+        right -= rightReduction;
+        left -= overflow - rightReduction;
+        SetPaneWidths(left, right, notifyBrowser: true);
     }
 
-    private void ColumnsResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    private void LibrarySplitterDragged(object sender, DragDeltaEventArgs e)
     {
-        RememberLeftColumnWidth();
+        ResizeLibraryPane(settings.LeftWidth + e.HorizontalChange);
     }
 
-    private void ColumnSplitterKeyUp(object sender, KeyEventArgs e)
+    private void ColumnSplitterKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key is Key.Left or Key.Right)
-            RememberLeftColumnWidth();
-    }
-
-    private void RememberLeftColumnWidth()
-    {
-        settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
-        LeftColumn.Width = new GridLength(settings.LeftWidth);
-        // Pane widths are session-only; browser layout responds to host resizing.
+        if (e.Key is not (Key.Left or Key.Right)) return;
+        ResizeLibraryPane(settings.LeftWidth + (e.Key == Key.Right ? 16 : -16));
+        e.Handled = true;
     }
 
     private void AccentClicked(object sender, RoutedEventArgs e)

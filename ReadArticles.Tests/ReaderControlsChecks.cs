@@ -21,8 +21,8 @@ internal static class ReaderControlsChecks
                 var center = (ColumnDefinition)window.FindName("CenterColumn");
                 Program.Check(left.MinWidth == 200 && left.MaxWidth == 400 &&
                     left.Width.Value >= 200 && left.Width.Value <= 250 &&
-                    center.MinWidth == 503 && grid.ColumnDefinitions[1].Width.Value == 3 &&
-                    grid.Children.OfType<GridSplitter>().Single().HorizontalAlignment ==
+                    center.MinWidth == 403 && grid.ColumnDefinitions[1].Width.Value == 3 &&
+                    grid.Children.OfType<Thumb>().Single().HorizontalAlignment ==
                     HorizontalAlignment.Stretch);
                 if (window.Width >= 250 + 3 + 403 + 40)
                     Program.Check(left.Width.Value == 250);
@@ -30,7 +30,7 @@ internal static class ReaderControlsChecks
             finally { window.Close(); }
         });
 
-        Program.Run("left splitter preserves vocabulary width at its drag limit", () =>
+        Program.Run("both splitters resize center first and then the opposite side", () =>
         {
             var window = new ReadArticles.MainWindow(false);
             try
@@ -43,22 +43,37 @@ internal static class ReaderControlsChecks
                     .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
                     .GetValue(window)!;
 
-                // Constrain the host to expose the old left/right-divider coupling.
                 window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
                 WpfTestHelpers.Pump();
-                Program.Check(center.MinWidth >= 403 &&
-                    center.MinWidth <= 200 + 3 + settings.RightWidth);
-
-                left.Width = new GridLength(400);
-                window.UpdateLayout();
-                Program.Check(center.ActualWidth + 1 >= center.MinWidth);
-                Program.Check(left.ActualWidth <= 400 &&
-                    left.ActualWidth + center.ActualWidth +
-                    grid.ColumnDefinitions[1].ActualWidth <= grid.ActualWidth + 1);
-                Program.Check(center.ActualWidth >= 200 + 3 +
-                    Math.Min(settings.RightWidth, Math.Max(200,
-                        grid.ActualWidth - grid.ColumnDefinitions[1].ActualWidth -
-                        left.MinWidth - 203)) - 1);
+                var type = typeof(ReadArticles.MainWindow);
+                var dragLeft = type.GetMethod("ResizeLibraryPane",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var dragRight = type.GetMethod("ResizeVocabularyPane",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!;
+                double available = Math.Floor(Math.Max(606, grid.ActualWidth) - 6);
+                double initialRight = settings.RightWidth;
+                dragLeft.Invoke(window, [400d]);
+                double expectedLeft = Math.Min(400, available - 400);
+                double expectedRight = Math.Min(initialRight, available - expectedLeft - 200);
+                Program.Check(settings.LeftWidth == expectedLeft &&
+                    settings.RightWidth == expectedRight &&
+                    center.MinWidth == 403);
+                double compressedRight = settings.RightWidth;
+                dragLeft.Invoke(window, [200d]);
+                // Reversing this divider grows the article; right stays unchanged.
+                Program.Check(settings.LeftWidth == 200 &&
+                    settings.RightWidth == compressedRight);
+                dragRight.Invoke(window, [400d]);
+                double maximumRight = Math.Min(400, available - 400);
+                double expectedRightAfterDrag = maximumRight;
+                Program.Check(settings.RightWidth == expectedRightAfterDrag &&
+                    settings.LeftWidth >= 200 &&
+                    available - settings.LeftWidth - settings.RightWidth >= 200);
+                double compressedLeft = settings.LeftWidth;
+                dragRight.Invoke(window, [200d]);
+                // Reversing the right divider grows only the article.
+                Program.Check(settings.RightWidth == 200 &&
+                    settings.LeftWidth == compressedLeft);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
@@ -70,21 +85,18 @@ internal static class ReaderControlsChecks
             {
                 window.Show();
                 var grid = (Grid)window.Content;
-                var splitter = grid.Children.OfType<GridSplitter>().Single();
+                var splitter = grid.Children.OfType<Thumb>().Single();
                 var left = (ColumnDefinition)window.FindName("LeftColumn");
-                var center = (ColumnDefinition)window.FindName("CenterColumn");
                 var source = PresentationSource.FromVisual(window);
                 Program.Check(source is not null);
 
-                // A narrow work area may cap the left pane before 280 DIP.
-                double target = Math.Min(280, Math.Max(left.MinWidth, Math.Floor(
-                    grid.ActualWidth - grid.ColumnDefinitions[1].ActualWidth - center.MinWidth)));
-                left.Width = new GridLength(target);
-                window.UpdateLayout();
+                double before = left.ActualWidth;
                 splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, source!, 0, Key.Right)
                 {
-                    RoutedEvent = Keyboard.PreviewKeyUpEvent
+                    RoutedEvent = Keyboard.PreviewKeyDownEvent
                 });
+                double target = Math.Min(400, Math.Min(Math.Floor(
+                    Math.Max(606, grid.ActualWidth) - 6) - 400, Math.Round(before) + 16));
                 var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
                     .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
                     .GetValue(window)!;

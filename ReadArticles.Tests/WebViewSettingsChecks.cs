@@ -35,7 +35,7 @@ internal static class WebViewSettingsChecks
                 var handle = type.GetMethod("WebPilotSettingIntent",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
                 var center = (ColumnDefinition)window.FindName("CenterColumn");
-                Program.Check(center.MinWidth == 503);
+                Program.Check(center.MinWidth == 403);
                 Apply("setFontSize", """{"size":16}""");
                 Program.Check(settings.FontSize == 16);
                 Apply("setFontSize", """{"size":40}""");
@@ -53,15 +53,18 @@ internal static class WebViewSettingsChecks
                 Apply("setPanelWidth", """{"width":200}""");
                 Program.Check(settings.RightWidth == 200 && center.MinWidth == 403);
                 Apply("setPanelWidth", """{"width":400}""");
-                Program.Check(settings.RightWidth == 400 && center.MinWidth == 603);
+                Program.Check(settings.RightWidth >= 200 && settings.RightWidth <= 400 &&
+                    center.MinWidth == 403);
                 Apply("setPanelWidth", """{"width":300}""");
-                Program.Check(settings.RightWidth == 300 && center.MinWidth == 503);
+                Program.Check(settings.RightWidth >= 200 && settings.RightWidth <= 300 &&
+                    center.MinWidth == 403);
                 var getSnapshot = type.GetMethod("WebPilotSettingsSnapshot",
                     BindingFlags.Instance | BindingFlags.NonPublic);
                 Program.Check(getSnapshot is not null);
                 using (var settingsJson = JsonDocument.Parse(JsonSerializer.Serialize(
                     getSnapshot!.Invoke(window, null))))
-                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() == 300);
+                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() ==
+                        settings.RightWidth);
                 Apply("setForwardStep", """{"seconds":7}""");
                 Apply("setBackwardStep", """{"seconds":8}""");
                 Program.Check(settings.ForwardStep == 7 && settings.BackwardStep == 8);
