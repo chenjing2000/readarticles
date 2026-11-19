@@ -30,6 +30,7 @@ public partial class MainWindow
 
         // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
         LeftColumn.Width = new GridLength(settings.LeftWidth);
+        ProtectVocabularyWidth(0);
 
         ApplyReadingFont((int)settings.FontSize);
         player.Volume = settings.Volume;
@@ -75,10 +76,22 @@ public partial class MainWindow
             SaveSettings(player.Volume);
     }
 
+    private void ProtectVocabularyWidth(double workspaceWidth)
+    {
+        // During left-divider dragging, preserve the selected vocabulary width.
+        // Only a narrower window may reduce it, down to the 200-DIP minimum.
+        double desired = 200 + 3 + settings.RightWidth;
+        double minimum = 200 + 3 + 200;
+        CenterColumn.MinWidth = workspaceWidth > 0
+            ? Math.Min(desired, Math.Max(minimum, workspaceWidth - 3 - LeftColumn.MinWidth))
+            : desired;
+    }
+
     private void WorkspaceResized(object sender, SizeChangedEventArgs e)
     {
+        ProtectVocabularyWidth(e.NewSize.Width);
         // Keep the requested left width when it fits; shrink it before the
-        // 200-DIP article or 200-DIP vocabulary would be squeezed.
+        // 200-DIP article or vocabulary width would be squeezed.
         double maxLeft = Math.Max(LeftColumn.MinWidth,
             e.NewSize.Width - 3 - CenterColumn.MinWidth);
         double target = Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth,
@@ -102,8 +115,7 @@ public partial class MainWindow
     {
         settings.LeftWidth = Math.Round(LeftColumn.ActualWidth);
         LeftColumn.Width = new GridLength(settings.LeftWidth);
-        // Pane widths are session-only and do not belong in settings.json.
-        SendWebPilotSettings();
+        // Pane widths are session-only; browser layout responds to host resizing.
     }
 
     private void AccentClicked(object sender, RoutedEventArgs e)

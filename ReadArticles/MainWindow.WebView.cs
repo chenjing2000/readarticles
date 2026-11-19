@@ -394,6 +394,7 @@ public partial class MainWindow
                     px >= 200 && px <= 400)
                 {
                     settings.RightWidth = Math.Round(px);
+                    ProtectVocabularyWidth(((System.Windows.Controls.Grid)Content).ActualWidth);
                     valid = true;
                 }
                 break;

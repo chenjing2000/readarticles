@@ -21,13 +21,46 @@ internal static class ReaderControlsChecks
                 var center = (ColumnDefinition)window.FindName("CenterColumn");
                 Program.Check(left.MinWidth == 200 && left.MaxWidth == 400 &&
                     left.Width.Value >= 200 && left.Width.Value <= 250 &&
-                    center.MinWidth == 403 && grid.ColumnDefinitions[1].Width.Value == 3 &&
+                    center.MinWidth == 503 && grid.ColumnDefinitions[1].Width.Value == 3 &&
                     grid.Children.OfType<GridSplitter>().Single().HorizontalAlignment ==
                     HorizontalAlignment.Stretch);
                 if (window.Width >= 250 + 3 + 403 + 40)
                     Program.Check(left.Width.Value == 250);
             }
             finally { window.Close(); }
+        });
+
+        Program.Run("left splitter preserves vocabulary width at its drag limit", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                window.Show();
+                var grid = (Grid)window.Content;
+                var left = (ColumnDefinition)window.FindName("LeftColumn");
+                var center = (ColumnDefinition)window.FindName("CenterColumn");
+                var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
+                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+
+                // Constrain the host to expose the old left/right-divider coupling.
+                window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
+                WpfTestHelpers.Pump();
+                Program.Check(center.MinWidth >= 403 &&
+                    center.MinWidth <= 200 + 3 + settings.RightWidth);
+
+                left.Width = new GridLength(400);
+                window.UpdateLayout();
+                Program.Check(center.ActualWidth + 1 >= center.MinWidth);
+                Program.Check(left.ActualWidth <= 400 &&
+                    left.ActualWidth + center.ActualWidth +
+                    grid.ColumnDefinitions[1].ActualWidth <= grid.ActualWidth + 1);
+                Program.Check(center.ActualWidth >= 200 + 3 +
+                    Math.Min(settings.RightWidth, Math.Max(200,
+                        grid.ActualWidth - grid.ColumnDefinitions[1].ActualWidth -
+                        left.MinWidth - 203)) - 1);
+            }
+            finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
         Program.Run("left splitter keyboard width survives window resize", () =>

@@ -149,6 +149,45 @@ internal static class WebViewPilotChecks
                     widths.GetProperty("minimum").GetDouble() == 200 &&
                     widths.GetProperty("maximum").GetDouble() <= 400);
 
+                // When the native left divider expands, the browser vocabulary
+                // must stay put; the native left pane reaches its limit first.
+                double previousWindowWidth = window.Width;
+                var nativeLeft = (ColumnDefinition)window.FindName("LeftColumn");
+                double previousLeftWidth = nativeLeft.Width.Value;
+                try
+                {
+                    window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
+                    WpfTestHelpers.Pump();
+                    JsonElement beforeLeftResize = Evaluate(browser, """
+                        (() => ({
+                          vocabulary: document.getElementById('vocabulary-scroll')
+                            .getBoundingClientRect().width,
+                          article: document.getElementById('article-scroll')
+                            .getBoundingClientRect().width
+                        }))()
+                        """);
+                    nativeLeft.Width = new GridLength(400);
+                    window.UpdateLayout();
+                    WpfTestHelpers.Pump();
+                    JsonElement afterLeftResize = Evaluate(browser, """
+                        (() => ({
+                          vocabulary: document.getElementById('vocabulary-scroll')
+                            .getBoundingClientRect().width,
+                          article: document.getElementById('article-scroll')
+                            .getBoundingClientRect().width
+                        }))()
+                        """);
+                    Program.Check(Math.Abs(afterLeftResize.GetProperty("vocabulary").GetDouble() -
+                        beforeLeftResize.GetProperty("vocabulary").GetDouble()) < 2 &&
+                        afterLeftResize.GetProperty("article").GetDouble() >= 200);
+                }
+                finally
+                {
+                    nativeLeft.Width = new GridLength(previousLeftWidth);
+                    window.Width = previousWindowWidth;
+                    WpfTestHelpers.Pump();
+                }
+
                 // Scrolling the long Passage and its 120-word list must be independent.
                 JsonElement scroll = Evaluate(browser, """
                     (() => {
