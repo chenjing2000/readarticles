@@ -53,11 +53,11 @@ Use [Testing](Testing.md) for test and acceptance commands, [Publishing](Publish
 | A sentence or word cannot play | Check inferred files under audio/ (words) or audio_sentences/ (SIDs), nonzero size, valid MP3/WAV encoding, and first-entry stem eligibility; MP3 decode failure does not retry WAV |
 | A canonical word is not highlighted | Matching is literal, not inflection-aware; see the vocabulary preparation guide's surface-form discussion |
 | Blank text has no right-click audio | Blank passages are identified by valid [[n]] body placeholders and disable sentence audio; exercise answering is not implemented |
-| Settings do not restore a passage or old window size | This is intentional: library-only startup and 70% centered window size are the current behavior |
+| Settings do not restore a passage or old window size | This is intentional: library-only startup and a centered window (70% work-area height; width at least 796 DIP when it fits) are the current behavior |
 
 For content authoring, use [Image to Passage](skills/image_to_passage/SKILL.md), [Passage Segmentation](skills/passage_segment/SKILL.md), and [Vocabulary Preparation](Vocabulary-Preparation.md), then follow [Library Layout](Library-Layout.md).
 
-The Portable profile places temporary compiled output inside obj/publish-build instead of creating a separate release copy under bin. Only dist is the release directory; artifacts and old staging releases can be removed. Building or running tests can still create bin and obj caches. Do not delete dist or its settings while cleaning caches. LeftWidth and RightWidth are rounded in configuration, and FontSize is stored directly as an integer DIP value.
+The Portable profile places temporary compiled output inside obj/publish-build instead of creating a separate release copy under bin. Only dist is the release directory; artifacts and old staging releases can be removed. Building or running tests can still create bin and obj caches. Do not delete dist or its settings while cleaning caches. Left and right pane widths are session-only (defaults 250/300 DIP; limits 200–400 DIP) and are not saved in configuration; the article has a 200-DIP minimum and each splitter is 3 DIP. FontSize is stored directly as an integer DIP value.
 
 ## Floating messages and lazy navigation
 

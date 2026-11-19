@@ -164,10 +164,22 @@ internal static class TreeNavigationChecks
                     return label.TranslatePoint(new Point(), expander).X - expander.ActualWidth;
                 }
 
-                left.Width = new GridLength(230);
+                var grid = (Grid)window.Content;
+                var center = (ColumnDefinition)window.FindName("CenterColumn");
+                // A small work area may not fit a 390-DIP library beside the
+                // WebView2 host minimum. Exercise only widths that can fit.
+                double maximum = Math.Min(left.MaxWidth, Math.Floor(
+                    grid.ActualWidth - grid.ColumnDefinitions[1].ActualWidth - center.MinWidth));
+                Program.Check(maximum >= left.MinWidth);
+                double narrowTarget = Math.Min(230, maximum);
+                double wideTarget = Math.Min(390, maximum);
+
+                left.Width = new GridLength(narrowTarget);
                 double narrow = Gap();
-                left.Width = new GridLength(510);
+                Program.Check(Math.Abs(left.ActualWidth - narrowTarget) < 1);
+                left.Width = new GridLength(wideTarget);
                 double wide = Gap();
+                Program.Check(Math.Abs(left.ActualWidth - wideTarget) < 1);
                 Program.Check(narrow >= 0 && narrow <= 5 && Math.Abs(narrow - wide) < 0.5);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }

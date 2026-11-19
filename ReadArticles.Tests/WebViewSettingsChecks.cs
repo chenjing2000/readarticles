@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using System.Windows.Controls;
 using ReadArticles.Infrastructure;
 
 internal static class WebViewSettingsChecks
@@ -33,6 +34,8 @@ internal static class WebViewSettingsChecks
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
                 var handle = type.GetMethod("WebPilotSettingIntent",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var center = (ColumnDefinition)window.FindName("CenterColumn");
+                Program.Check(center.MinWidth == 403);
                 Apply("setFontSize", """{"size":16}""");
                 Program.Check(settings.FontSize == 16);
                 Apply("setFontSize", """{"size":40}""");
@@ -41,16 +44,27 @@ internal static class WebViewSettingsChecks
                 Program.Check(window.ViewModel.Accent == "us");
                 Apply("setAccent", """{"accent":"invalid"}""");
                 Program.Check(window.ViewModel.Accent == "us");
-                Apply("setPanelWidth", """{"width":360}""");
-                Program.Check(settings.RightWidth == 360);
-                Apply("setPanelWidth", """{"width":-42}""");
-                Program.Check(settings.RightWidth == 360);
+                Apply("setPanelWidth", """{"width":300}""");
+                Program.Check(settings.RightWidth == 300);
+                Apply("setPanelWidth", """{"width":199}""");
+                Program.Check(settings.RightWidth == 300);
+                Apply("setPanelWidth", """{"width":401}""");
+                Program.Check(settings.RightWidth == 300);
+                Apply("setPanelWidth", """{"width":200}""");
+                Program.Check(settings.RightWidth == 200 && center.MinWidth == 403);
+                Apply("setPanelWidth", """{"width":400}""");
+                Program.Check(settings.RightWidth >= 200 && settings.RightWidth <= 400 &&
+                    center.MinWidth == 403);
+                Apply("setPanelWidth", """{"width":300}""");
+                Program.Check(settings.RightWidth >= 200 && settings.RightWidth <= 300 &&
+                    center.MinWidth == 403);
                 var getSnapshot = type.GetMethod("WebPilotSettingsSnapshot",
                     BindingFlags.Instance | BindingFlags.NonPublic);
                 Program.Check(getSnapshot is not null);
                 using (var settingsJson = JsonDocument.Parse(JsonSerializer.Serialize(
                     getSnapshot!.Invoke(window, null))))
-                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() == 360);
+                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() ==
+                        settings.RightWidth);
                 Apply("setForwardStep", """{"seconds":7}""");
                 Apply("setBackwardStep", """{"seconds":8}""");
                 Program.Check(settings.ForwardStep == 7 && settings.BackwardStep == 8);
@@ -104,7 +118,7 @@ internal static class WebViewSettingsChecks
                 """
                 {"LeftWidth":720,"RightWidth":850,"FontSize":16,"Accent":"us","ForwardStep":7}
                 """)!;
-            Program.Check(restored.LeftWidth == 310 && restored.RightWidth == 390);
+            Program.Check(restored.LeftWidth == 250 && restored.RightWidth == 300);
             Program.Check(restored.FontSize == 16 && restored.Accent == "us" &&
                 restored.ForwardStep == 7);
             restored.LeftWidth = 540;
@@ -112,7 +126,7 @@ internal static class WebViewSettingsChecks
             string saved = JsonSerializer.Serialize(restored);
             Program.Check(!saved.Contains("LeftWidth", StringComparison.Ordinal) &&
                 !saved.Contains("RightWidth", StringComparison.Ordinal));
-            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 390);
+            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 300);
         });
 
         Program.Run("WebView2 notification dismiss retains errors until acknowledged", () =>

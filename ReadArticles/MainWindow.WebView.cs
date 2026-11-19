@@ -22,6 +22,7 @@ public partial class MainWindow
     private bool webPilotClosed;
     private bool webPilotFailureShown;
     private int webPilotVocabularyRevision;
+    private (double Left, double Right)? webPilotRightDragStart;
     private ScriptArticle? webPilotScriptArticle;
     private bool webPilotScriptMode;
     private string? webPilotPendingModeRequest;
@@ -197,8 +198,8 @@ public partial class MainWindow
             if (type is not ("addWord" or "moveWord" or "deleteWord" or "importVocabulary" or
                 "playArticle" or "stopArticle" or "seekArticle" or "playWord" or
                 "playSegment" or "switchReadingMode" or "setHighlight" or
-                "setFontSize" or "setAccent" or "setPanelWidth" or "setForwardStep" or
-                "setBackwardStep" or "notificationDismiss"))
+                "setFontSize" or "setAccent" or "setPanelWidth" or "dragPanelWidth" or
+                "cancelPanelDrag" or "setForwardStep" or "setBackwardStep" or "notificationDismiss"))
                 return;
 
             if (!TryMessageString(root, "requestId", out string? requestId) ||
@@ -214,6 +215,29 @@ public partial class MainWindow
             if (!currentSession || !currentVocabulary)
             {
                 PostWebPilot("actionResult", new { status = "stale" }, requestId);
+                return;
+            }
+            if (type == "dragPanelWidth")
+            {
+                if (root.TryGetProperty("payload", out var drag) &&
+                    drag.ValueKind == JsonValueKind.Object &&
+                    drag.TryGetProperty("width", out var candidate) &&
+                    candidate.ValueKind == JsonValueKind.Number &&
+                    candidate.TryGetDouble(out double desired) && double.IsFinite(desired) &&
+                    desired >= 200 && desired <= 400)
+                {
+                    webPilotRightDragStart ??= (settings.LeftWidth, settings.RightWidth);
+                    ResizeVocabularyPane(desired);
+                }
+                return;
+            }
+            if (type == "cancelPanelDrag")
+            {
+                if (webPilotRightDragStart is { } original)
+                {
+                    webPilotRightDragStart = null;
+                    SetPaneWidths(original.Left, original.Right, notifyBrowser: true);
+                }
                 return;
             }
             if (type == "setHighlight")
@@ -391,9 +415,10 @@ public partial class MainWindow
                 if (payload.TryGetProperty("width", out var width) &&
                     width.ValueKind == JsonValueKind.Number &&
                     width.TryGetDouble(out double px) && double.IsFinite(px) &&
-                    px >= 220 && px <= 1000)
+                    px >= 200 && px <= 400)
                 {
-                    settings.RightWidth = Math.Round(px);
+                    webPilotRightDragStart = null;
+                    ResizeVocabularyPane(px);
                     valid = true;
                 }
                 break;
@@ -421,7 +446,9 @@ public partial class MainWindow
         // Width changes are session-only; saving them would rotate a backup
         // without changing any persisted setting. Other intents still save.
         bool saved = type == "setPanelWidth" || SaveSettings(player.Volume);
-        SendWebPilotSettings();
+        // The width solver already sent the authoritative pane value.
+        // Replaying all settings here would create a second browser resize.
+        if (type != "setPanelWidth") SendWebPilotSettings();
         PostWebPilot("actionResult", new { status = saved ? "success" : "failed" }, requestId);
     }
 

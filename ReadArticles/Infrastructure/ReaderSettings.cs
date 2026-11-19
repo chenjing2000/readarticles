@@ -9,9 +9,9 @@ public sealed class ReaderSettings
     // Pane widths are session-only. Legacy JSON widths are deliberately
     // ignored on load and omitted on save, so each launch starts at defaults.
     [JsonIgnore]
-    public double LeftWidth { get; set; } = 310;
+    public double LeftWidth { get; set; } = 250;
     [JsonIgnore]
-    public double RightWidth { get; set; } = 390;
+    public double RightWidth { get; set; } = 300;
     public double FontSize { get; set; } = 15;
     public double Volume { get; set; } = 0.65;
     public string Accent { get; set; } = "uk";
@@ -166,8 +166,8 @@ public sealed class ReaderSettings
 
     private void Normalize()
     {
-        LeftWidth = double.IsFinite(LeftWidth) ? Math.Round(LeftWidth) : 310;
-        RightWidth = double.IsFinite(RightWidth) ? Math.Round(RightWidth) : 390;
+        LeftWidth = double.IsFinite(LeftWidth) ? Math.Clamp(Math.Round(LeftWidth), 200, 400) : 250;
+        RightWidth = double.IsFinite(RightWidth) ? Math.Clamp(Math.Round(RightWidth), 200, 400) : 300;
         FontSize = double.IsFinite(FontSize) ? Math.Clamp(Math.Round(FontSize), 14, 16) : 15;
         Volume = double.IsFinite(Volume) ? Math.Clamp(Volume, 0, 1) : 0.65;
         if (Accent != "uk" && Accent != "us") Accent = "uk";

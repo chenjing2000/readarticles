@@ -124,6 +124,78 @@ internal static class WebViewPilotChecks
                     throw new Exception($"Unexpected Passage DOM: {passage.GetRawText()}; " +
                         $"expectedTitle={expectedTitle}, nativeReaderHost={window.FindName("ParagraphHost")}");
 
+                // Test actual browser bounds and the two word-divider drag limits.
+                JsonElement widths = Evaluate(browser, """
+                    (() => {
+                      const article = document.getElementById('article-scroll');
+                      const vocabulary = document.getElementById('vocabulary-scroll');
+                      const splitter = document.getElementById('reader-splitter');
+                      const original = currentSettings.rightWidth;
+                      applyPaneWidth(200);
+                      const minimum = vocabulary.getBoundingClientRect().width;
+                      const maximumAllowed = Math.max(200, Math.min(400,
+                        Math.floor(document.querySelector('.workspace').clientWidth - 203)));
+                      applyPaneWidth(maximumAllowed);
+                      const maximum = vocabulary.getBoundingClientRect().width;
+                      applyPaneWidth(original);
+                      return {
+                        article: article.getBoundingClientRect().width,
+                        vocabulary: vocabulary.getBoundingClientRect().width,
+                        splitter: splitter.getBoundingClientRect().width,
+                        minimum, maximum
+                      };
+                    })()
+                    """);
+                Program.Check(widths.GetProperty("article").GetDouble() >= 200 &&
+                    widths.GetProperty("vocabulary").GetDouble() >= 200 &&
+                    widths.GetProperty("vocabulary").GetDouble() <= 400 &&
+                    widths.GetProperty("splitter").GetDouble() == 3 &&
+                    widths.GetProperty("minimum").GetDouble() == 200 &&
+                    widths.GetProperty("maximum").GetDouble() <= 400);
+
+                // Native and browser widths are coordinated by one layout solver.
+                // Expanding left consumes article space before vocabulary space.
+                double previousWindowWidth = window.Width;
+                try
+                {
+                    window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
+                    WpfTestHelpers.Pump();
+                    var settingsField = typeof(ReadArticles.MainWindow).GetField("settings",
+                        BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    var paneSettings = (ReaderSettings)settingsField.GetValue(window)!;
+                    var resize = typeof(ReadArticles.MainWindow).GetMethod("ResizeLibraryPane",
+                        BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    double initialRight = paneSettings.RightWidth;
+                    resize.Invoke(window, [400d]);
+                    WaitFor(() => Math.Abs(Evaluate(browser, """
+                        document.getElementById('vocabulary-scroll').getBoundingClientRect().width
+                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        "coordinated vocabulary width after library resize");
+                    Program.Check(paneSettings.RightWidth <= initialRight);
+                    resize.Invoke(window, [200d]);
+                    WaitFor(() => Math.Abs(Evaluate(browser, """
+                        document.getElementById('vocabulary-scroll').getBoundingClientRect().width
+                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        "vocabulary stays steady when library shrinks");
+
+                    // Reverse direction: a right-divider intent may compress
+                    // the native library, but the browser paints only C#'s result.
+                    var resizeRight = typeof(ReadArticles.MainWindow).GetMethod(
+                        "ResizeVocabularyPane", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    resizeRight.Invoke(window, [400d]);
+                    WaitFor(() => Math.Abs(Evaluate(browser, """
+                        document.getElementById('vocabulary-scroll').getBoundingClientRect().width
+                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        "confirmed vocabulary width after right-divider resize");
+                    var nativeLeft = (ColumnDefinition)window.FindName("LeftColumn");
+                    Program.Check(Math.Abs(nativeLeft.ActualWidth - paneSettings.LeftWidth) < 2);
+                }
+                finally
+                {
+                    window.Width = previousWindowWidth;
+                    WpfTestHelpers.Pump();
+                }
+
                 // Scrolling the long Passage and its 120-word list must be independent.
                 JsonElement scroll = Evaluate(browser, """
                     (() => {

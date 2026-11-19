@@ -15,6 +15,7 @@ let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
 let splitting = null;
+let splitterDragFrame = 0;
 let currentMode = "passage";
 let pendingModeRequest = null;
 let currentPlayback = {};
@@ -619,12 +620,10 @@ function renderNotifications(notifications) {
 }
 function renderSettings(settings) {
   const fontSize = Number(settings.fontSize);
-  const rightWidth = Number(settings.rightWidth);
   document.documentElement.style.setProperty("--reader-font",
     (Number.isFinite(fontSize) && fontSize >= 10 && fontSize <= 30 ? fontSize : 15) + "px");
-  document.documentElement.style.setProperty("--word-width",
-    (Number.isFinite(rightWidth) && rightWidth >= 220 && rightWidth <= 1000 ? rightWidth : 390) + "px");
   currentSettings = { ...settings };
+  applyPaneWidth(settings.rightWidth);
   for (const [id, value] of [
     ["reader-font-size", settings.fontSize],
     ["reader-accent", settings.accent],
@@ -751,52 +750,64 @@ for (const [id, type, field, convert] of [
 }
 
 const splitter = byId("reader-splitter");
-function clampDividerWidth(width) {
-  const available = byId("article-scroll").closest(".workspace").clientWidth;
-  const max = Math.max(220, Math.round(available - 288));
-  return Math.round(Math.max(220, Math.min(max, width)));
-}
-function setDividerWidth(width) {
-  const actual = clampDividerWidth(width);
-  document.documentElement.style.setProperty("--word-width", actual + "px");
-  if (splitting) splitting.targetWidth = actual;
+function applyPaneWidth(width) {
+  // Called only for C# snapshots/acknowledgments, never from pointer input.
+  const applied = Number(width);
+  if (!Number.isFinite(applied) || applied < 200 || applied > 400) return;
+  currentSettings.rightWidth = applied;
+  document.documentElement.style.setProperty("--word-width", applied + "px");
   scheduleScriptGeometry();
-  return actual;
+}
+function queueRightDrag() {
+  if (splitterDragFrame) return;
+  splitterDragFrame = requestAnimationFrame(() => {
+    splitterDragFrame = 0;
+    if (splitting?.targetWidth != null)
+      send("dragPanelWidth", { payload: { width: splitting.targetWidth } });
+  });
 }
 splitter.addEventListener("pointerdown", event => {
   if (event.button !== 0 || !sessionId) return;
   event.preventDefault();
   splitting = { pointerId: event.pointerId,
-    width: byId("vocabulary-scroll").getBoundingClientRect().width,
-    x: event.clientX, targetWidth: null };
+    width: Number(currentSettings.rightWidth) || 300,
+    // The WebView2 host can move when its native sibling shrinks.
+    screenX: event.screenX, targetWidth: null };
   splitter.setPointerCapture(event.pointerId);
   splitter.classList.add("dragging");
   document.body.classList.add("splitter-dragging");
 });
 splitter.addEventListener("pointermove", event => {
   if (!splitting || event.pointerId !== splitting.pointerId) return;
-  setDividerWidth(splitting.width + splitting.x - event.clientX);
+  // Only bound the input request; C# owns all three rendered pane widths.
+  splitting.targetWidth = Math.round(Math.max(200, Math.min(400,
+    splitting.width + splitting.screenX - event.screenX)));
+  queueRightDrag();
 });
 function finishDivider(event, save) {
   if (!splitting || event.pointerId !== splitting.pointerId) return;
   const targetWidth = splitting.targetWidth;
+  const splittingStartWidth = splitting.width;
+  if (splitterDragFrame) cancelAnimationFrame(splitterDragFrame);
+  splitterDragFrame = 0;
   splitting = null;
   splitter.classList.remove("dragging");
   document.body.classList.remove("splitter-dragging");
   if (splitter.hasPointerCapture(event.pointerId)) splitter.releasePointerCapture(event.pointerId);
   if (save) {
-    const width = targetWidth ?? clampDividerWidth(byId("vocabulary-scroll").getBoundingClientRect().width);
-    send("setPanelWidth", { payload: { width } });
-  } else renderSettings(currentSettings);
+    send("setPanelWidth", { payload: { width: targetWidth ?? splittingStartWidth } });
+  } else {
+    send("cancelPanelDrag");
+  }
 }
 splitter.addEventListener("pointerup", event => finishDivider(event, true));
 splitter.addEventListener("pointercancel", event => finishDivider(event, false));
 splitter.addEventListener("keydown", event => {
   if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
   event.preventDefault();
-  const current = byId("vocabulary-scroll").getBoundingClientRect().width;
-  const next = clampDividerWidth(current + (event.key === "ArrowLeft" ? 16 : -16));
-  setDividerWidth(next);
+  const current = Number(currentSettings.rightWidth) || 300;
+  const next = Math.round(Math.max(200, Math.min(400,
+    current + (event.key === "ArrowLeft" ? 16 : -16))));
   send("setPanelWidth", { payload: { width: next } });
 });
 
@@ -920,6 +931,9 @@ if (window.chrome?.webview) {
       refreshHighlights(true);
     } else if (message.type === "setSettings") {
       renderSettings(message.payload ?? {});
+    } else if (message.type === "setPaneWidth") {
+      const width = Number(message.payload?.rightWidth);
+      applyPaneWidth(width);
     } else if (message.type === "setPlayback") {
       renderPlayback(message.payload ?? {});
     } else if (message.type === "setNotifications") {
