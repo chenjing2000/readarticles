@@ -177,6 +177,18 @@ internal static class WebViewPilotChecks
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
                         """).GetDouble() - paneSettings.RightWidth) < 2,
                         "vocabulary stays steady when library shrinks");
+
+                    // Reverse direction: a right-divider intent may compress
+                    // the native library, but the browser paints only C#'s result.
+                    var resizeRight = typeof(ReadArticles.MainWindow).GetMethod(
+                        "ResizeVocabularyPane", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    resizeRight.Invoke(window, [400d]);
+                    WaitFor(() => Math.Abs(Evaluate(browser, """
+                        document.getElementById('vocabulary-scroll').getBoundingClientRect().width
+                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        "confirmed vocabulary width after right-divider resize");
+                    var nativeLeft = (ColumnDefinition)window.FindName("LeftColumn");
+                    Program.Check(Math.Abs(nativeLeft.ActualWidth - paneSettings.LeftWidth) < 2);
                 }
                 finally
                 {
