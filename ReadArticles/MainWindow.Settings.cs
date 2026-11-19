@@ -16,20 +16,23 @@ public partial class MainWindow
     {
         Resources[SystemParameters.VerticalScrollBarWidthKey] = Math.Round(Math.Round(SystemParameters.VerticalScrollBarWidth) / 2);
         var workArea = SystemParameters.WorkArea;
-        Width = Math.Round(Math.Round(workArea.Width) * 0.7);
+        // Reserve enough room for the default pane widths when the screen permits.
+        const double minimumWindowWidth = 200 + 3 + 400 + 3 + 300 + 40;
+        const double defaultWindowWidth = 360 + 3 + 400 + 3 + 400 + 40;
+        Width = Math.Min(Math.Round(workArea.Width),
+            Math.Max(Math.Round(Math.Round(workArea.Width) * 0.7), defaultWindowWidth));
         Height = Math.Round(Math.Round(workArea.Height) * 0.7);
-        MinWidth = Math.Min(1050, Width);
+        MinWidth = Math.Min(minimumWindowWidth, Width);
         MinHeight = Math.Min(620, Height);
         Left = Math.Round(Math.Round(workArea.Left) + (Math.Round(workArea.Width) - Width) / 2);
         Top = Math.Round(Math.Round(workArea.Top) + (Math.Round(workArea.Height) - Height) / 2);
 
         // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
-        double contentWidth = Math.Max(0, Width - 40);
-        double panelScale = Math.Min(1, contentWidth / 906);
-        LeftColumn.MinWidth = Math.Round(200 * panelScale);
-        CenterColumn.MinWidth = Math.Round(410 * panelScale);
-        LeftColumn.Width = new GridLength(Math.Clamp(settings.LeftWidth, LeftColumn.MinWidth,
-            Math.Max(LeftColumn.MinWidth, Math.Round(contentWidth * 0.22))));
+        // WebView2 contains the 400-DIP article, 3-DIP divider and 300-DIP vocabulary.
+        double maxLeft = Math.Max(LeftColumn.MinWidth,
+            Width - 40 - 3 - CenterColumn.MinWidth);
+        LeftColumn.Width = new GridLength(Math.Clamp(settings.LeftWidth,
+            LeftColumn.MinWidth, Math.Min(LeftColumn.MaxWidth, maxLeft)));
 
         ApplyReadingFont((int)settings.FontSize);
         player.Volume = settings.Volume;

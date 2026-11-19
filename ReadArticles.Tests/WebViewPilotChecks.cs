@@ -124,6 +124,31 @@ internal static class WebViewPilotChecks
                     throw new Exception($"Unexpected Passage DOM: {passage.GetRawText()}; " +
                         $"expectedTitle={expectedTitle}, nativeReaderHost={window.FindName("ParagraphHost")}");
 
+                // Test actual browser bounds and the two word-divider drag limits.
+                JsonElement widths = Evaluate(browser, """
+                    (() => {
+                      const article = document.getElementById('article-scroll');
+                      const vocabulary = document.getElementById('vocabulary-scroll');
+                      const splitter = document.getElementById('reader-splitter');
+                      const original = document.documentElement.style.getPropertyValue('--word-width');
+                      const minimum = setDividerWidth(0);
+                      const maximum = setDividerWidth(1000);
+                      document.documentElement.style.setProperty('--word-width', original);
+                      return {
+                        article: article.getBoundingClientRect().width,
+                        vocabulary: vocabulary.getBoundingClientRect().width,
+                        splitter: splitter.getBoundingClientRect().width,
+                        minimum, maximum
+                      };
+                    })()
+                    """);
+                Program.Check(widths.GetProperty("article").GetDouble() >= 400 &&
+                    widths.GetProperty("vocabulary").GetDouble() >= 300 &&
+                    widths.GetProperty("vocabulary").GetDouble() <= 500 &&
+                    widths.GetProperty("splitter").GetDouble() == 3 &&
+                    widths.GetProperty("minimum").GetDouble() == 300 &&
+                    widths.GetProperty("maximum").GetDouble() <= 500);
+
                 // Scrolling the long Passage and its 120-word list must be independent.
                 JsonElement scroll = Evaluate(browser, """
                     (() => {

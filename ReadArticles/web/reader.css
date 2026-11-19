@@ -13,7 +13,7 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  grid-template-columns: minmax(0, 1fr) 8px minmax(0, clamp(220px, var(--word-width, 390px), calc(100% - 288px)));
+  grid-template-columns: minmax(400px, 1fr) 3px clamp(300px, var(--word-width, 400px), min(500px, calc(100% - 403px)));
   gap: 0;
   padding: 0;
   position: relative;
@@ -78,7 +78,6 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
 }
 #vocabulary-count { color: #7b8791; font-size: 0.85em; }
 .reader-splitter {
-  min-width: 8px;
   cursor: col-resize;
   background: #f3f3f3;
   touch-action: none;
@@ -219,6 +218,5 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
   font-size: .9em;
 }
 @media (max-width: 700px) {
-  .workspace { grid-template-columns: minmax(0, 1fr) 7px minmax(0, clamp(220px, var(--word-width, 390px), calc(100% - 275px))); }
   #article-scroll { padding: 16px; }
 }

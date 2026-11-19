@@ -43,7 +43,15 @@ internal static class WebViewSettingsChecks
                 Program.Check(window.ViewModel.Accent == "us");
                 Apply("setPanelWidth", """{"width":360}""");
                 Program.Check(settings.RightWidth == 360);
-                Apply("setPanelWidth", """{"width":-42}""");
+                Apply("setPanelWidth", """{"width":299}""");
+                Program.Check(settings.RightWidth == 360);
+                Apply("setPanelWidth", """{"width":501}""");
+                Program.Check(settings.RightWidth == 360);
+                Apply("setPanelWidth", """{"width":300}""");
+                Program.Check(settings.RightWidth == 300);
+                Apply("setPanelWidth", """{"width":500}""");
+                Program.Check(settings.RightWidth == 500);
+                Apply("setPanelWidth", """{"width":360}""");
                 Program.Check(settings.RightWidth == 360);
                 var getSnapshot = type.GetMethod("WebPilotSettingsSnapshot",
                     BindingFlags.Instance | BindingFlags.NonPublic);
@@ -104,7 +112,7 @@ internal static class WebViewSettingsChecks
                 """
                 {"LeftWidth":720,"RightWidth":850,"FontSize":16,"Accent":"us","ForwardStep":7}
                 """)!;
-            Program.Check(restored.LeftWidth == 310 && restored.RightWidth == 390);
+            Program.Check(restored.LeftWidth == 360 && restored.RightWidth == 400);
             Program.Check(restored.FontSize == 16 && restored.Accent == "us" &&
                 restored.ForwardStep == 7);
             restored.LeftWidth = 540;
@@ -112,7 +120,7 @@ internal static class WebViewSettingsChecks
             string saved = JsonSerializer.Serialize(restored);
             Program.Check(!saved.Contains("LeftWidth", StringComparison.Ordinal) &&
                 !saved.Contains("RightWidth", StringComparison.Ordinal));
-            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 390);
+            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 400);
         });
 
         Program.Run("WebView2 notification dismiss retains errors until acknowledged", () =>

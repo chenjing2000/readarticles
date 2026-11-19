@@ -11,6 +11,25 @@ internal static class ReaderControlsChecks
 {
     internal static void Run()
     {
+        Program.Run("three-pane WPF constraints match requested widths", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                var grid = (Grid)window.Content;
+                var left = (ColumnDefinition)window.FindName("LeftColumn");
+                var center = (ColumnDefinition)window.FindName("CenterColumn");
+                Program.Check(left.MinWidth == 200 && left.MaxWidth == 500 &&
+                    left.Width.Value >= 200 && left.Width.Value <= 360 &&
+                    center.MinWidth == 703 && grid.ColumnDefinitions[1].Width.Value == 3 &&
+                    grid.Children.OfType<GridSplitter>().Single().HorizontalAlignment ==
+                    HorizontalAlignment.Stretch);
+                if (window.Width >= 360 + 3 + 703 + 40)
+                    Program.Check(left.Width.Value == 360);
+            }
+            finally { window.Close(); }
+        });
+
         Program.Run("settings own value normalization on load and save", () =>
         {
             string path = ReaderSettings.PathName;
@@ -27,7 +46,7 @@ internal static class ReaderControlsChecks
                     Volume = 3, Accent = "invalid", ForwardStep = 1, BackwardStep = 1 });
                 var settings = ReaderSettings.Load(out var warning);
                 // Persisted legacy widths are ignored: every launch starts at defaults.
-                Program.Check(warning == null && settings.LeftWidth == 310 && settings.RightWidth == 390);
+                Program.Check(warning == null && settings.LeftWidth == 360 && settings.RightWidth == 400);
                 Program.Check(settings.FontSize == 16 && settings.Volume == 1 && settings.Accent == "uk");
                 Program.Check(settings.ForwardStep == 4 && settings.BackwardStep == 5);
                 settings.FontSize = double.NaN;
@@ -75,13 +94,13 @@ internal static class ReaderControlsChecks
                     Library = TestData.LibraryRoot
                 });
                 var migrated = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && migrated.LeftWidth == 310 && migrated.RightWidth == 390);
+                Program.Check(warning == null && migrated.LeftWidth == 360 && migrated.RightWidth == 400);
                 Program.Check(migrated.Accent == "us" && migrated.Volume == 0.4 && migrated.Library == TestData.LibraryRoot);
                 Program.Check(File.Exists(currentPath) && File.Exists(legacyPath));
                 Program.Check(File.Exists(markerPath));
                 var persisted = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && persisted.Accent == "us" &&
-                    persisted.LeftWidth == 310 && persisted.RightWidth == 390);
+                    persisted.LeftWidth == 360 && persisted.RightWidth == 400);
                 persisted.Accent = "uk";
                 persisted.Save();
                 var updated = ReaderSettings.Load(out warning);
@@ -128,15 +147,15 @@ internal static class ReaderControlsChecks
                 saved.RightWidth = 281.8;
                 saved.Save();
                 saved = ReaderSettings.Load(out warning);
-                Program.Check(saved.LeftWidth == 310 && saved.RightWidth == 390 && saved.FontSize == 15);
+                Program.Check(saved.LeftWidth == 360 && saved.RightWidth == 400 && saved.FontSize == 15);
                 // Resizing is allowed in this session; closing must not persist either width.
                 ((ColumnDefinition)window.FindName("LeftColumn")).Width = new GridLength(275);
                 window.UpdateLayout();
                 window.Close();
                 window = null;
                 var closedSettings = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && closedSettings.LeftWidth == 310 &&
-                    closedSettings.RightWidth == 390 && closedSettings.ForwardStep == 7 &&
+                Program.Check(warning == null && closedSettings.LeftWidth == 360 &&
+                    closedSettings.RightWidth == 400 && closedSettings.ForwardStep == 7 &&
                     closedSettings.Accent == "us");
                 string serialized = File.ReadAllText(path);
                 Program.Check(!serialized.Contains("LeftWidth", StringComparison.Ordinal) &&
