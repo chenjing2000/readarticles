@@ -270,25 +270,31 @@ function renderVocabulary(words) {
     row.setAttribute("role", "button");
     row.setAttribute("aria-label", "定位词汇 " + word.word);
     row.append(element("div", "word-head", word.word));
-    row.append(element("div", "phonetics",
-      "UK " + (word.phoneticUk ?? "—") + "  |  US " + (word.phoneticUs ?? "—")));
-    const pronunciations = element("div", "word-pronunciations");
+    const phonetics = element("div", "phonetic-line");
     for (const accent of ["uk", "us"]) {
-      const button = element("button", "", accent === "uk" ? "▶ 英音" : "▶ 美音");
+      // The break opportunity belongs between the two pronunciation groups.
+      const unit = element("span", "phonetic-unit");
+      unit.append(element("span", "phonetic-text",
+        (accent === "uk" ? "UK " : "US ") +
+        (accent === "uk" ? word.phoneticUk ?? "—" : word.phoneticUs ?? "—")));
+      const button = element("button", "phonetic-audio");
       button.type = "button";
       button.disabled = accent === "uk" ? !word.canPlayUk : !word.canPlayUs;
       button.title = accent === "uk" ? "播放英音" : "播放美音";
+      button.setAttribute("aria-label", button.title);
+      const speaker = element("img");
+      speaker.src = "icons/sound.svg";
+      speaker.alt = "";
+      button.append(speaker);
       button.addEventListener("click", event => {
         event.stopPropagation();
-        if (!button.disabled && sessionId) {
-          send("playWord", {
-            payload: { index, word: word.word, accent }
-          });
-        }
+        if (!button.disabled && sessionId)
+          send("playWord", { payload: { index, word: word.word, accent } });
       });
-      pronunciations.append(button);
+      unit.append(button);
+      phonetics.append(unit);
     }
-    row.append(pronunciations);
+    row.append(phonetics);
     for (const meaning of word.meanings ?? []) {
       const line = element("p", "meaning");
       line.append(element("span", "part-of-speech", meaning.pos));
@@ -437,8 +443,8 @@ function updateSelectionAdd() {
     : { mode: "passage", sid: sentence.dataset.sid, text, offset, length: raw.length };
   const rect = range.getBoundingClientRect();
   const button = byId("selection-add");
-  button.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 38, rect.right + 8))) + "px";
-  button.style.top = Math.round(Math.max(8, Math.min(window.innerHeight - 40, rect.top - 14))) + "px";
+  button.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 24, rect.right + 5))) + "px";
+  button.style.top = Math.round(Math.max(8, Math.min(window.innerHeight - 24, rect.top - 8))) + "px";
   button.hidden = false;
   button.disabled = !canWriteVocabulary || !!pendingMutation;
 }
@@ -460,7 +466,10 @@ function renderPlayback(playback) {
   byId("playback-time").textContent =
     formatSeconds(seekDragging ? progress.value : position) + " / " + formatSeconds(duration);
   byId("article-play").disabled = playback.canPlay !== true;
-  byId("article-play").textContent = playback.state === "playing" ? "暂停" : "播放";
+  const playButton = byId("article-play");
+  playButton.querySelector("img").src = playback.state === "playing"
+    ? "icons/pause.svg" : "icons/play.svg";
+  playButton.setAttribute("aria-label", playback.state === "playing" ? "暂停文章音频" : "播放文章音频");
   byId("article-stop").disabled = playback.isArticleActive !== true;
   paintScriptProgress(playback);
 }
@@ -618,22 +627,52 @@ function renderNotifications(notifications) {
     window.requestAnimationFrame(entry.checkOverflow);
   }
 }
+function fontStack(selected, choices) {
+  const names = [selected, ...choices.filter(name => name !== selected)];
+  return names.filter(name => choices.includes(name))
+    .map(name => '"' + name + '"').join(", ") + ", sans-serif";
+}
+
 function renderSettings(settings) {
-  const fontSize = Number(settings.fontSize);
-  document.documentElement.style.setProperty("--reader-font",
-    (Number.isFinite(fontSize) && fontSize >= 10 && fontSize <= 30 ? fontSize : 15) + "px");
   currentSettings = { ...settings };
+  const a = settings.appearance ?? {};
+  const title = a.title ?? {};
+  const body = a.body ?? {};
+  const word = a.vocabulary ?? {};
+  const phonetic = a.phonetics ?? {};
+  const meaning = a.meanings ?? {};
+  const english = ["Nunito Sans", "Microsoft YaHei", "Arial"];
+  const chinese = ["Microsoft YaHei", "SimSun", "KaiTi"];
+  const variables = {
+    "--title-font": fontStack(title.font ?? "Nunito Sans", english),
+    "--title-size": (title.size ?? 18) + "px",
+    "--title-line": String(title.lineHeight ?? 1.3),
+    "--title-after": (title.paragraphAfter ?? 6) + "px",
+    "--title-color": title.color ?? "#283747",
+    "--body-font": fontStack(body.font ?? "Nunito Sans", english),
+    "--body-size": (body.size ?? 15) + "px",
+    "--body-line": String(body.lineHeight ?? 1.3),
+    "--body-after": (body.paragraphAfter ?? 12) + "px",
+    "--body-indent": (body.firstLineIndent ?? 2) + "em",
+    "--body-color": body.color ?? "#283747",
+    "--reading-bg": body.background ?? "#F8F8F6",
+    "--word-font": fontStack(word.font ?? "Nunito Sans", english),
+    "--word-size": (word.size ?? 16) + "px",
+    "--word-color": word.color ?? "#B7394D",
+    "--phonetic-size": (phonetic.size ?? 15) + "px",
+    "--phonetic-color": phonetic.color ?? "#0A7785",
+    "--meaning-font": fontStack(meaning.font ?? "Microsoft YaHei", chinese),
+    "--meaning-size": (meaning.size ?? 15) + "px",
+    "--meaning-line": String(meaning.lineHeight ?? 1.3),
+    "--meaning-color": meaning.color ?? "#283747"
+  };
+  for (const [name, value] of Object.entries(variables))
+    document.documentElement.style.setProperty(name, value);
   applyPaneWidth(settings.rightWidth);
-  for (const [id, value] of [
-    ["reader-font-size", settings.fontSize],
-    ["reader-accent", settings.accent],
-    ["reader-forward-step", settings.forwardStep],
-    ["reader-backward-step", settings.backwardStep]
-  ]) {
-    if (value !== undefined) byId(id).value = String(value);
-  }
   highlightsVisible = settings.highlightsVisible === true;
   byId("highlight-toggle").setAttribute("aria-pressed", String(highlightsVisible));
+  byId("highlight-toggle").querySelector("img").src = highlightsVisible
+    ? "icons/not-show-vocabulary.svg" : "icons/show-vocabulary.svg";
   refreshHighlights(false);
   if (currentMode === "script") scheduleScriptGeometry();
 }
@@ -670,6 +709,8 @@ function send(type, additional = {}) {
 function updateReadingModeButton() {
   const button = byId("script-toggle");
   button.setAttribute("aria-pressed", String(currentMode === "script"));
+  button.querySelector("img").src = currentMode === "script"
+    ? "icons/show-passage.svg" : "icons/show-script.svg";
   button.disabled = !sessionId || !byId("article-body").querySelector(".sentence, .script-sentence") ||
     !!pendingModeRequest || !!pendingMutation;
 }
@@ -722,31 +763,6 @@ function requestVocabularyEdit(type, payload) {
 function selectedWordPayload() {
   if (selectedIndex < 0 || selectedIndex >= vocabulary.length) return null;
   return { index: selectedIndex, word: vocabulary[selectedIndex].word };
-}
-
-function setSettingsOpen(open) {
-  byId("reader-settings-panel").hidden = !open;
-  byId("reader-settings-toggle").setAttribute("aria-expanded", String(open));
-}
-byId("reader-settings-toggle").addEventListener("click", () =>
-  setSettingsOpen(byId("reader-settings-panel").hidden));
-document.addEventListener("pointerdown", event => {
-  if (!byId("reader-settings-panel").hidden &&
-      !byId("reader-settings-panel").contains(event.target) &&
-      !byId("reader-settings-toggle").contains(event.target))
-    setSettingsOpen(false);
-});
-
-for (const [id, type, field, convert] of [
-  ["reader-font-size", "setFontSize", "size", Number],
-  ["reader-accent", "setAccent", "accent", String],
-  ["reader-forward-step", "setForwardStep", "seconds", Number],
-  ["reader-backward-step", "setBackwardStep", "seconds", Number]
-]) {
-  byId(id).addEventListener("change", () => {
-    if (!sessionId) return;
-    send(type, { payload: { [field]: convert(byId(id).value) } });
-  });
 }
 
 const splitter = byId("reader-splitter");
@@ -828,8 +844,6 @@ document.addEventListener("keydown", event => {
     const target = Math.max(0, Math.min(Number(currentPlayback.duration) || 0,
       (Number(currentPlayback.position) || 0) + step));
     send("seekArticle", { payload: { position: target } });
-  } else if (event.key === "Escape") {
-    setSettingsOpen(false);
   }
 });
 
