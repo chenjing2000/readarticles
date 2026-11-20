@@ -36,14 +36,14 @@ Resolve `<title>` in this order:
 
 Do not use page headers, unit labels, Exercise headings, captions, or other textbook metadata as the title.
 
-The filename stem is the authoritative Article title. Write:
+The Passage JSON `title` is the authoritative display title, independently provided or inferred from the genuine article heading. The filename stem only identifies the source and related companion files. Write:
 
 ```text
 <title>.json
 <title>.exercise.json
 ```
 
-Do not store `title` inside Passage JSON. The title must therefore be valid as a filename.
+Always store the chosen title in Passage JSON. Choose a valid filename stem separately if necessary.
 
 ## 3. Passage Extraction
 
@@ -68,22 +68,19 @@ If genuine blanks occur inside the Passage body, normalize them in reading order
 
 Do not create placeholders for separate questions outside the Passage. Each placeholder number must occur exactly once and numbering must be continuous from 1.
 
-The Passage JSON always begins with:
+The Passage JSON uses exactly `filetype`, `title`, and `paragraphs`, with an array of nonempty sentence strings for each paragraph:
 
 ```json
 {
-  "filetype": "passage"
+  "filetype": "passage",
+  "title": "Example",
+  "paragraphs": [
+    ["First sentence.", "Second sentence."]
+  ]
 }
 ```
 
-Then follow `../passage_segment/SKILL.md` exactly:
-
-- no placeholders → Article with SID-derived sentence audio;
-- placeholders → ArticleBlank with sentence playback disabled;
-- SID starts at `s001`, is Passage-wide unique, and `next_sid` is correct;
-- do not write `title` or `tts_enabled`.
-
-Neither family stores `audio` fields. Article recordings are resolved from SID under `audio_sentences/<sid>_uk.mp3` or `.wav`, and `_us.mp3` or `.wav`; prefer MP3 when present and use WAV only when MP3 is absent. Decoding errors do not retry WAV. Old directories and indexes are not read or migrated. Ignore legacy `audio` fields when processing existing content and omit them from regenerated JSON.
+Follow [Passage Segment](../passage_segment/SKILL.md) for segmentation and valid `[[n]]` placeholders. Passage has no SID, `text` object, `paragraph` wrapper, `next_sid` counter or sentence audio. No old-format compatibility is provided.
 
 ## 4. Exercise Extraction
 
@@ -162,8 +159,8 @@ Before returning/writing files, verify:
 
 - Passage and Exercise text are separated correctly and source order is preserved;
 - `<title>.json` satisfies `../passage_segment/SKILL.md`;
-- Passage has `filetype="passage"`, no `title`, and no `tts_enabled`;
-- no Segment contains `audio`; ArticleBlank has continuous `[[1]]..[[N]]`, while Article has no placeholders;
+- Passage has `filetype="passage"`, a required string `title` (empty allowed), and two-dimensional sentence-string `paragraphs`;
+- no sentence-level audio, SID or `text` object exists; fill-in-the-blank placeholders are continuous `[[1]]..[[N]]` when present;
 - optional Exercise has `filetype="exercise"` and one of the listed authoring `article_*` types;
 - all answer-unit numbers are unique positive integers;
 - all cloze-family item numbers match Passage placeholder numbers exactly;
