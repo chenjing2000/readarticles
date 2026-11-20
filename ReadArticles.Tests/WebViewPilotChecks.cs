@@ -19,7 +19,20 @@ internal static class WebViewPilotChecks
             {
                 "ReadArticles.web.reader.html",
                 "ReadArticles.web.reader.css",
-                "ReadArticles.web.reader.js"
+                "ReadArticles.web.reader.js",
+                "ReadArticles.web.icons.play.svg",
+                "ReadArticles.web.icons.pause.svg",
+                "ReadArticles.web.icons.stop.svg",
+                "ReadArticles.web.icons.sound.svg",
+                "ReadArticles.web.icons.import.svg",
+                "ReadArticles.web.icons.delete.svg",
+                "ReadArticles.web.icons.move-up.svg",
+                "ReadArticles.web.icons.move-down.svg",
+                "ReadArticles.web.icons.show-script.svg",
+                "ReadArticles.web.icons.show-passage.svg",
+                "ReadArticles.web.icons.show-vocabulary.svg",
+                "ReadArticles.web.icons.not-show-vocabulary.svg",
+                "ReadArticles.web.icons.selection-add.svg"
             })
             {
                 using Stream? stream = assembly.GetManifestResourceStream(name);
@@ -123,6 +136,22 @@ internal static class WebViewPilotChecks
                 if (!validPassage)
                     throw new Exception($"Unexpected Passage DOM: {passage.GetRawText()}; " +
                         $"expectedTitle={expectedTitle}, nativeReaderHost={window.FindName("ParagraphHost")}");
+
+                JsonElement visual = Evaluate(browser, """
+                    (() => ({
+                      popupGone: !document.getElementById('reader-settings-panel') &&
+                                 !document.getElementById('reader-settings-toggle'),
+                      defaultSize: getComputedStyle(document.getElementById('article-title')).fontSize,
+                      icon: document.querySelector('#article-play img')?.getAttribute('src'),
+                      grouped: document.querySelectorAll('.phonetic-line .phonetic-unit').length >= 2,
+                      images: [...document.querySelectorAll('.toolbar button img')].every(img => img.complete && img.naturalWidth > 0)
+                    }))()
+                    """);
+                Program.Check(visual.GetProperty("popupGone").GetBoolean() &&
+                    visual.GetProperty("defaultSize").GetString() == "18px" &&
+                    visual.GetProperty("icon").GetString() == "icons/play.svg" &&
+                    visual.GetProperty("grouped").GetBoolean() &&
+                    visual.GetProperty("images").GetBoolean());
 
                 // Test actual browser bounds and the two word-divider drag limits.
                 JsonElement widths = Evaluate(browser, """

@@ -61,13 +61,13 @@ internal static class BackupChecks
                 }
                 finally { File.WriteAllBytes(settingsPath, savedSettings); }
 
-                var corruptFilesBefore = Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt");
+                var corruptFilesBefore = Directory.GetFiles(AppPaths.ApplicationDirectory, "ReadArticles.config.json.*.corrupt");
                 File.WriteAllText(settingsPath, "{ invalid json");
                 var recovered = ReaderSettings.Load(out warning);
                 Program.Check(recovered.Volume == 0.8 && recovered.Accent == "uk");
                 Program.Check(warning != null && warning.Contains("已从最近一次有效备份恢复", StringComparison.Ordinal));
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
-                foreach (string corrupt in Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt"))
+                foreach (string corrupt in Directory.GetFiles(AppPaths.ApplicationDirectory, "ReadArticles.config.json.*.corrupt"))
                     if (!corruptFilesBefore.Contains(corrupt, StringComparer.OrdinalIgnoreCase)) File.Delete(corrupt);
             }
             finally
