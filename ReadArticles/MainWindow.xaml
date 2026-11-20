@@ -7,41 +7,6 @@
         Title="ReadArticles" Width="1500" Height="920" MinHeight="620"
         Background="#F3F3F3" FontFamily="Segoe UI" FontSize="11pt" Icon="{x:Static icons:UiIcons.AppIcon}">
   <Window.Resources>
-    <Style x:Key="SettingsSurface" TargetType="Border">
-      <Setter Property="Background" Value="#FCFCFD"/><Setter Property="BorderBrush" Value="#E0E5EB"/>
-      <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="10"/>
-      <Setter Property="Padding" Value="6"/><Setter Property="Margin" Value="8"/>
-      <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#344256" BlurRadius="12" ShadowDepth="2" Opacity="0.16"/></Setter.Value></Setter>
-    </Style>
-    <Style x:Key="SettingsMenuItem" TargetType="MenuItem">
-      <Setter Property="FontSize" Value="10pt"/>
-      <Setter Property="Foreground" Value="#283747"/><Setter Property="Padding" Value="6,8"/>
-      <Setter Property="HorizontalContentAlignment" Value="Left"/>
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="MenuItem">
-            <Grid>
-              <Border x:Name="ItemSurface" Background="#FCFCFD" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="Arrow" Grid.Column="1" Margin="8,0,0,0" Text="›" Visibility="Collapsed" VerticalAlignment="Center"/>
-                </Grid>
-              </Border>
-              <Popup x:Name="PART_Popup" Placement="Right" PlacementTarget="{Binding ElementName=ItemSurface}" HorizontalOffset="2" VerticalOffset="-8" AllowsTransparency="True" Focusable="False" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
-                <Border Style="{StaticResource SettingsSurface}"><StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/></Border>
-              </Popup>
-            </Grid>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemSurface" Property="Background" Value="#EDF3F9"/></Trigger>
-              <Trigger Property="IsSubmenuOpen" Value="True"><Setter TargetName="ItemSurface" Property="Background" Value="#EDF3F9"/></Trigger>
-              <Trigger Property="IsChecked" Value="True"><Setter TargetName="ItemSurface" Property="Background" Value="#87C0CA"/></Trigger>
-              <Trigger Property="HasItems" Value="True"><Setter TargetName="Arrow" Property="Visibility" Value="Visible"/></Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
     <Style x:Key="TreeExpander" TargetType="ToggleButton">
       <Setter Property="Focusable" Value="False"/><Setter Property="Width" Value="20"/><Setter Property="Height" Value="20"/>
       <Setter Property="Template">
@@ -64,45 +29,20 @@
       <ColumnDefinition x:Name="CenterColumn" Width="*" MinWidth="403"/>
     </Grid.ColumnDefinitions>
     <DockPanel Grid.Column="0">
-      <Button DockPanel.Dock="Top" Content="选择图书馆" Click="LibraryClicked" Margin="0,0,0,12"/>
-      <DockPanel DockPanel.Dock="Bottom" Height="48" Margin="0,8,0,0">
-        <Button x:Name="SettingsButton" DockPanel.Dock="Left" Width="26" Height="26" VerticalAlignment="Center" Padding="0" Margin="0,0,10,0" ToolTip="设置" Click="SettingsClicked">
-          <Button.Template>
-            <ControlTemplate TargetType="Button">
-              <Ellipse x:Name="SettingsCircle" Fill="#2C78B9"/>
-              <ControlTemplate.Triggers>
-                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SettingsCircle" Property="Fill" Value="{StaticResource ButtonFocusBrush}"/></Trigger>
-              </ControlTemplate.Triggers>
-            </ControlTemplate>
-          </Button.Template>
-          <Button.ContextMenu>
-            <ContextMenu Placement="Top" HorizontalOffset="25" VerticalOffset="4" FontSize="10pt" Background="Transparent">
-              <ContextMenu.Resources><Style TargetType="MenuItem" BasedOn="{StaticResource SettingsMenuItem}"/></ContextMenu.Resources>
-              <ContextMenu.Template><ControlTemplate TargetType="ContextMenu"><Border Style="{StaticResource SettingsSurface}"><StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/></Border></ControlTemplate></ContextMenu.Template>
-              <MenuItem Header="字号">
-                <MenuItem x:Name="Font14Option" Header="14" Tag="14" IsCheckable="True" Click="FontClicked"/>
-                <MenuItem x:Name="Font15Option" Header="15" Tag="15" IsCheckable="True" Click="FontClicked"/>
-                <MenuItem x:Name="Font16Option" Header="16" Tag="16" IsCheckable="True" Click="FontClicked"/>
-              </MenuItem>
-              <MenuItem Header="读音">
-                <MenuItem x:Name="AccentUkOption" Header="英音" Tag="uk" IsCheckable="True" Click="AccentClicked"/>
-                <MenuItem x:Name="AccentUsOption" Header="美音" Tag="us" IsCheckable="True" Click="AccentClicked"/>
-              </MenuItem>
-              <MenuItem Header="进度条">
-                <MenuItem x:Name="ForwardStepMenu" Header="前进">
-                  <MenuItem Header="4 秒" Tag="4.0" IsCheckable="True" Click="ProgressStepClicked"/>
-                  <MenuItem Header="7 秒" Tag="7.0" IsCheckable="True" Click="ProgressStepClicked"/>
-                  <MenuItem Header="10 秒" Tag="10.0" IsCheckable="True" Click="ProgressStepClicked"/>
-                </MenuItem>
-                <MenuItem x:Name="BackwardStepMenu" Header="后退">
-                  <MenuItem Header="5 秒" Tag="5.0" IsCheckable="True" Click="ProgressStepClicked"/>
-                  <MenuItem Header="8 秒" Tag="8.0" IsCheckable="True" Click="ProgressStepClicked"/>
-                  <MenuItem Header="15 秒" Tag="15.0" IsCheckable="True" Click="ProgressStepClicked"/>
-                </MenuItem>
-              </MenuItem>
-            </ContextMenu>
-          </Button.ContextMenu>
+      <Grid DockPanel.Dock="Top" Margin="0,0,0,12" Height="32">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Button Grid.Column="0" Content="选择图书馆" Click="LibraryClicked" Margin="0,0,6,0"/>
+        <Button x:Name="SettingsButton" Grid.Column="1" Width="76" ToolTip="阅读设置" Click="SettingsClicked">
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image Source="{x:Static icons:UiIcons.Settings}" Width="16" Height="16" Margin="0,0,5,0"/>
+            <TextBlock Text="设置" VerticalAlignment="Center"/>
+          </StackPanel>
         </Button>
+      </Grid>
+      <DockPanel DockPanel.Dock="Bottom" Height="48" Margin="0,8,0,0">
         <TextBlock Text="{Binding CurrentUser}" VerticalAlignment="Center"/>
       </DockPanel>
       <TreeView x:Name="LibraryTree" FontSize="11pt" ItemsSource="{Binding Books}" BorderThickness="0" Background="White"
