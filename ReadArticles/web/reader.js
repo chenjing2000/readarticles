@@ -768,29 +768,31 @@ function renderSettings(settings) {
   const word = a.vocabulary ?? {};
   const phonetic = a.phonetics ?? {};
   const meaning = a.meanings ?? {};
-  const english = ["Nunito Sans", "Microsoft YaHei", "Arial"];
+  const english = ["Georgia", "Microsoft YaHei UI", "Nunito Sans", "Segoe UI"];
   const chinese = ["Microsoft YaHei", "SimSun", "KaiTi"];
   const variables = {
-    "--title-font": fontStack(title.font ?? "Nunito Sans", english),
+    "--title-font": fontStack(title.font ?? "Georgia", english),
     "--title-size": (title.size ?? 18) + "px",
-    "--title-line": String(title.lineHeight ?? 1.6),
+    "--title-line": String(title.lineHeight ?? 1.7),
     "--title-after": (title.paragraphAfter ?? 16) + "px",
     "--title-color": title.color ?? "#283747",
-    "--body-font": fontStack(body.font ?? "Nunito Sans", english),
+    "--body-font": fontStack(body.font ?? "Georgia", english),
     "--body-size": (body.size ?? 15) + "px",
-    "--body-line": String(body.lineHeight ?? 1.5),
+    "--body-line": String(body.lineHeight ?? 1.7),
     "--body-after": (body.paragraphAfter ?? 16) + "px",
     "--body-indent": (body.firstLineIndent ?? 2) + "em",
     "--body-color": body.color ?? "#283747",
     "--reading-bg": body.background ?? "#F8F8F6",
-    "--word-font": fontStack(word.font ?? "Nunito Sans", english),
+    "--script-color": body.scriptColor ?? "#B64550",
+    "--selection-add-size": (body.selectionAddSize ?? 0.65) + "em",
+    "--word-font": fontStack(word.font ?? "Georgia", english),
     "--word-size": (word.size ?? 16) + "px",
     "--word-color": word.color ?? "#B7394D",
     "--phonetic-size": (phonetic.size ?? 14) + "px",
     "--phonetic-color": phonetic.color ?? "#0A7785",
     "--meaning-font": fontStack(meaning.font ?? "Microsoft YaHei", chinese),
     "--meaning-size": (meaning.size ?? 15) + "px",
-    "--meaning-line": String(meaning.lineHeight ?? 1.4),
+    "--meaning-line": String(meaning.lineHeight ?? 1.5),
     "--meaning-color": meaning.color ?? "#283747"
   };
   for (const [name, value] of Object.entries(variables))
@@ -802,6 +804,7 @@ function renderSettings(settings) {
     ? "icons/not-show-vocabulary.svg" : "icons/show-vocabulary.svg";
   refreshHighlights(false);
   scheduleHighlightGeometry();
+  if (selectedPassage) refreshSelectionAddPosition();
   if (currentMode === "script") scheduleScriptGeometry();
 }
 

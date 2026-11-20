@@ -154,26 +154,28 @@ public sealed class ReaderSettings
         Appearance.Phonetics ??= new();
         Appearance.Meanings ??= new();
         var a = Appearance;
-        a.Title.Font = Font(a.Title.Font, "Nunito Sans", "Nunito Sans", "Microsoft YaHei", "Arial");
+        a.Title.Font = Font(a.Title.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito Sans", "Segoe UI");
         a.Title.Size = Allowed(a.Title.Size, 18, 16, 18, 20, 22, 24);
-        a.Title.LineHeight = Allowed(a.Title.LineHeight, 1.6, 1.4, 1.6, 1.8);
+        a.Title.LineHeight = Allowed(a.Title.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Title.ParagraphAfter = Allowed(a.Title.ParagraphAfter, 16, 16, 18, 20);
         a.Title.Color = ColorCode(a.Title.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
-        a.Body.Font = Font(a.Body.Font, "Nunito Sans", "Nunito Sans", "Microsoft YaHei", "Arial");
+        a.Body.Font = Font(a.Body.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito Sans", "Segoe UI");
         a.Body.Size = Allowed(a.Body.Size, 15, 14, 15, 16, 17);
-        a.Body.LineHeight = Allowed(a.Body.LineHeight, 1.5, 1.5, 1.6, 1.7);
+        a.Body.LineHeight = Allowed(a.Body.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Body.ParagraphAfter = Allowed(a.Body.ParagraphAfter, 16, 14, 16, 18);
         a.Body.FirstLineIndent = Allowed(a.Body.FirstLineIndent, 2, 0, 1, 2, 3);
         a.Body.Color = ColorCode(a.Body.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         a.Body.Background = ColorCode(a.Body.Background, "#F8F8F6", "#F8F8F6", "#F0F3F7", "#F7F1E6", "#EFF5F0", "#F1F0F7");
-        a.Vocabulary.Font = Font(a.Vocabulary.Font, "Nunito Sans", "Nunito Sans", "Microsoft YaHei", "Arial");
+        a.Body.ScriptColor = ColorCode(a.Body.ScriptColor, "#B64550", "#B64550", "#A33D30", "#A45A2C", "#856300", "#53713C");
+        a.Body.SelectionAddSize = Allowed(a.Body.SelectionAddSize, 0.65, 0.55, 0.60, 0.65);
+        a.Vocabulary.Font = Font(a.Vocabulary.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito Sans", "Segoe UI");
         a.Vocabulary.Size = Allowed(a.Vocabulary.Size, 16, 15, 16, 17);
         a.Vocabulary.Color = ColorCode(a.Vocabulary.Color, "#B7394D", "#B7394D", "#9D3E68", "#7D50A1", "#1F6795", "#8B593B");
         a.Phonetics.Size = Allowed(a.Phonetics.Size, 14, 13, 14, 15);
         a.Phonetics.Color = ColorCode(a.Phonetics.Color, "#0A7785", "#0A7785", "#256CA5", "#38735A", "#7657A0", "#995431");
         a.Meanings.Font = Font(a.Meanings.Font, "Microsoft YaHei", "Microsoft YaHei", "SimSun", "KaiTi");
         a.Meanings.Size = Allowed(a.Meanings.Size, 15, 14, 15, 16);
-        a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.4, 1.3, 1.4, 1.5);
+        a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.5, 1.5, 1.6, 1.7);
         a.Meanings.Color = ColorCode(a.Meanings.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         if (Audio.Accent is not ("uk" or "us")) Audio.Accent = "uk";
         Audio.ForwardStep = Allowed(Audio.ForwardStep, 4, 4, 7, 10, 15);
@@ -183,7 +185,7 @@ public sealed class ReaderSettings
 
 public sealed class ReaderAppearance
 {
-    public ReaderTextStyle Title { get; set; } = new() { Size = 18, LineHeight = 1.6, ParagraphAfter = 16 };
+    public ReaderTextStyle Title { get; set; } = new() { Size = 18, LineHeight = 1.7, ParagraphAfter = 16 };
     public ReaderBodyStyle Body { get; set; } = new();
     public ReaderWordStyle Vocabulary { get; set; } = new();
     public ReaderPhoneticStyle Phonetics { get; set; } = new();
@@ -191,21 +193,23 @@ public sealed class ReaderAppearance
 }
 public class ReaderTextStyle
 {
-    public string Font { get; set; } = "Nunito Sans";
+    public string Font { get; set; } = "Georgia";
     public double Size { get; set; } = 18;
-    public double LineHeight { get; set; } = 1.3;
+    public double LineHeight { get; set; } = 1.7;
     public double ParagraphAfter { get; set; } = 6;
     public string Color { get; set; } = "#283747";
 }
 public sealed class ReaderBodyStyle : ReaderTextStyle
 {
-    public ReaderBodyStyle() { Size = 15; LineHeight = 1.5; ParagraphAfter = 16; }
+    public ReaderBodyStyle() { Size = 15; LineHeight = 1.7; ParagraphAfter = 16; }
     public double FirstLineIndent { get; set; } = 2;
     public string Background { get; set; } = "#F8F8F6";
+    public string ScriptColor { get; set; } = "#B64550";
+    public double SelectionAddSize { get; set; } = 0.65;
 }
 public sealed class ReaderWordStyle
 {
-    public string Font { get; set; } = "Nunito Sans";
+    public string Font { get; set; } = "Georgia";
     public double Size { get; set; } = 16;
     public string Color { get; set; } = "#B7394D";
 }
@@ -218,7 +222,7 @@ public sealed class ReaderMeaningStyle
 {
     public string Font { get; set; } = "Microsoft YaHei";
     public double Size { get; set; } = 15;
-    public double LineHeight { get; set; } = 1.4;
+    public double LineHeight { get; set; } = 1.5;
     public string Color { get; set; } = "#283747";
 }
 public sealed class ReaderAudioPreferences
