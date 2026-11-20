@@ -62,13 +62,35 @@ public sealed class ReaderSettings
                         root.TryGetProperty("Audio", out var audio) &&
                         audio.ValueKind == JsonValueKind.Object)
                         return Deserialize(PathName);
+                    // Valid JSON but obsolete schema: deliberate breaking change.
+                    warning = "检测到旧格式配置，已重新创建默认设置。";
                 }
-                catch (JsonException)
+                catch (JsonException error)
                 {
-                    warning = "配置文件无效，已重新创建默认设置。";
+                    // This is corruption, not an old schema. Retain the
+                    // original and try a verified backup of the new format.
+                    warning = "配置文件损坏：" + error.Message;
+                    string corrupt = PathName + "." +
+                        DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
+                    File.Move(PathName, corrupt);
+                    if (File.Exists(AppPaths.SettingsBackupFile))
+                    {
+                        try
+                        {
+                            var backup = Deserialize(AppPaths.SettingsBackupFile);
+                            BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
+                            warning += " 已从最近一次有效备份恢复。";
+                            return backup;
+                        }
+                        catch (Exception restoreError) when
+                            (restoreError is JsonException or IOException or UnauthorizedAccessException)
+                        {
+                            warning += " 备份不可恢复。";
+                        }
+                    }
                 }
-                // Ignore old/invalid formats, replacing them with new defaults.
-                // Do not rotate an obsolete file into the current backup.
+                // Obsolete formats are not migrated, just replaced with
+                // defaults. An obsolete source never rotates to the backup.
                 var clean = new ReaderSettings();
                 JsonFiles.WriteAtomic(PathName, clean);
                 return clean;
