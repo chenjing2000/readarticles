@@ -11,10 +11,10 @@ internal static class AudioChecks
         Program.Run("resource paths reject traversal and absolute references", () =>
         {
             string resourceRoot = Directory.GetCurrentDirectory();
-            Program.Check(ResourcePaths.Resolve(resourceRoot, "audio_sentences/s001_uk.mp3").StartsWith(resourceRoot));
+            Program.Check(ResourcePaths.Resolve(resourceRoot, "audio/life_uk.mp3").StartsWith(resourceRoot));
             Reject("../escape.mp3");
             Reject("C:/outside.mp3");
-            Reject("audio_sentences/file.mp3:stream");
+            Reject("audio/file.mp3:stream");
             void Reject(string relative)
             {
                 try { ResourcePaths.Resolve(resourceRoot, relative); }
@@ -218,9 +218,49 @@ internal static class AudioChecks
                 var controller = new PlaybackController(player);
                 string? warning = null;
                 controller.Message += message => warning = message;
-                controller.Play(new AudioItem(first), "segment:s001");
+                controller.Play(new AudioItem(first), "word:uk:life");
                 player.Fail(player.Played[^1].Request);
-                Program.Check(controller.State == PlaybackState.Stopped && controller.CurrentSid is null && warning is not null);
+                Program.Check(controller.State == PlaybackState.Stopped && warning is not null);
+            });
+            Program.Run("ordered candidates retry failures and stop at first opened file", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                string? warning = null;
+                controller.Message += message => warning = message;
+                controller.PlayCandidates([first, second], "passage");
+                Program.Check(player.Played.Count == 1 && player.Played[0].Path == first);
+                long failed = player.Played[0].Request;
+                player.Fail(failed);
+                Program.Check(player.Played.Count == 2 && player.Played[1].Path == second);
+                player.Open(failed);
+                Program.Check(player.Played.Count == 2 && controller.State == PlaybackState.Playing);
+                player.Open(player.Played[1].Request);
+                Program.Check(controller.IsOpen && warning is null);
+                player.Fail(player.Played[1].Request);
+                Program.Check(controller.State == PlaybackState.Stopped && warning is not null);
+            });
+            Program.Run("stopping while opening cancels remaining candidates", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                controller.PlayCandidates([first, second], "passage");
+                long stale = player.Played[0].Request;
+                controller.Stop();
+                player.Fail(stale);
+                Program.Check(player.Played.Count == 1 && controller.State == PlaybackState.Stopped);
+            });
+            Program.Run("all failed candidates report only one final failure", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                int warnings = 0;
+                controller.Message += _ => warnings++;
+                controller.PlayCandidates([first, second], "passage");
+                player.Fail(player.Played[0].Request);
+                Program.Check(warnings == 0);
+                player.Fail(player.Played[1].Request);
+                Program.Check(warnings == 1 && controller.State == PlaybackState.Stopped);
             });
             Program.Run("reader stale vocabulary entry cancels previous playback target", () =>
             {
@@ -257,6 +297,7 @@ internal static class AudioChecks
         public List<(string Path, long Request)> Played { get; } = [];
         public int Pauses { get; private set; }
         public int Resumes { get; private set; }
+        public bool AutoOpen { get; set; } = true;
         public double Volume { get; set; }
         public bool IsOpen { get; private set; }
         public TimeSpan Position { get; set; }
@@ -265,7 +306,7 @@ internal static class AudioChecks
         {
             Played.Add((absolutePath, request));
             IsOpen = true;
-            Opened?.Invoke(request);
+            if (AutoOpen) Opened?.Invoke(request);
         }
         public void Pause() => Pauses++;
         public void Resume() => Resumes++;
