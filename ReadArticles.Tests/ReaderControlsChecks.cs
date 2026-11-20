@@ -253,6 +253,7 @@ internal static class ReaderControlsChecks
                 var sections = (StackPanel)type.GetField("sections",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
                 Program.Check(sections.Width == 444);
+                Program.Check(sections.HorizontalAlignment != HorizontalAlignment.Right);
                 int palettes = 0;
                 int volumeGroups = 0;
                 foreach (var section in sections.Children.OfType<StackPanel>())
@@ -265,7 +266,15 @@ internal static class ReaderControlsChecks
                             .SequenceEqual(new[] { 72d, 140d, 20d, 72d, 140d }));
                         foreach (var label in row.Children.OfType<TextBlock>())
                             Program.Check(label.FontSize == 13 &&
+                                label.HorizontalAlignment == HorizontalAlignment.Left &&
+                                label.TextAlignment == TextAlignment.Left &&
                                 Grid.GetColumn(label) is 0 or 3);
+                        foreach (var editor in row.Children.Where(child =>
+                            child is not TextBlock))
+                        {
+                            Program.Check(editor.HorizontalAlignment == HorizontalAlignment.Left &&
+                                Grid.GetColumn(editor) is 1 or 4);
+                        }
                         foreach (var selector in row.Children.OfType<ComboBox>())
                             Program.Check(selector.Width == 100);
                         foreach (var group in row.Children.OfType<Grid>())

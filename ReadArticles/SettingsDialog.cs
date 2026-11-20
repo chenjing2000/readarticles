@@ -72,7 +72,7 @@ internal sealed class SettingsDialog : Window
         var scroll = new ScrollViewer
         {
             Content = sections,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
@@ -151,6 +151,8 @@ internal sealed class SettingsDialog : Window
     private static TextBlock Label(string text) => new()
     {
         Text = text, FontSize = 13, Foreground = Brush("#344256"),
+        HorizontalAlignment = HorizontalAlignment.Left,
+        TextAlignment = TextAlignment.Left,
         VerticalAlignment = VerticalAlignment.Center
     };
 
@@ -158,10 +160,12 @@ internal sealed class SettingsDialog : Window
     private static void Row(StackPanel parent, string first, UIElement editor,
         string? second = null, UIElement? secondEditor = null)
     {
-        var grid = new Grid { Height = 36, Margin = new Thickness(0, 0, 0, 5) };
+        var grid = new Grid { Height = 36, HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 0, 5) };
         foreach (double width in new[] { 72d, 140d, 20d, 72d, 140d })
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
         grid.Children.Add(Label(first));
+        editor.HorizontalAlignment = HorizontalAlignment.Left;
         Grid.SetColumn(editor, 1);
         grid.Children.Add(editor);
         if (second != null && secondEditor != null)
@@ -169,6 +173,7 @@ internal sealed class SettingsDialog : Window
             var label = Label(second);
             Grid.SetColumn(label, 3);
             grid.Children.Add(label);
+            secondEditor.HorizontalAlignment = HorizontalAlignment.Left;
             Grid.SetColumn(secondEditor, 4);
             grid.Children.Add(secondEditor);
         }

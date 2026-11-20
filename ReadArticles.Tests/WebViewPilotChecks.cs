@@ -206,13 +206,13 @@ internal static class WebViewPilotChecks
                     """);
                 Program.Check(selectionAction.GetProperty("width").GetString() == "36px" &&
                     selectionAction.GetProperty("height").GetString() == "36px" &&
-                    selectionAction.GetProperty("iconWidth").GetString() == "36px" &&
+                    selectionAction.GetProperty("iconWidth").GetString() == "24px" &&
                     selectionAction.GetProperty("afterLastLine").GetProperty("x").GetInt32() == 132 &&
-                    selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 132 &&
+                    selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 131 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("x").GetInt32() ==
                         Evaluate(browser, "innerWidth").GetInt32() - 68 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("y").GetInt32() ==
-                        Evaluate(browser, "innerHeight").GetInt32() - 68);
+                        Evaluate(browser, "innerHeight").GetInt32() - 67);
 
                 // Test actual browser bounds and the two word-divider drag limits.
                 JsonElement widths = Evaluate(browser, """

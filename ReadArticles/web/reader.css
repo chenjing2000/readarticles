@@ -148,7 +148,7 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 .toolbar button:focus-visible { outline: 2px solid #8ebfe2; outline-offset: 0; }
 .selection-add { position: fixed; z-index: 30; width: 36px; height: 36px;
   border: 0; background: transparent; padding: 0; cursor: pointer; }
-.selection-add img { display: block; width: 36px; height: 36px; }
+.selection-add img { display: block; width: 24px; height: 24px; }
 
 
 [hidden] { display: none !important; }

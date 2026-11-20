@@ -475,17 +475,20 @@ function hideSelectionAdd() {
 // lines. Flip to the left/above near viewport edges to keep it fully visible.
 function positionSelectionAddButton(range, button) {
   const size = 36;
-  const gap = 2;
+  const horizontalGap = 2;
+  const verticalGap = 1;
   const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
   const anchor = fragments.at(-1) ?? range.getBoundingClientRect();
-  const toRight = anchor.right + gap;
-  const toLeft = anchor.left - gap - size;
-  const below = anchor.bottom + gap;
-  const above = anchor.top - gap - size;
-  const left = toRight + size <= window.innerWidth - gap ? toRight : toLeft;
-  const top = below + size <= window.innerHeight - gap ? below : above;
-  button.style.left = Math.round(Math.max(gap, Math.min(window.innerWidth - gap - size, left))) + "px";
-  button.style.top = Math.round(Math.max(gap, Math.min(window.innerHeight - gap - size, top))) + "px";
+  const toRight = anchor.right + horizontalGap;
+  const toLeft = anchor.left - horizontalGap - size;
+  const below = anchor.bottom + verticalGap;
+  const above = anchor.top - verticalGap - size;
+  const left = toRight + size <= window.innerWidth - horizontalGap ? toRight : toLeft;
+  const top = below + size <= window.innerHeight - verticalGap ? below : above;
+  button.style.left = Math.round(Math.max(horizontalGap,
+    Math.min(window.innerWidth - horizontalGap - size, left))) + "px";
+  button.style.top = Math.round(Math.max(verticalGap,
+    Math.min(window.innerHeight - verticalGap - size, top))) + "px";
 }
 
 function updateSelectionAdd() {
