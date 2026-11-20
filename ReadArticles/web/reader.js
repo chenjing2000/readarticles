@@ -123,23 +123,16 @@ function renderArticle(article, mode = "passage", restoreScroll = false) {
     if (restoreScroll) byId("article-scroll").scrollTop = readingScroll.script;
     return;
   }
-  for (const paragraph of article.paragraphs ?? []) {
+  for (const [paragraphIndex, paragraph] of (article.paragraphs ?? []).entries()) {
     const row = element("p", "article-paragraph");
     paragraph.forEach((sentence, index) => {
       if (index > 0) row.append(document.createTextNode(" "));
       const span = element("span", "sentence");
-      if (sentence.sid) span.dataset.sid = sentence.sid;
-      if (sentence.hasAudio === true) {
-        span.dataset.canAudio = "true";
-        span.addEventListener("contextmenu", event => {
-          event.preventDefault();
-          window.getSelection()?.removeAllRanges();
-          send("playSegment", { payload: { sid: sentence.sid } });
-        });
-      }
+      span.dataset.paragraphIndex = String(paragraphIndex);
+      span.dataset.sentenceIndex = String(index);
 
       // Passage blank tokens are display markers, not regular source words.
-      const raw = String(sentence.text ?? "");
+      const raw = String(sentence ?? "");
       const tokens = /\[\[(\d+)\]\]/g;
       let offset = 0;
       for (const found of raw.matchAll(tokens)) {
@@ -567,7 +560,7 @@ function updateSelectionAdd() {
   const sentence = sentenceFor(range.startContainer);
   if (!sentence || sentence !== sentenceFor(range.endContainer) ||
       !byId("article-body").contains(sentence) ||
-      (currentMode === "passage" && !sentence.dataset.sid) ||
+      (currentMode === "passage" && sentence.dataset.paragraphIndex === undefined) ||
       (currentMode === "script" && !sentence.classList.contains("script-sentence"))) {
     hideSelectionAdd();
     return;
@@ -589,7 +582,8 @@ function updateSelectionAdd() {
         sentenceIndex: Number(sentence.dataset.sentenceIndex),
         text, offset, length: raw.length
       }
-    : { mode: "passage", sid: sentence.dataset.sid, text, offset, length: raw.length };
+    : { mode: "passage", paragraphIndex: Number(sentence.dataset.paragraphIndex),
+        sentenceIndex: Number(sentence.dataset.sentenceIndex), text, offset, length: raw.length };
   const button = byId("selection-add");
   button.disabled = !canWriteVocabulary || !!pendingMutation;
   refreshSelectionAddPosition();
