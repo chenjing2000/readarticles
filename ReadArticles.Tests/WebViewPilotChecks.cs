@@ -210,16 +210,56 @@ internal static class WebViewPilotChecks
                       return result;
                     })()
                     """);
-                Program.Check(selectionAction.GetProperty("width").GetString() == "36px" &&
-                    selectionAction.GetProperty("height").GetString() == "36px" &&
+                Program.Check(selectionAction.GetProperty("width").GetString() == "24px" &&
+                    selectionAction.GetProperty("height").GetString() == "24px" &&
                     selectionAction.GetProperty("iconWidth").GetString() == "24px" &&
                     selectionAction.GetProperty("iconCornerAligned").GetBoolean() &&
                     selectionAction.GetProperty("afterLastLine").GetProperty("x").GetInt32() == 132 &&
                     selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 131 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("x").GetInt32() ==
-                        Evaluate(browser, "innerWidth").GetInt32() - 68 &&
+                        Evaluate(browser, "innerWidth").GetInt32() - 56 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("y").GetInt32() ==
-                        Evaluate(browser, "innerHeight").GetInt32() - 67);
+                        Evaluate(browser, "innerHeight").GetInt32() - 55);
+
+                // The one active 50-ms timer follows text layout changes even
+                // without another selectionchange, and clears when selection ends.
+                JsonElement selectionTracking = Evaluate(browser, """
+                    (() => {
+                      const sentence = document.querySelector('#article-body .sentence[data-sid]');
+                      sentence.scrollIntoView({ block: 'center' });
+                      const walker = document.createTreeWalker(sentence, NodeFilter.SHOW_TEXT);
+                      let text;
+                      while ((text = walker.nextNode()) && text.textContent.trim().length < 6) {}
+                      if (!text) return { started: false, previousX: 0 };
+                      const range = document.createRange();
+                      range.setStart(text, 0);
+                      range.setEnd(text, 6);
+                      const selection = window.getSelection();
+                      selection.removeAllRanges();
+                      selection.addRange(range);
+                      updateSelectionAdd();
+                      const button = document.getElementById('selection-add');
+                      const started = !button.hidden && selectionAddPositionTimer !== null &&
+                        selectionAddIntervalMs === 50;
+                      const previousX = Number.parseInt(button.style.left);
+                      sentence.style.transform = 'translateX(12px)';
+                      return { started, previousX };
+                    })()
+                    """);
+                Program.Check(selectionTracking.GetProperty("started").GetBoolean());
+                int originalX = selectionTracking.GetProperty("previousX").GetInt32();
+                WaitFor(() => Evaluate(browser,
+                    "Number.parseInt(document.getElementById('selection-add').style.left)")
+                    .GetInt32() >= originalX + 10, "50ms selection-add tracking after layout shift");
+                Program.Check(Evaluate(browser, """
+                    (() => {
+                      document.querySelector('#article-body .sentence[data-sid]').style.transform = '';
+                      window.getSelection().removeAllRanges();
+                      updateSelectionAdd();
+                      return selectionAddPositionTimer === null &&
+                        document.getElementById('selection-add').hidden;
+                    })()
+                    """).GetBoolean());
 
                 // Test actual browser bounds and the two word-divider drag limits.
                 JsonElement widths = Evaluate(browser, """

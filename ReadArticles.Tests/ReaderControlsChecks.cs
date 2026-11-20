@@ -207,6 +207,13 @@ internal static class ReaderControlsChecks
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
                     defaults.Appearance.Phonetics.Size == 14);
                 Program.Check(((Button)window.FindName("SettingsButton")).ContextMenu is null);
+                var player = (WpfAudioPlayer)typeof(ReadArticles.MainWindow)
+                    .GetField("player", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                var pronunciationPlayer = (WpfAudioPlayer)typeof(ReadArticles.MainWindow)
+                    .GetField("pronunciationPlayer", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                Program.Check(player.Volume == 1.0 && pronunciationPlayer.Volume == 1.0);
                 Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
                 var draft = defaults.Copy();
                 draft.ForwardStep = 7;
@@ -309,6 +316,10 @@ internal static class ReaderControlsChecks
                         }
                     }
                 }
+                var audio = sections.Children.OfType<StackPanel>().Last();
+                Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
+                    !audio.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<Grid>())
+                        .Any(group => group.Children.OfType<Slider>().Any()));
                 Program.Check(palettes == 6 &&
                     !sections.Children.OfType<StackPanel>()
                         .SelectMany(section => section.Children.OfType<Grid>())
