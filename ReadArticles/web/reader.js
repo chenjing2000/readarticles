@@ -27,6 +27,12 @@ const svgNamespace = "http://www.w3.org/2000/svg";
 
 const byId = id => document.getElementById(id);
 
+// Rectangles are in article-body coordinates, so scrolling needs no
+// remeasurement. Resizing, font loading and layout shifts do.
+window.addEventListener("resize", () => scheduleHighlightGeometry());
+document.fonts?.addEventListener?.("loadingdone", () => scheduleHighlightGeometry());
+
+
 function element(tag, className, value) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -315,11 +321,71 @@ function renderVocabulary(words) {
   updateEditControls();
 }
 
+// Range geometry, not nested text spans, owns the rounded background.
+let highlightFrame = 0;
 function clearHighlights() {
-  if (CSS.highlights) {
-    CSS.highlights.delete("reader-vocabulary");
-    CSS.highlights.delete("reader-focused");
+  if (highlightFrame) cancelAnimationFrame(highlightFrame);
+  highlightFrame = 0;
+  byId("word-highlight-layer")?.remove();
+  // No CSS Custom Highlight backgrounds: ::highlight cannot have round corners.
+  CSS.highlights?.delete("reader-vocabulary");
+  CSS.highlights?.delete("reader-focused");
+}
+
+function scheduleHighlightGeometry() {
+  if (!highlightsVisible || highlightFrame) return;
+  highlightFrame = requestAnimationFrame(() => {
+    highlightFrame = 0;
+    paintRoundedHighlights();
+  });
+}
+
+function paintRoundedHighlights() {
+  const body = byId("article-body");
+  let layer = byId("word-highlight-layer");
+  if (!highlightsVisible || !matches.length) {
+    layer?.remove();
+    return;
   }
+  if (!layer) {
+    layer = element("div", "word-highlight-layer");
+    layer.id = "word-highlight-layer";
+    layer.setAttribute("aria-hidden", "true");
+    body.append(layer);
+  }
+  const base = body.getBoundingClientRect();
+  const fragments = document.createDocumentFragment();
+  const focused = selectedWord === null ? null : ordinalFold(selectedWord);
+
+  for (const match of matches) {
+    const selected = focused !== null && ordinalFold(match.word) === focused;
+    const lineRects = [...match.range.getClientRects()]
+      .filter(rect => rect.width > 0.25 && rect.height > 0.25)
+      .sort((a, b) => a.top - b.top || a.left - b.left);
+
+    // Adjacent fragments of a multi-unit word share one rounded capsule.
+    const rows = [];
+    for (const rect of lineRects) {
+      const last = rows[rows.length - 1];
+      if (last && Math.abs(rect.top - last.top) < 2 &&
+          rect.left <= last.right + 2) {
+        last.right = Math.max(last.right, rect.right);
+        last.bottom = Math.max(last.bottom, rect.bottom);
+      } else {
+        rows.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+      }
+    }
+    for (const rect of rows) {
+      const capsule = element("div", "word-highlight-rect");
+      capsule.style.left = (rect.left - base.left - 1) + "px";
+      capsule.style.top = (rect.top - base.top - 1) + "px";
+      capsule.style.width = (rect.right - rect.left + 2) + "px";
+      capsule.style.height = (rect.bottom - rect.top + 2) + "px";
+      capsule.style.backgroundColor = selected ? "#f6bec8" : "#f9d3e3";
+      fragments.append(capsule);
+    }
+  }
+  layer.replaceChildren(fragments);
 }
 
 function refreshHighlights(recalculate) {
@@ -367,15 +433,11 @@ function refreshHighlights(recalculate) {
       }
     }
   }
-  clearHighlights();
-  if (!highlightsVisible || !CSS.highlights || typeof Highlight === "undefined") return;
-  if (matches.length)
-    CSS.highlights.set("reader-vocabulary", new Highlight(...matches.map(match => match.range)));
-  if (selectedWord !== null) {
-    const selected = matches.filter(match => ordinalFold(match.word) === ordinalFold(selectedWord));
-    if (selected.length)
-      CSS.highlights.set("reader-focused", new Highlight(...selected.map(match => match.range)));
+  if (!highlightsVisible) {
+    clearHighlights();
+    return;
   }
+  scheduleHighlightGeometry();
 }
 
 function focusVocabulary(word, index) {
@@ -674,6 +736,7 @@ function renderSettings(settings) {
   byId("highlight-toggle").querySelector("img").src = highlightsVisible
     ? "icons/not-show-vocabulary.svg" : "icons/show-vocabulary.svg";
   refreshHighlights(false);
+  scheduleHighlightGeometry();
   if (currentMode === "script") scheduleScriptGeometry();
 }
 
@@ -764,6 +827,10 @@ function selectedWordPayload() {
   if (selectedIndex < 0 || selectedIndex >= vocabulary.length) return null;
   return { index: selectedIndex, word: vocabulary[selectedIndex].word };
 }
+
+const highlightResizeObserver = new ResizeObserver(() => scheduleHighlightGeometry());
+highlightResizeObserver.observe(byId("article-body"));
+highlightResizeObserver.observe(byId("article-scroll"));
 
 const splitter = byId("reader-splitter");
 function applyPaneWidth(width) {

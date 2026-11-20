@@ -103,8 +103,16 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 .word-row.selected { box-shadow: inset 3px 0 #267fb7; }
 .word-row:focus-visible { outline: 2px solid #2b86bc; }
 .blank { color: #566b85; font-weight: 600; }
-::highlight(reader-vocabulary) { background-color: #f9d3e3; }
-::highlight(reader-focused) { background-color: #f6bec8; }
+/* Word backgrounds are measured from Range rectangles, never injected into
+   the article's text nodes or the Script timed-unit DOM. */
+#article-body { position: relative; isolation: isolate; }
+.word-highlight-layer {
+  position: absolute; inset: 0; z-index: -1;
+  pointer-events: none; user-select: none;
+}
+.word-highlight-rect {
+  position: absolute; border-radius: 4px; pointer-events: none;
+}
 .word-row:nth-child(even) { background: #f5f7f3; }
 .word-head { font-family: var(--word-font, "Nunito Sans", "Microsoft YaHei", Arial, sans-serif);
   color: var(--word-color, #B7394D); font-size: var(--word-size, 16px);
