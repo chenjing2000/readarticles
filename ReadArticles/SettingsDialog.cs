@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using ReadArticles.Infrastructure;
@@ -12,6 +14,14 @@ internal sealed class SettingsDialog : Window
     private ReaderSettings draft;
     private readonly Func<ReaderSettings, bool> commit;
     private readonly StackPanel sections = new();
+    private readonly HashSet<string> installedFontNames = Fonts.SystemFontFamilies
+        .SelectMany(family => family.FamilyNames.Values.Append(family.Source))
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private readonly DispatcherTimer fontNoticeTimer = new()
+        { Interval = TimeSpan.FromSeconds(3) };
+    private Popup? fontNotice;
+    private readonly List<ComboBox> englishFontSelectors = new();
+    private string? initiallyMissingFont;
 
     private static readonly (string Value, string Name)[] TextColors =
     [
@@ -28,6 +38,11 @@ internal sealed class SettingsDialog : Window
         ("#0A7785", "默认青蓝"), ("#256CA5", "海蓝"), ("#38735A", "森林绿"),
         ("#7657A0", "柔紫"), ("#995431", "暖棕")
     ];
+    private static readonly (string Value, string Name)[] ScriptColors =
+    [
+        ("#B64550", "柔和红"), ("#A33D30", "砖红"), ("#A45A2C", "陶土橙"),
+        ("#856300", "赭金黄"), ("#53713C", "橄榄绿")
+    ];
     private static readonly (string Value, string Name)[] BackgroundColors =
     [
         ("#F8F8F6", "默认暖白"), ("#F0F3F7", "淡蓝灰"), ("#F7F1E6", "暖米色"),
@@ -35,7 +50,8 @@ internal sealed class SettingsDialog : Window
     ];
     private static readonly (string Value, string Label)[] EnglishFonts =
     [
-        ("Nunito Sans", "Nunito Sans"), ("Microsoft YaHei", "微软雅黑"), ("Arial", "Arial")
+        ("Georgia", "Georgia"), ("Microsoft YaHei UI", "微软雅黑 UI"),
+        ("Nunito Sans", "Nunito Sans"), ("Segoe UI", "Segoe UI")
     ];
     private static readonly (string Value, string Label)[] ChineseFonts =
     [
@@ -46,6 +62,22 @@ internal sealed class SettingsDialog : Window
     {
         this.commit = commit;
         draft = current.Copy();
+        EnsureUsableDefaultFonts();
+        fontNoticeTimer.Tick += (_, _) =>
+        {
+            fontNoticeTimer.Stop();
+            if (fontNotice != null) fontNotice.IsOpen = false;
+        };
+        Loaded += (_, _) =>
+        {
+            if (initiallyMissingFont != null && englishFontSelectors.Count > 0)
+                ShowFontNotice(englishFontSelectors[0], initiallyMissingFont);
+        };
+        Closed += (_, _) =>
+        {
+            fontNoticeTimer.Stop();
+            if (fontNotice != null) fontNotice.IsOpen = false;
+        };
 
         Title = "设置";
         Width = 500;
@@ -132,6 +164,58 @@ internal sealed class SettingsDialog : Window
         BuildSections();
     }
 
+    private static bool RequiresEnglishFontCheck(string name) =>
+        name is "Georgia" or "Nunito Sans" or "Segoe UI";
+
+    private bool IsAvailableEnglishFont(string name) =>
+        !RequiresEnglishFontCheck(name) || installedFontNames.Contains(name);
+
+    private void EnsureUsableDefaultFonts()
+    {
+        string fallback = EnglishFonts.Select(item => item.Value)
+            .FirstOrDefault(IsAvailableEnglishFont) ?? "Microsoft YaHei UI";
+        foreach (var style in new ReaderTextStyle[]
+            { draft.Appearance.Title, draft.Appearance.Body })
+        {
+            if (!IsAvailableEnglishFont(style.Font))
+            {
+                initiallyMissingFont ??= style.Font;
+                style.Font = fallback;
+            }
+        }
+        if (!IsAvailableEnglishFont(draft.Appearance.Vocabulary.Font))
+        {
+            initiallyMissingFont ??= draft.Appearance.Vocabulary.Font;
+            draft.Appearance.Vocabulary.Font = fallback;
+        }
+    }
+
+    private void ShowFontNotice(ComboBox anchor, string missing)
+    {
+        fontNotice ??= new Popup
+        {
+            AllowsTransparency = true,
+            Placement = PlacementMode.Bottom,
+            StaysOpen = true,
+            Child = new Border
+            {
+                CornerRadius = new CornerRadius(6),
+                Background = Brush("#EFF4FA"),
+                BorderBrush = Brush("#B9CBDC"),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(10, 7, 10, 7),
+                Child = new TextBlock { Foreground = Brush("#344256"), FontSize = 12 }
+            }
+        };
+        ((TextBlock)((Border)fontNotice.Child).Child).Text =
+            $"未检测到字体 {missing}，已保留可用字体。";
+        fontNotice.IsOpen = false;
+        fontNotice.PlacementTarget = anchor;
+        fontNotice.IsOpen = true;
+        fontNoticeTimer.Stop();
+        fontNoticeTimer.Start();
+    }
+
     private static Brush Brush(string hex) =>
         new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
 
@@ -209,8 +293,8 @@ internal sealed class SettingsDialog : Window
         return combo;
     }
 
-    private static ComboBox DropdownLabels((string Value, string Label)[] values,
-        string selected, Action<string> onChange)
+    private ComboBox DropdownLabels((string Value, string Label)[] values,
+        string selected, Action<string> onChange, bool checkEnglish = false)
     {
         var combo = new ComboBox
         {
@@ -231,10 +315,21 @@ internal sealed class SettingsDialog : Window
             combo.Items.Add(option);
             if (value.Value == selected) combo.SelectedItem = option;
         }
+        string accepted = selected;
+        if (checkEnglish) englishFontSelectors.Add(combo);
         combo.SelectionChanged += (_, _) =>
         {
-            if (combo.SelectedItem is ComboBoxItem item && item.Tag is string value)
-                onChange(value);
+            if (combo.SelectedItem is not ComboBoxItem item || item.Tag is not string value)
+                return;
+            if (checkEnglish && !IsAvailableEnglishFont(value))
+            {
+                combo.SelectedItem = combo.Items.OfType<ComboBoxItem>()
+                    .First(option => (string)option.Tag == accepted);
+                ShowFontNotice(combo, value);
+                return;
+            }
+            accepted = value;
+            onChange(value);
         };
         return combo;
     }
@@ -319,20 +414,20 @@ internal sealed class SettingsDialog : Window
         var a = draft.Appearance;
 
         var title = Section("标题");
-        Row(title, "字体", DropdownLabels(EnglishFonts, a.Title.Font, v => a.Title.Font = v),
+        Row(title, "字体", DropdownLabels(EnglishFonts, a.Title.Font, v => a.Title.Font = v, checkEnglish: true),
             "文字大小", WithUnit(Dropdown(new double[] { 16, 18, 20, 22, 24 }, a.Title.Size,
                 v => a.Title.Size = v), "px"));
-        Row(title, "行高", WithUnit(Dropdown(new[] { 1.4, 1.6, 1.8 }, a.Title.LineHeight,
+        Row(title, "行高", WithUnit(Dropdown(new[] { 1.6, 1.7, 1.8 }, a.Title.LineHeight,
             v => a.Title.LineHeight = v), "倍"),
             "段后间距", WithUnit(Dropdown(new double[] { 16, 18, 20 }, a.Title.ParagraphAfter,
                 v => a.Title.ParagraphAfter = v), "px"));
         Row(title, "颜色", ColorPalette(TextColors, a.Title.Color, v => a.Title.Color = v));
 
         var body = Section("正文");
-        Row(body, "字体", DropdownLabels(EnglishFonts, a.Body.Font, v => a.Body.Font = v),
+        Row(body, "字体", DropdownLabels(EnglishFonts, a.Body.Font, v => a.Body.Font = v, checkEnglish: true),
             "文字大小", WithUnit(Dropdown(new double[] { 14, 15, 16, 17 }, a.Body.Size,
                 v => a.Body.Size = v), "px"));
-        Row(body, "行高", WithUnit(Dropdown(new[] { 1.5, 1.6, 1.7 }, a.Body.LineHeight,
+        Row(body, "行高", WithUnit(Dropdown(new[] { 1.6, 1.7, 1.8 }, a.Body.LineHeight,
             v => a.Body.LineHeight = v), "倍"),
             "段后间距", WithUnit(Dropdown(new double[] { 14, 16, 18 }, a.Body.ParagraphAfter,
                 v => a.Body.ParagraphAfter = v), "px"));
@@ -340,10 +435,15 @@ internal sealed class SettingsDialog : Window
             v => a.Body.FirstLineIndent = v), "em"),
             "颜色", ColorPalette(TextColors, a.Body.Color, v => a.Body.Color = v));
         Row(body, "背景颜色", ColorPalette(BackgroundColors, a.Body.Background,
-            v => a.Body.Background = v));
+            v => a.Body.Background = v),
+            "台词颜色", ColorPalette(ScriptColors, a.Body.ScriptColor,
+                v => a.Body.ScriptColor = v));
+        Row(body, "选项加号", WithUnit(
+            Dropdown(new[] { 0.55, 0.60, 0.65 }, a.Body.SelectionAddSize,
+                v => a.Body.SelectionAddSize = v), "em"));
 
         var vocabulary = Section("词头");
-        Row(vocabulary, "字体", DropdownLabels(EnglishFonts, a.Vocabulary.Font, v => a.Vocabulary.Font = v),
+        Row(vocabulary, "字体", DropdownLabels(EnglishFonts, a.Vocabulary.Font, v => a.Vocabulary.Font = v, checkEnglish: true),
             "文字大小", WithUnit(Dropdown(new double[] { 15, 16, 17 }, a.Vocabulary.Size,
                 v => a.Vocabulary.Size = v), "px"));
         Row(vocabulary, "颜色", ColorPalette(WordColors, a.Vocabulary.Color, v => a.Vocabulary.Color = v));
@@ -357,7 +457,7 @@ internal sealed class SettingsDialog : Window
         Row(meanings, "字体", DropdownLabels(ChineseFonts, a.Meanings.Font, v => a.Meanings.Font = v),
             "文字大小", WithUnit(Dropdown(new double[] { 14, 15, 16 }, a.Meanings.Size,
                 v => a.Meanings.Size = v), "px"));
-        Row(meanings, "行高", WithUnit(Dropdown(new[] { 1.3, 1.4, 1.5 }, a.Meanings.LineHeight,
+        Row(meanings, "行高", WithUnit(Dropdown(new[] { 1.5, 1.6, 1.7 }, a.Meanings.LineHeight,
             v => a.Meanings.LineHeight = v), "倍"),
             "颜色", ColorPalette(TextColors, a.Meanings.Color, v => a.Meanings.Color = v));
 
