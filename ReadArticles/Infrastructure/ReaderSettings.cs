@@ -167,7 +167,9 @@ public sealed class ReaderSettings
         a.Body.Color = ColorCode(a.Body.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         a.Body.Background = ColorCode(a.Body.Background, "#F8F8F6", "#F8F8F6", "#F0F3F7", "#F7F1E6", "#EFF5F0", "#F1F0F7");
         a.Body.ScriptColor = ColorCode(a.Body.ScriptColor, "#B64550", "#B64550", "#A33D30", "#A45A2C", "#856300", "#53713C");
-        a.Body.SelectionAddSize = Allowed(a.Body.SelectionAddSize, 0.65, 0.55, 0.60, 0.65);
+        a.Body.SelectionAddSize = Allowed(a.Body.SelectionAddSize, 0.65, 0.65, 0.70, 0.75);
+        a.Body.SelectionBackground = ColorCode(a.Body.SelectionBackground, "#DDE8F2",
+            "#DDE8F2", "#E5EDE0", "#F3E9DC", "#EBE5F2", "#F2E5E7");
         a.Vocabulary.Font = Font(a.Vocabulary.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito Sans", "Segoe UI");
         a.Vocabulary.Size = Allowed(a.Vocabulary.Size, 16, 15, 16, 17);
         a.Vocabulary.Color = ColorCode(a.Vocabulary.Color, "#B7394D", "#B7394D", "#9D3E68", "#7D50A1", "#1F6795", "#8B593B");
@@ -206,6 +208,7 @@ public sealed class ReaderBodyStyle : ReaderTextStyle
     public string Background { get; set; } = "#F8F8F6";
     public string ScriptColor { get; set; } = "#B64550";
     public double SelectionAddSize { get; set; } = 0.65;
+    public string SelectionBackground { get; set; } = "#DDE8F2";
 }
 public sealed class ReaderWordStyle
 {

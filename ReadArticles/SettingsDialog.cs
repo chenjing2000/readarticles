@@ -48,6 +48,11 @@ internal sealed class SettingsDialog : Window
         ("#F8F8F6", "默认暖白"), ("#F0F3F7", "淡蓝灰"), ("#F7F1E6", "暖米色"),
         ("#EFF5F0", "淡绿"), ("#F1F0F7", "淡紫灰")
     ];
+    private static readonly (string Value, string Name)[] SelectionBackgroundColors =
+    [
+        ("#DDE8F2", "雾蓝"), ("#E5EDE0", "浅绿"), ("#F3E9DC", "暖米"),
+        ("#EBE5F2", "灰紫"), ("#F2E5E7", "豆沙粉")
+    ];
     private static readonly (string Value, string Label)[] EnglishFonts =
     [
         ("Georgia", "Georgia"), ("Microsoft YaHei UI", "微软雅黑 UI"),
@@ -81,7 +86,7 @@ internal sealed class SettingsDialog : Window
 
         Title = "设置";
         Width = 500;
-        Height = 690;
+        Height = 540;
         ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.SingleBorderWindow;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -208,7 +213,7 @@ internal sealed class SettingsDialog : Window
             }
         };
         ((TextBlock)((Border)fontNotice.Child).Child).Text =
-            $"未检测到字体 {missing}，已保留可用字体。";
+            $"未检测到字体 {missing}。";
         fontNotice.IsOpen = false;
         fontNotice.PlacementTarget = anchor;
         fontNotice.IsOpen = true;
@@ -372,7 +377,8 @@ internal sealed class SettingsDialog : Window
             var check = new TextBlock
             {
                 Text = "✓", FontSize = 13, FontWeight = FontWeights.Bold,
-                Foreground = colors == BackgroundColors ? Brush("#344054") : Brushes.White,
+                Foreground = colors == BackgroundColors || colors == SelectionBackgroundColors
+                    ? Brush("#344054") : Brushes.White,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Visibility = hex.Equals(current, StringComparison.OrdinalIgnoreCase)
@@ -433,14 +439,16 @@ internal sealed class SettingsDialog : Window
                 v => a.Body.ParagraphAfter = v), "px"));
         Row(body, "首行缩进", WithUnit(Dropdown(new double[] { 0, 1, 2, 3 }, a.Body.FirstLineIndent,
             v => a.Body.FirstLineIndent = v), "em"),
-            "颜色", ColorPalette(TextColors, a.Body.Color, v => a.Body.Color = v));
+            "文字颜色", ColorPalette(TextColors, a.Body.Color, v => a.Body.Color = v));
         Row(body, "背景颜色", ColorPalette(BackgroundColors, a.Body.Background,
             v => a.Body.Background = v),
             "台词颜色", ColorPalette(ScriptColors, a.Body.ScriptColor,
                 v => a.Body.ScriptColor = v));
-        Row(body, "选项加号", WithUnit(
-            Dropdown(new[] { 0.55, 0.60, 0.65 }, a.Body.SelectionAddSize,
-                v => a.Body.SelectionAddSize = v), "em"));
+        Row(body, "选词加号", WithUnit(
+            Dropdown(new[] { 0.65, 0.70, 0.75 }, a.Body.SelectionAddSize,
+                v => a.Body.SelectionAddSize = v), "em"),
+            "选词背景", ColorPalette(SelectionBackgroundColors, a.Body.SelectionBackground,
+                v => a.Body.SelectionBackground = v));
 
         var vocabulary = Section("词头");
         Row(vocabulary, "字体", DropdownLabels(EnglishFonts, a.Vocabulary.Font, v => a.Vocabulary.Font = v, checkEnglish: true),

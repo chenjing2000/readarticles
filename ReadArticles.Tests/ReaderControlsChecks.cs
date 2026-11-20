@@ -132,6 +132,8 @@ internal static class ReaderControlsChecks
                 };
                 invalid.Appearance.Body.Size = 99;
                 invalid.Appearance.Body.ParagraphAfter = -5;
+                invalid.Appearance.Body.SelectionAddSize = 0.60;
+                invalid.Appearance.Body.SelectionBackground = "#BAD";
                 invalid.Appearance.Title.LineHeight = 1.3;
                 invalid.Appearance.Vocabulary.Color = "#BAD";
                 JsonFiles.WriteAtomic(path, invalid);
@@ -144,9 +146,17 @@ internal static class ReaderControlsChecks
                     loaded.Appearance.Body.LineHeight == 1.7 &&
                     loaded.Appearance.Body.ScriptColor == "#B64550" &&
                     loaded.Appearance.Body.SelectionAddSize == 0.65 &&
+                    loaded.Appearance.Body.SelectionBackground == "#DDE8F2" &&
                     loaded.Appearance.Vocabulary.Size == 16 &&
                     loaded.Appearance.Phonetics.Size == 14 &&
                     loaded.Appearance.Vocabulary.Color == "#B7394D");
+                loaded.Appearance.Body.SelectionAddSize = 0.75;
+                loaded.Appearance.Body.SelectionBackground = "#EBE5F2";
+                loaded.Save();
+                loaded = ReaderSettings.Load(out warning);
+                Program.Check(warning == null &&
+                    loaded.Appearance.Body.SelectionAddSize == 0.75 &&
+                    loaded.Appearance.Body.SelectionBackground == "#EBE5F2");
                 loaded.FontSize = double.NaN;
                 loaded.Save();
                 loaded = ReaderSettings.Load(out warning);
@@ -210,6 +220,7 @@ internal static class ReaderControlsChecks
                     defaults.Appearance.Body.LineHeight == 1.7 &&
                     defaults.Appearance.Meanings.LineHeight == 1.5 &&
                     defaults.Appearance.Body.SelectionAddSize == 0.65 &&
+                    defaults.Appearance.Body.SelectionBackground == "#DDE8F2" &&
                     defaults.Appearance.Body.ScriptColor == "#B64550" &&
                     defaults.Appearance.Title.Font == "Georgia" &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
@@ -254,7 +265,7 @@ internal static class ReaderControlsChecks
                 Restore(path, old);
             }
         });
-        Program.Run("settings dialog has fixed Fluent layout and six five-color palettes", () =>
+        Program.Run("settings dialog has fixed Fluent layout and eight five-color palettes", () =>
         {
             var type = typeof(ReadArticles.MainWindow).Assembly
                 .GetType("ReadArticles.SettingsDialog", throwOnError: true)!;
@@ -266,7 +277,7 @@ internal static class ReaderControlsChecks
             try
             {
                 Program.Check(dialog.Title == "设置" && dialog.ResizeMode == ResizeMode.NoResize &&
-                    dialog.Width == 500 && dialog.Height == 690 && !dialog.ShowInTaskbar &&
+                    dialog.Width == 500 && dialog.Height == 540 && !dialog.ShowInTaskbar &&
                     dialog.FontSize == 13);
                 var sections = (StackPanel)type.GetField("sections",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
@@ -326,9 +337,21 @@ internal static class ReaderControlsChecks
                 }
                 var body = sections.Children.OfType<StackPanel>().ElementAt(1);
                 Program.Check(body.Children.OfType<Grid>().Any(row =>
-                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选项加号")) &&
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词加号")) &&
+                    body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词背景")) &&
+                    body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "文字颜色")) &&
                     body.Children.OfType<Grid>().Any(row =>
                     row.Children.OfType<TextBlock>().Any(label => label.Text == "台词颜色")));
+                var selectionRow = body.Children.OfType<Grid>().Single(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词加号"));
+                var selectionSize = selectionRow.Children.OfType<Grid>()
+                    .SelectMany(group => group.Children.OfType<ComboBox>()).Single();
+                Program.Check(selectionSize.Items.OfType<ComboBoxItem>()
+                    .Select(item => (double)item.Tag)
+                    .SequenceEqual(new[] { 0.65, 0.70, 0.75 }) &&
+                    (double)((ComboBoxItem)selectionSize.SelectedItem).Tag == 0.65);
                 var fontDropdowns = sections.Children.OfType<StackPanel>()
                     .SelectMany(section => section.Children.OfType<Grid>())
                     .SelectMany(row => row.Children.OfType<ComboBox>())
@@ -346,7 +369,7 @@ internal static class ReaderControlsChecks
                 Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
                     !audio.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<Grid>())
                         .Any(group => group.Children.OfType<Slider>().Any()));
-                Program.Check(palettes == 7 &&
+                Program.Check(palettes == 8 &&
                     !sections.Children.OfType<StackPanel>()
                         .SelectMany(section => section.Children.OfType<Grid>())
                         .SelectMany(row => row.Children.OfType<TextBlock>())

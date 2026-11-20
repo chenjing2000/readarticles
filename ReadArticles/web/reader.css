@@ -44,6 +44,7 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
   font-size: var(--body-size, 15px); line-height: var(--body-line, 1.7);
   color: var(--body-color, #283747);
 }
+#article-body ::selection { background: var(--selection-background, #DDE8F2); }
 .article-paragraph {
   margin: 0 0 var(--body-after, 16px);
   text-indent: var(--body-indent, 2em);

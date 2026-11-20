@@ -807,6 +807,7 @@ function renderSettings(settings) {
     "--reading-bg": body.background ?? "#F8F8F6",
     "--script-color": body.scriptColor ?? "#B64550",
     "--selection-add-size": (body.selectionAddSize ?? 0.65) + "em",
+    "--selection-background": body.selectionBackground ?? "#DDE8F2",
     "--word-font": fontStack(word.font ?? "Georgia", english),
     "--word-size": (word.size ?? 16) + "px",
     "--word-color": word.color ?? "#B7394D",

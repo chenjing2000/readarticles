@@ -257,11 +257,14 @@ internal static class WebViewPilotChecks
                     (() => {
                       document.querySelector('#article-body .sentence[data-sid]').parentElement.style.transform = '';
                       window.getSelection().removeAllRanges();
-                      updateSelectionAdd();
-                      return selectionAddPositionFrame === 0 &&
-                        document.getElementById('selection-add').hidden;
+                      return true;
                     })()
                     """).GetBoolean());
+                WaitFor(() => Evaluate(browser, """
+                    selectionAddPositionFrame === 0 &&
+                      document.getElementById('selection-add').hidden &&
+                      selectedPassage === null
+                    """).GetBoolean(), "selection-add disappears after selection ends without manual cleanup");
 
                 // Test actual browser bounds and the two word-divider drag limits.
                 JsonElement widths = Evaluate(browser, """
@@ -431,7 +434,8 @@ internal static class WebViewPilotChecks
                 var draft = readSettings.Copy();
                 draft.Appearance.Body.Size = 16;
                 draft.Appearance.Body.Background = "#F7F1E6";
-                draft.Appearance.Body.SelectionAddSize = 0.60;
+                draft.Appearance.Body.SelectionAddSize = 0.70;
+                draft.Appearance.Body.SelectionBackground = "#E5EDE0";
                 draft.Appearance.Body.ScriptColor = "#856300";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
                     "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -444,10 +448,16 @@ internal static class WebViewPilotChecks
                     .GetString() == "#F7F1E6");
                 Program.Check(Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--selection-add-size')")
-                    .GetString() == "0.6em" &&
+                    .GetString() == "0.7em" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--script-color')")
-                        .GetString() == "#856300");
+                        .GetString() == "#856300" &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--selection-background')")
+                        .GetString() == "#E5EDE0" &&
+                    Evaluate(browser,
+                        "getComputedStyle(document.querySelector('#article-body .sentence'), '::selection').backgroundColor")
+                        .GetString() == "rgb(229, 237, 224)");
 
                 var notice = window.ViewModel.Notifications.Publish("dom-test",
                     "WebView2 DOM notification", NotificationSeverity.Error);
