@@ -10,7 +10,7 @@ Pane widths are session-only (250/300 DIP default). Window size, active article 
 
 ## Native settings dialog
 
-The cog next to 选择图书馆 opens the modal window titled 设置. It uses the built-in WPF Fluent theme, fixed 440 x 690 DIP window size, four 72/120/72/120 DIP columns and close-only window chrome. Esc/Cancel discards the draft. Restore Defaults edits the draft; Save applies it once. Six color properties are each chosen from five uniformly distributed 20-DIP balls, without hexadecimal text entry. The first color of each row is the default:
+The cog next to 选择图书馆 opens the modal window titled 设置. It uses the built-in WPF Fluent theme, fixed 500 x 690 DIP window size, four 72/140/72/140 DIP functional columns with a 20-DIP center gap, and close-only window chrome. Esc/Cancel discards the draft. Restore Defaults edits the draft; Save applies it once. Six color properties are each chosen from five evenly spaced 20-DIP balls in a 140-DIP row, without hexadecimal text entry. The first color of each row is the default:
 
 - Title, body and meaning text: #283747, #344054, #3F4750, #315247, #513D4D
 - Word head: #B7394D, #9D3E68, #7D50A1, #1F6795, #8B593B
@@ -21,6 +21,6 @@ Title defaults: 18px bold, 1.6 line height, 16px after. Body defaults: 15px, 1.5
 
 ## Reading UI and files
 
-The three bottom rails are 48 DIP high. Icon toolbar buttons have circular borderless surfaces. UK and US IPA plus speaker each wrap as a single unit. Rounded vocabulary highlighting is painted behind immutable text using `Range.getClientRects()`; it does not add elements to article text. Script progress is #2475A8 blue via its existing SVG clip system. Stop disables seeking and clears Script color.
+The settings dialog uses 13-DIP labels, option text and footer button text, 12-DIP units, and 15-DIP section headings; the volume slider is 72 DIP wide with a 16-DIP gap before its 52-DIP percentage label. A 36 CSS-px selection-add icon is anchored 2 CSS px to the lower-right of the final selected text fragment and flips inside the viewport at edges. The three bottom rails are 48 DIP high. Icon toolbar buttons have circular borderless surfaces. UK and US IPA plus speaker each wrap as a single unit. Rounded vocabulary highlighting is painted behind immutable text using `Range.getClientRects()`; it does not add elements to article text. Script progress is #2475A8 blue via its existing SVG clip system. Stop disables seeking and clears Script color.
 
 All article/Script/vocabulary JSON, MP3 and WAV remain in the user-selected external library. Their app-generated backups may be saved under `userdata/backups/vocabulary/` without altering source media locations. Portable publication preserves existing `userdata/` but does not migrate old directory layouts.

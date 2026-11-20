@@ -248,30 +248,67 @@ internal static class ReaderControlsChecks
             try
             {
                 Program.Check(dialog.Title == "设置" && dialog.ResizeMode == ResizeMode.NoResize &&
-                    dialog.Width == 440 && dialog.Height == 690 && !dialog.ShowInTaskbar);
+                    dialog.Width == 500 && dialog.Height == 690 && !dialog.ShowInTaskbar &&
+                    dialog.FontSize == 13);
                 var sections = (StackPanel)type.GetField("sections",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(sections.Width == 444);
                 int palettes = 0;
+                int volumeGroups = 0;
                 foreach (var section in sections.Children.OfType<StackPanel>())
                 {
+                    var heading = section.Children.OfType<TextBlock>().Single();
+                    Program.Check(heading.FontSize == 15);
                     foreach (var row in section.Children.OfType<Grid>())
                     {
                         Program.Check(row.ColumnDefinitions.Select(c => c.Width.Value)
-                            .SequenceEqual(new[] { 72d, 120d, 72d, 120d }));
-                        foreach (var fiveColors in row.Children.OfType<Grid>()
-                            .Where(grid => grid.ColumnDefinitions.Count == 5))
+                            .SequenceEqual(new[] { 72d, 140d, 20d, 72d, 140d }));
+                        foreach (var label in row.Children.OfType<TextBlock>())
+                            Program.Check(label.FontSize == 13 &&
+                                Grid.GetColumn(label) is 0 or 3);
+                        foreach (var selector in row.Children.OfType<ComboBox>())
+                            Program.Check(selector.Width == 100);
+                        foreach (var group in row.Children.OfType<Grid>())
                         {
-                            var buttons = fiveColors.Children.OfType<Button>().ToArray();
-                            Program.Check(buttons.Length == 5);
-                            int selected = buttons.Count(button =>
-                                ((Grid)button.Content).Children.OfType<TextBlock>()
-                                .Single().Visibility == Visibility.Visible);
-                            Program.Check(selected == 1);
-                            palettes++;
+                            if (group.ColumnDefinitions.Count == 5)
+                            {
+                                Program.Check(group.Width == 140 &&
+                                    group.ColumnDefinitions.All(c => c.Width.Value == 28));
+                                var buttons = group.Children.OfType<Button>().ToArray();
+                                Program.Check(buttons.Length == 5 &&
+                                    buttons.All(button => button.Width == 28));
+                                int selected = buttons.Count(button =>
+                                    ((Grid)button.Content).Children.OfType<TextBlock>()
+                                    .Single().Visibility == Visibility.Visible);
+                                Program.Check(selected == 1);
+                                palettes++;
+                            }
+                            else if (group.ColumnDefinitions.Count == 3)
+                            {
+                                Program.Check(group.Width == 140 &&
+                                    group.ColumnDefinitions.Select(c => c.Width.Value)
+                                        .SequenceEqual(new[] { 72d, 16d, 52d }));
+                                var slider = group.Children.OfType<Slider>().Single();
+                                var percent = group.Children.OfType<TextBlock>().Single();
+                                Program.Check(slider.Width == 72 && percent.FontSize == 12 &&
+                                    Grid.GetColumn(percent) == 2);
+                                volumeGroups++;
+                            }
+                            else if (group.ColumnDefinitions.Count == 2)
+                            {
+                                // The 100-DIP dropdown + 20-DIP unit label
+                                // retains the established compact layout.
+                                Program.Check(group.ColumnDefinitions.Select(c => c.Width.Value)
+                                    .SequenceEqual(new[] { 100d, 20d }));
+                                Program.Check(group.Children.OfType<ComboBox>()
+                                    .Single().Width == 100);
+                                Program.Check(group.Children.OfType<TextBlock>()
+                                    .Single().FontSize == 12);
+                            }
                         }
                     }
                 }
-                Program.Check(palettes == 6);
+                Program.Check(palettes == 6 && volumeGroups == 1);
             }
             finally { dialog.Close(); }
         });

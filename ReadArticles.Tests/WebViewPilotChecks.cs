@@ -163,6 +163,57 @@ internal static class WebViewPilotChecks
                     visual.GetProperty("grouped").GetBoolean() &&
                     visual.GetProperty("images").GetBoolean());
 
+                // The selection-add action uses the final line's rectangle,
+                // with a 2 CSS-px gap and edge-safe left/above fallbacks.
+                JsonElement selectionAction = Evaluate(browser, """
+                    (() => {
+                      const button = document.getElementById('selection-add');
+                      const hidden = button.hidden;
+                      button.hidden = false;
+                      const rect = (left, top, right, bottom) => ({
+                        left, top, right, bottom,
+                        width: right - left, height: bottom - top
+                      });
+                      positionSelectionAddButton({
+                        getClientRects: () => [
+                          rect(90, 80, 150, 100),
+                          rect(90, 110, 130, 130)
+                        ]
+                      }, button);
+                      const afterLastLine = {
+                        x: Number.parseInt(button.style.left),
+                        y: Number.parseInt(button.style.top)
+                      };
+                      positionSelectionAddButton({
+                        getClientRects: () => [
+                          rect(innerWidth - 30, innerHeight - 30,
+                            innerWidth - 10, innerHeight - 10)
+                        ]
+                      }, button);
+                      const nearEdge = {
+                        x: Number.parseInt(button.style.left),
+                        y: Number.parseInt(button.style.top)
+                      };
+                      const style = getComputedStyle(button);
+                      const result = {
+                        width: style.width, height: style.height,
+                        iconWidth: getComputedStyle(button.querySelector('img')).width,
+                        afterLastLine, nearEdge
+                      };
+                      button.hidden = hidden;
+                      return result;
+                    })()
+                    """);
+                Program.Check(selectionAction.GetProperty("width").GetString() == "36px" &&
+                    selectionAction.GetProperty("height").GetString() == "36px" &&
+                    selectionAction.GetProperty("iconWidth").GetString() == "36px" &&
+                    selectionAction.GetProperty("afterLastLine").GetProperty("x").GetInt32() == 132 &&
+                    selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 132 &&
+                    selectionAction.GetProperty("nearEdge").GetProperty("x").GetInt32() ==
+                        Evaluate(browser, "innerWidth").GetInt32() - 68 &&
+                    selectionAction.GetProperty("nearEdge").GetProperty("y").GetInt32() ==
+                        Evaluate(browser, "innerHeight").GetInt32() - 68);
+
                 // Test actual browser bounds and the two word-divider drag limits.
                 JsonElement widths = Evaluate(browser, """
                     (() => {
