@@ -42,9 +42,8 @@
           </StackPanel>
         </Button>
       </Grid>
-      <DockPanel DockPanel.Dock="Bottom" Height="48" Margin="0,8,0,0">
-        <TextBlock Text="{Binding CurrentUser}" VerticalAlignment="Center"/>
-      </DockPanel>
+      <!-- Match the 48-DIP WebView2 toolbar height without exposing a user account. -->
+      <Border DockPanel.Dock="Bottom" Height="48" Background="#F3F3F3"/>
       <TreeView x:Name="LibraryTree" FontSize="11pt" ItemsSource="{Binding Books}" BorderThickness="0" Background="White"
                 SelectedItemChanged="TreeSelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <TreeView.Resources>

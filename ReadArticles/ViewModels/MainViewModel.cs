@@ -32,7 +32,6 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public string Owner => playback.Owner;
     public PlaybackState PlaybackState => playback.State;
     public bool CanWriteVocabulary => Article?.Vocabulary.CanWrite == true;
-    public string CurrentUser { get; private set; } = "User: —";
     public string Accent
     {
         get => accent;

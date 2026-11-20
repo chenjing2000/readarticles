@@ -62,9 +62,7 @@ public sealed partial class MainViewModel
         Books.Clear();
         foreach (var book in prepared.Books) Books.Add(book);
         Words.Clear();
-        CurrentUser = "User: —";
         Changed(nameof(LibraryRoot));
-        Changed(nameof(CurrentUser));
         Changed(nameof(ArticleTitle));
         ArticleChanged?.Invoke();
         if (prepared.Warnings.Count > 0)
@@ -192,7 +190,6 @@ public sealed partial class MainViewModel
     {
         var prepared = new ArticleRepository().Load(path);
         var words = PrepareWords(prepared);
-        string user = ReadUser(path);
         workspace.CommitArticle(prepared);
         playback.Stop();
         // Discard the previous article's visible and queued messages after
@@ -200,8 +197,6 @@ public sealed partial class MainViewModel
         Notifications.Clear();
         Words.Clear();
         foreach (var word in words) Words.Add(word);
-        CurrentUser = user;
-        Changed(nameof(CurrentUser));
         Changed(nameof(ArticleTitle));
         ArticleChanged?.Invoke();
         if (Article!.Warnings.Count > 0)
@@ -211,22 +206,6 @@ public sealed partial class MainViewModel
                 NotificationSeverity.Warning);
         }
     });
-
-    private string ReadUser(string path)
-    {
-        // Book ownership is available from the root-only snapshot; do not
-        // recursively materialize directory nodes merely to resolve userdata.
-        string full = Path.GetFullPath(path);
-        var book = Books.FirstOrDefault(n =>
-        {
-            if (n.DirectoryPath is null) return false;
-            string relative = Path.GetRelativePath(n.DirectoryPath, full);
-            return relative != "." && !Path.IsPathRooted(relative) &&
-                relative != ".." &&
-                !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
-        });
-        return book is null ? "User: —" : new UserRepository().ReadUser(book.BookRoot);
-    }
 
     public static IEnumerable<NavigationNode> AllLeaves(IEnumerable<NavigationNode> nodes)
     {
