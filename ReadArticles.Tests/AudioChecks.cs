@@ -240,6 +240,27 @@ internal static class AudioChecks
                 player.Fail(player.Played[1].Request);
                 Program.Check(controller.State == PlaybackState.Stopped && warning is not null);
             });
+            Program.Run("failed article candidates preserve active word pronunciation", () =>
+            {
+                string folder = Path.Combine(root, "broken-article");
+                Directory.CreateDirectory(folder);
+                string articlePath = Path.Combine(folder, "Article.json");
+                File.WriteAllText(articlePath, """{"filetype":"passage","title":"","paragraphs":[["Test."]]}""");
+                File.Copy(first, Path.Combine(folder, "a.m4a"));
+                var articlePlayer = new FakePlayer { AutoOpen = false };
+                var wordPlayer = new FakePlayer();
+                var articleController = new PlaybackController(articlePlayer);
+                var wordController = new PlaybackController(wordPlayer);
+                var reader = new ReaderPlayback(articleController, wordController);
+                wordController.Play(new AudioItem(first), "word:uk:test");
+                reader.ToggleArticle(new ArticleRepository().Load(articlePath));
+                Program.Check(wordController.State == PlaybackState.Playing && articlePlayer.Played.Count == 1);
+                articlePlayer.Fail(articlePlayer.Played[0].Request);
+                Program.Check(wordController.State == PlaybackState.Playing && articleController.State == PlaybackState.Stopped);
+                reader.ToggleArticle(new ArticleRepository().Load(articlePath));
+                articlePlayer.Open(articlePlayer.Played[1].Request);
+                Program.Check(wordController.State == PlaybackState.Stopped && articleController.State == PlaybackState.Playing);
+            });
             Program.Run("stopping while opening cancels remaining candidates", () =>
             {
                 var player = new FakePlayer { AutoOpen = false };
@@ -313,7 +334,7 @@ internal static class AudioChecks
         public void Stop() { IsOpen = false; Position = TimeSpan.Zero; }
         public void Dispose() { }
         public void Complete(long request) => Ended?.Invoke(request);
-        public void Open(long request) => Opened?.Invoke(request);
+        public void Open(long request) { IsOpen = true; Opened?.Invoke(request); }
         public void Fail(long request) => Failed?.Invoke(request, "decode failed");
     }
 }
