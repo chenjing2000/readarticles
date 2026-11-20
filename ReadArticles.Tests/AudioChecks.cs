@@ -326,8 +326,7 @@ internal static class AudioChecks
         public void Play(string absolutePath, long request)
         {
             Played.Add((absolutePath, request));
-            IsOpen = true;
-            if (AutoOpen) Opened?.Invoke(request);
+            if (AutoOpen) Open(request);
         }
         public void Pause() => Pauses++;
         public void Resume() => Resumes++;
