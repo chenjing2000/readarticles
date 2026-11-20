@@ -6,12 +6,6 @@ $distDirectory = Join-Path $workspace 'dist'
 $releaseDirectory = Join-Path $distDirectory 'ReadArticles'
 $stagingDirectory = Join-Path $distDirectory ('.publish-' + [Guid]::NewGuid().ToString('N'))
 $destination = Join-Path $releaseDirectory $exeName
-$legacyUserData = Join-Path $distDirectory 'userdata'
-$newUserData = Join-Path $releaseDirectory 'userdata'
-$legacySettings = Join-Path $distDirectory 'ReadArticles.settings.json'
-$newLegacySettings = Join-Path $releaseDirectory 'ReadArticles.settings.json'
-$migrationTemporary = Join-Path $releaseDirectory ('.userdata-migrate-' + [Guid]::NewGuid().ToString('N'))
-
 function Assert-NoReparsePoints([string]$path) {
     $items = @(Get-Item -LiteralPath $path -Force) + @(Get-ChildItem -LiteralPath $path -Force -Recurse)
     if (@($items | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count -gt 0) {
@@ -41,37 +35,6 @@ try {
     }
 
     New-Item -ItemType Directory -Path $releaseDirectory -Force | Out-Null
-
-    # One-time non-destructive migration from the earlier dist/userdata location.
-    # Never overwrite an existing userdata directory in the new portable release.
-    if ((Test-Path -LiteralPath $legacyUserData -PathType Container) -and
-        -not (Test-Path -LiteralPath $newUserData)) {
-        Assert-NoReparsePoints $legacyUserData
-        Copy-Item -LiteralPath $legacyUserData -Destination $migrationTemporary -Recurse
-        Assert-NoReparsePoints $migrationTemporary
-        $sourceFiles = @(Get-ChildItem -LiteralPath $legacyUserData -File -Recurse)
-        foreach ($file in $sourceFiles) {
-            $relative = $file.FullName.Substring($legacyUserData.Length).TrimStart('\')
-            $copied = Join-Path $migrationTemporary $relative
-            if (-not (Test-Path -LiteralPath $copied -PathType Leaf) -or
-                (Get-FileHash -LiteralPath $copied -Algorithm SHA256).Hash -ne
-                (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) {
-                throw "Userdata migration verification failed: $relative"
-            }
-        }
-        [IO.Directory]::Move($migrationTemporary, $newUserData)
-    }
-
-    # Retain the old executable-sibling settings file, if it exists.
-    if ((Test-Path -LiteralPath $legacySettings -PathType Leaf) -and
-        -not (Test-Path -LiteralPath $newLegacySettings)) {
-        Copy-Item -LiteralPath $legacySettings -Destination $newLegacySettings
-        if ((Get-FileHash -LiteralPath $legacySettings -Algorithm SHA256).Hash -ne
-            (Get-FileHash -LiteralPath $newLegacySettings -Algorithm SHA256).Hash) {
-            Remove-Item -LiteralPath $newLegacySettings -Force
-            throw 'Legacy settings migration verification failed.'
-        }
-    }
 
     $readmePath = Join-Path $releaseDirectory 'README.txt'
     if (-not (Test-Path -LiteralPath $readmePath)) {
@@ -109,10 +72,6 @@ finally {
         if (Test-Path -LiteralPath $resolvedStaging) {
             Assert-NoReparsePoints $resolvedStaging
             Remove-Item -LiteralPath $resolvedStaging -Recurse -Force
-        }
-        if (Test-Path -LiteralPath $migrationTemporary) {
-            Assert-NoReparsePoints $migrationTemporary
-            Remove-Item -LiteralPath $migrationTemporary -Recurse -Force
         }
     }
     finally { Pop-Location }

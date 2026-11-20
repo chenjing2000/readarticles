@@ -13,33 +13,27 @@ internal static class BackupChecks
         {
             string settingsPath = ReaderSettings.PathName;
             string backupPath = AppPaths.SettingsBackupFile;
-            string markerPath = AppPaths.LegacySettingsMigrationMarker;
-            string legacyPath = AppPaths.LegacySettingsFile;
             byte[]? settingsBefore = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : null;
             byte[]? backupBefore = File.Exists(backupPath) ? File.ReadAllBytes(backupPath) : null;
-            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
-            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
             try
             {
                 if (File.Exists(settingsPath)) File.Delete(settingsPath);
                 if (File.Exists(backupPath)) File.Delete(backupPath);
-                if (File.Exists(legacyPath)) File.Delete(legacyPath);
-                if (File.Exists(markerPath)) File.Delete(markerPath);
-                var first = new ReaderSettings { Volume = 0.2, Accent = "uk" };
+                var first = new ReaderSettings { ForwardStep = 4, Accent = "uk" };
                 first.Save();
                 Program.Check(!File.Exists(backupPath));
-                var second = new ReaderSettings { Volume = 0.4, Accent = "us" };
+                var second = new ReaderSettings { ForwardStep = 7, Accent = "us" };
                 second.Save();
                 Program.Check(File.Exists(backupPath));
-                Program.Check(ReaderSettings.Load(out _).Volume == 0.4);
+                Program.Check(ReaderSettings.Load(out _).ForwardStep == 7);
                 Program.Check(JsonFiles.Fingerprint(backupPath) == JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(File.ReadAllText(backupPath))));
-                var third = new ReaderSettings { Volume = 0.8, Accent = "uk" };
+                var third = new ReaderSettings { ForwardStep = 10, Accent = "uk" };
                 third.Save();
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
                 Program.Check(JsonFiles.Fingerprint(backupPath) != JsonFiles.Fingerprint(settingsPath));
                 ReaderSettings.RestoreLatestBackup();
                 var restored = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && restored.Volume == 0.4 && restored.Accent == "us");
+                Program.Check(warning == null && restored.ForwardStep == 7 && restored.Accent == "us");
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
 
                 // If settings become corrupt while the app is open, saving must not
@@ -52,7 +46,7 @@ internal static class BackupChecks
                 {
                     try
                     {
-                        new ReaderSettings { Volume = 0.9 }.Save();
+                        new ReaderSettings { ForwardStep = 15 }.Save();
                         throw new Exception("Corrupt settings were overwritten.");
                     }
                     catch (System.Text.Json.JsonException) { }
@@ -64,7 +58,7 @@ internal static class BackupChecks
                 var corruptFilesBefore = Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt");
                 File.WriteAllText(settingsPath, "{ invalid json");
                 var recovered = ReaderSettings.Load(out warning);
-                Program.Check(recovered.Volume == 0.8 && recovered.Accent == "uk");
+                Program.Check(recovered.ForwardStep == 10 && recovered.Accent == "uk");
                 Program.Check(warning != null && warning.Contains("已从最近一次有效备份恢复", StringComparison.Ordinal));
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
                 foreach (string corrupt in Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt"))
@@ -74,8 +68,6 @@ internal static class BackupChecks
             {
                 RestoreFile(settingsPath, settingsBefore);
                 RestoreFile(backupPath, backupBefore);
-                RestoreFile(markerPath, markerBefore);
-                RestoreFile(legacyPath, legacyBefore);
             }
         });
 

@@ -19,7 +19,20 @@ internal static class WebViewPilotChecks
             {
                 "ReadArticles.web.reader.html",
                 "ReadArticles.web.reader.css",
-                "ReadArticles.web.reader.js"
+                "ReadArticles.web.reader.js",
+                "ReadArticles.web.icons.play.svg",
+                "ReadArticles.web.icons.pause.svg",
+                "ReadArticles.web.icons.stop.svg",
+                "ReadArticles.web.icons.sound.svg",
+                "ReadArticles.web.icons.import.svg",
+                "ReadArticles.web.icons.delete.svg",
+                "ReadArticles.web.icons.move-up.svg",
+                "ReadArticles.web.icons.move-down.svg",
+                "ReadArticles.web.icons.show-script.svg",
+                "ReadArticles.web.icons.show-passage.svg",
+                "ReadArticles.web.icons.show-vocabulary.svg",
+                "ReadArticles.web.icons.not-show-vocabulary.svg",
+                "ReadArticles.web.icons.selection-add.svg"
             })
             {
                 using Stream? stream = assembly.GetManifestResourceStream(name);
@@ -123,6 +136,257 @@ internal static class WebViewPilotChecks
                 if (!validPassage)
                     throw new Exception($"Unexpected Passage DOM: {passage.GetRawText()}; " +
                         $"expectedTitle={expectedTitle}, nativeReaderHost={window.FindName("ParagraphHost")}");
+
+                WaitFor(() => Evaluate(browser, """
+                    [...document.querySelectorAll('.toolbar button img')].every(img =>
+                        img.complete && img.naturalWidth > 0)
+                    """).GetBoolean(), "embedded toolbar icons loaded");
+                JsonElement visual = Evaluate(browser, """
+                    (() => ({
+                      popupGone: !document.getElementById('reader-settings-panel') &&
+                                 !document.getElementById('reader-settings-toggle'),
+                      defaultSize: getComputedStyle(document.getElementById('article-title')).fontSize,
+                      bottomHeight: Math.round(document.querySelector('.article-pane .toolbar').getBoundingClientRect().height),
+                      wordBottomHeight: Math.round(document.querySelector('.vocabulary-toolbar').getBoundingClientRect().height),
+                      stoppedLocked: document.getElementById('progress').disabled,
+                      icon: document.querySelector('#article-play img')?.getAttribute('src'),
+                      grouped: document.querySelectorAll('.phonetic-line .phonetic-unit').length >= 2,
+                      images: [...document.querySelectorAll('.toolbar button img')].every(img => img.complete && img.naturalWidth > 0)
+                    }))()
+                    """);
+                Program.Check(visual.GetProperty("popupGone").GetBoolean() &&
+                    visual.GetProperty("defaultSize").GetString() == "18px" &&
+                    visual.GetProperty("icon").GetString() == "icons/play.svg" &&
+                    visual.GetProperty("bottomHeight").GetInt32() == 48 &&
+                    visual.GetProperty("wordBottomHeight").GetInt32() == 48 &&
+                    visual.GetProperty("stoppedLocked").GetBoolean() &&
+                    visual.GetProperty("grouped").GetBoolean() &&
+                    visual.GetProperty("images").GetBoolean());
+
+                // A focused progress slider must share the document's article-seek
+                // shortcuts, not Chromium's native 0.05-second arrow increments.
+                JsonElement seekKeys = Evaluate(browser, """
+                    (() => {
+                      const progress = document.getElementById('progress');
+                      const previousPlayback = currentPlayback;
+                      const previousSettings = currentSettings;
+                      const previousDragging = seekDragging;
+                      const originalSend = send;
+                      const calls = [];
+                      try {
+                        send = (type, options = {}) => {
+                          calls.push({ type, direction: options.payload?.direction });
+                          return 'captured';
+                        };
+                        currentSettings = { ...currentSettings, backwardStep: 11, forwardStep: 7 };
+                        seekDragging = false;
+                        renderPlayback({
+                          position: 120, duration: 300, canSeek: true,
+                          canPlay: true, isArticleActive: true, state: 'paused'
+                        });
+                        progress.focus();
+                        const focused = document.activeElement === progress;
+                        const outline = getComputedStyle(progress).outlineStyle;
+                        const fire = (target, key) => {
+                          const event = new KeyboardEvent('keydown', {
+                            key, bubbles: true, cancelable: true
+                          });
+                          target.dispatchEvent(event);
+                          return event.defaultPrevented;
+                        };
+                        const left = fire(progress, 'ArrowLeft');
+                        const right = fire(progress, 'ArrowRight');
+                        const global = fire(document.getElementById('article-scroll'), 'ArrowRight');
+                        const nativeStep = progress.step;
+                        renderPlayback({
+                          position: 120, duration: 300, canSeek: false,
+                          canPlay: true, isArticleActive: false, state: 'stopped'
+                        });
+                        const count = calls.length;
+                        const stopped = fire(progress, 'ArrowRight');
+                        return {
+                          focused, outline, left, right, global, stopped,
+                          nativeStep, count, calls
+                        };
+                      } finally {
+                        send = originalSend;
+                        currentSettings = previousSettings;
+                        seekDragging = previousDragging;
+                        renderPlayback(previousPlayback);
+                      }
+                    })()
+                    """);
+                bool validKeys = seekKeys.GetProperty("focused").GetBoolean() &&
+                    seekKeys.GetProperty("outline").GetString() == "none" &&
+                    seekKeys.GetProperty("left").GetBoolean() &&
+                    seekKeys.GetProperty("right").GetBoolean() &&
+                    seekKeys.GetProperty("global").GetBoolean() &&
+                    !seekKeys.GetProperty("stopped").GetBoolean() &&
+                    seekKeys.GetProperty("nativeStep").GetString() == "0.05" &&
+                    seekKeys.GetProperty("count").GetInt32() == 3 &&
+                    seekKeys.GetProperty("calls").EnumerateArray().Select(call => (
+                        Type: call.GetProperty("type").GetString(),
+                        Direction: call.GetProperty("direction").GetString()))
+                    .SequenceEqual(new[] {
+                        (Type: "seekArticle", Direction: "backward"),
+                        (Type: "seekArticle", Direction: "forward"),
+                        (Type: "seekArticle", Direction: "forward")
+                    });
+                if (!validKeys)
+                    throw new Exception("Unexpected progress keyboard outcome: " + seekKeys.GetRawText());
+
+                // Time labels preserve 60:00 at one hour, then switch to hh:mm:ss.
+                JsonElement timeFormats = Evaluate(browser, """
+                    (() => ({
+                      short: formatSeconds(625), exactHour: formatSeconds(3600),
+                      overHour: formatSeconds(3601), long: formatSeconds(8100)
+                    }))()
+                    """);
+                Program.Check(timeFormats.GetProperty("short").GetString() == "10:25" &&
+                    timeFormats.GetProperty("exactHour").GetString() == "60:00" &&
+                    timeFormats.GetProperty("overHour").GetString() == "01:00:01" &&
+                    timeFormats.GetProperty("long").GetString() == "02:15:00");
+
+                // A pointer click without change, cancellation, blur or stop
+                // must not leave the range slider frozen in dragging mode.
+                JsonElement dragState = Evaluate(browser, """
+                    (() => {
+                      const progress = document.getElementById('progress');
+                      const previousPlayback = currentPlayback;
+                      const previousDragging = seekDragging;
+                      try {
+                        const active = { position: 42, duration: 200, canSeek: true,
+                          canPlay: true, isArticleActive: true, state: 'paused' };
+                        renderPlayback(active);
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        const held = seekDragging;
+                        document.dispatchEvent(new Event('pointerup'));
+                        const released = !seekDragging;
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        document.dispatchEvent(new Event('pointercancel'));
+                        const cancelled = !seekDragging;
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        progress.dispatchEvent(new Event('blur'));
+                        const blurred = !seekDragging;
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        renderPlayback({ ...active, position: 0, canSeek: false, state: 'stopped',
+                          isArticleActive: false });
+                        const stopped = !seekDragging && progress.disabled && progress.value === '0';
+                        return { held, released, cancelled, blurred, stopped };
+                      } finally {
+                        seekDragging = previousDragging;
+                        renderPlayback(previousPlayback);
+                      }
+                    })()
+                    """);
+                Program.Check(dragState.GetProperty("held").GetBoolean() &&
+                    dragState.GetProperty("released").GetBoolean() &&
+                    dragState.GetProperty("cancelled").GetBoolean() &&
+                    dragState.GetProperty("blurred").GetBoolean() &&
+                    dragState.GetProperty("stopped").GetBoolean());
+
+                // Selection-add anchors to the final fragment at +1px horizontally
+                // and +0px vertically, with edge-safe left/above fallbacks.
+                JsonElement selectionAction = Evaluate(browser, """
+                    (() => {
+                      const button = document.getElementById('selection-add');
+                      const hidden = button.hidden;
+                      button.hidden = false;
+                      const rect = (left, top, right, bottom) => ({
+                        left, top, right, bottom,
+                        width: right - left, height: bottom - top
+                      });
+                      positionSelectionAddButton({
+                        getClientRects: () => [
+                          rect(90, 80, 150, 100),
+                          rect(90, 110, 130, 130)
+                        ]
+                      }, button);
+                      const afterLastLine = {
+                        x: Number.parseInt(button.style.left),
+                        y: Number.parseInt(button.style.top)
+                      };
+                      positionSelectionAddButton({
+                        getClientRects: () => [
+                          rect(innerWidth - 30, innerHeight - 30,
+                            innerWidth - 10, innerHeight - 10)
+                        ]
+                      }, button);
+                      const nearEdge = {
+                        x: Number.parseInt(button.style.left),
+                        y: Number.parseInt(button.style.top)
+                      };
+                      const style = getComputedStyle(button);
+                      const result = {
+                        width: style.width, height: style.height,
+                        iconWidth: Number.parseFloat(getComputedStyle(button.querySelector('img')).width),
+                        fontSize: Number.parseFloat(getComputedStyle(button).fontSize),
+                        iconCornerAligned: (() => {
+                          const box = button.getBoundingClientRect();
+                          const icon = button.querySelector('img').getBoundingClientRect();
+                          return Math.abs(box.left - icon.left) < 0.5 &&
+                            Math.abs(box.top - icon.top) < 0.5;
+                        })(),
+                        afterLastLine, nearEdge
+                      };
+                      button.hidden = hidden;
+                      return result;
+                    })()
+                    """);
+                Program.Check(selectionAction.GetProperty("width").GetString() == "24px" &&
+                    selectionAction.GetProperty("height").GetString() == "24px" &&
+                    Math.Abs(selectionAction.GetProperty("iconWidth").GetDouble() -
+                        selectionAction.GetProperty("fontSize").GetDouble() * 0.65) < 0.1 &&
+                    selectionAction.GetProperty("iconCornerAligned").GetBoolean() &&
+                    selectionAction.GetProperty("afterLastLine").GetProperty("x").GetInt32() == 131 &&
+                    selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 130 &&
+                    selectionAction.GetProperty("nearEdge").GetProperty("x").GetInt32() ==
+                        Evaluate(browser, "innerWidth").GetInt32() - 55 &&
+                    selectionAction.GetProperty("nearEdge").GetProperty("y").GetInt32() ==
+                        Evaluate(browser, "innerHeight").GetInt32() - 54);
+
+                // The frame-paced loop checks geometry at up to 60Hz, even
+                // without another selectionchange, and clears when selection ends.
+                JsonElement selectionTracking = Evaluate(browser, """
+                    (() => {
+                      const sentence = document.querySelector('#article-body .sentence[data-sid]');
+                      sentence.scrollIntoView({ block: 'center' });
+                      const walker = document.createTreeWalker(sentence, NodeFilter.SHOW_TEXT);
+                      let text;
+                      while ((text = walker.nextNode()) && text.textContent.trim().length < 6) {}
+                      if (!text) return { started: false, previousX: 0 };
+                      const range = document.createRange();
+                      range.setStart(text, 0);
+                      range.setEnd(text, 6);
+                      const selection = window.getSelection();
+                      selection.removeAllRanges();
+                      selection.addRange(range);
+                      updateSelectionAdd();
+                      const button = document.getElementById('selection-add');
+                      const started = !button.hidden && selectionAddPositionFrame !== 0 &&
+                        selectionAddRefreshHz === 60;
+                      const previousX = Number.parseInt(button.style.left);
+                      sentence.parentElement.style.transform = 'translateX(12px)';
+                      return { started, previousX };
+                    })()
+                    """);
+                Program.Check(selectionTracking.GetProperty("started").GetBoolean());
+                int originalX = selectionTracking.GetProperty("previousX").GetInt32();
+                WaitFor(() => Evaluate(browser,
+                    "Number.parseInt(document.getElementById('selection-add').style.left)")
+                    .GetInt32() >= originalX + 10, "repaint-paced selection tracking after layout shift");
+                Program.Check(Evaluate(browser, """
+                    (() => {
+                      document.querySelector('#article-body .sentence[data-sid]').parentElement.style.transform = '';
+                      window.getSelection().removeAllRanges();
+                      return true;
+                    })()
+                    """).GetBoolean());
+                WaitFor(() => Evaluate(browser, """
+                    selectionAddPositionFrame === 0 &&
+                      document.getElementById('selection-add').hidden &&
+                      selectedPassage === null
+                    """).GetBoolean(), "selection-add disappears after selection ends without manual cleanup");
 
                 // Test actual browser bounds and the two word-divider drag limits.
                 JsonElement widths = Evaluate(browser, """
@@ -251,9 +515,16 @@ internal static class WebViewPilotChecks
                 WaitFor(() => window.ViewModel.HighlightsVisible &&
                     Evaluate(browser, "document.getElementById('highlight-toggle').getAttribute('aria-pressed')")
                         .GetString() == "true", "browser vocabulary highlighting");
-                Program.Check(Evaluate(browser,
-                    "Boolean(CSS.highlights && CSS.highlights.has('reader-vocabulary'))")
-                    .GetBoolean());
+                WaitFor(() => Evaluate(browser,
+                    "document.querySelectorAll('#word-highlight-layer .word-highlight-rect').length > 0")
+                    .GetBoolean(), "rounded vocabulary highlights");
+                Program.Check(Evaluate(browser, """
+                    (() => {
+                      const box = document.querySelector('#word-highlight-layer .word-highlight-rect');
+                      return box && getComputedStyle(box).borderRadius === '4px' &&
+                        !CSS.highlights?.has('reader-vocabulary');
+                    })()
+                    """).GetBoolean());
                 Evaluate(browser, "document.querySelector('#vocabulary-list .word-row').click(); true");
                 Program.Check(Evaluate(browser,
                     "document.querySelectorAll('#vocabulary-list .word-row.selected').length")
@@ -277,18 +548,50 @@ internal static class WebViewPilotChecks
                     wordKeys.GetProperty("enter").GetBoolean() &&
                     !window.ViewModel.Playback.IsArticleActive);
 
-                // The browser settings control must round-trip through the C# bridge.
-                Evaluate(browser, """
-                    (() => {
-                      const font = document.getElementById('reader-font-size');
-                      font.value = '16';
-                      font.dispatchEvent(new Event('change', { bubbles: true }));
-                      return true;
-                    })()
-                    """);
+                // The native modal is the sole settings entry. Its validated
+                // draft must update the browser without a second HTML form.
+                var readSettings = (ReaderSettings)typeof(ReadArticles.MainWindow)
+                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                var draft = readSettings.Copy();
+                draft.Appearance.Body.Size = 16;
+                draft.Appearance.Body.Background = "#F7F1E6";
+                draft.Appearance.Title.Font = "Nunito";
+                draft.Appearance.Body.Font = "Nunito";
+                draft.Appearance.Vocabulary.Font = "Nunito";
+                draft.Appearance.Body.SelectionAddSize = 0.80;
+                draft.Appearance.Body.SelectionBackground = "#E5EDE0";
+                draft.Appearance.Body.ScriptColor = "#856300";
+                var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
+                    "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                Program.Check((bool)applyDialog.Invoke(window, [draft])!);
                 WaitFor(() => Evaluate(browser,
-                    "document.documentElement.style.getPropertyValue('--reader-font')")
-                    .GetString() == "16px", "browser font-size setting roundtrip");
+                    "document.documentElement.style.getPropertyValue('--body-size')")
+                    .GetString() == "16px", "native font-size setting roundtrip");
+                Program.Check(Evaluate(browser,
+                    "document.documentElement.style.getPropertyValue('--reading-bg')")
+                    .GetString() == "#F7F1E6");
+                Program.Check(Evaluate(browser,
+                    "document.documentElement.style.getPropertyValue('--selection-add-size')")
+                    .GetString() == "0.8em" &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--title-font')")
+                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--body-font')")
+                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--word-font')")
+                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--script-color')")
+                        .GetString() == "#856300" &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--selection-background')")
+                        .GetString() == "#E5EDE0" &&
+                    Evaluate(browser,
+                        "getComputedStyle(document.querySelector('#article-body .sentence'), '::selection').backgroundColor")
+                        .GetString() == "rgb(229, 237, 224)");
 
                 var notice = window.ViewModel.Notifications.Publish("dom-test",
                     "WebView2 DOM notification", NotificationSeverity.Error);
@@ -316,14 +619,14 @@ internal static class WebViewPilotChecks
                       const row = document.querySelector('#article-body .script-paragraph');
                       const paint = row?.querySelector(':scope > .script-paint');
                       const clip = row?.querySelector(':scope > .script-clips clipPath');
-                      const redUnit = paint?.querySelector('.script-timed-unit');
+                      const coloredUnit = paint?.querySelector('.script-timed-unit');
                       // Chromium serializes CSS url(#id) as url("#id"). Compare the
                       // referenced ID, not the browser-specific quoting style.
                       const clipReference = paint?.style.clipPath.replace(/["']/g, '');
                       return Boolean(paint && clip && clip.id.startsWith('script-clip-') &&
                         clip.querySelectorAll('rect').length >= 3 &&
                         clipReference === 'url(#' + clip.id + ')' &&
-                        redUnit && getComputedStyle(redUnit).color === 'rgb(184, 26, 53)');
+                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(133, 99, 0)');
                     })()
                     """).GetBoolean(), "Script SVG clipping and foreground");
                 // Exercise the actual SVG clipping update at 0%, 50%, 100%, and stop.

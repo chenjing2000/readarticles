@@ -10,7 +10,8 @@ internal static class IconChecks
         Program.Run("native window and tree icons remain embedded", () =>
         {
             Program.Check(UiIcons.AppIcon is ImageSource &&
-                UiIcons.Plus is ImageSource && UiIcons.Minus is ImageSource);
+                UiIcons.Plus is ImageSource && UiIcons.Minus is ImageSource &&
+                UiIcons.Settings is ImageSource && UiIcons.Refresh is ImageSource);
         });
         Program.Run("native window starts centered with the tree and one browser host", () =>
         {

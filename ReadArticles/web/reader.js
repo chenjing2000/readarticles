@@ -11,6 +11,10 @@ let selectedIndex = -1;
 let canWriteVocabulary = false;
 let matches = [];
 let selectedPassage = null;
+// Follow painted frames rather than scheduling a separate millisecond timer.
+const selectionAddRefreshHz = 60;
+let selectionAddPositionFrame = 0;
+let selectionAddLastFrameAt = -Infinity;
 let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
@@ -26,6 +30,12 @@ let scriptGeometryFrame = 0;
 const svgNamespace = "http://www.w3.org/2000/svg";
 
 const byId = id => document.getElementById(id);
+
+// Rectangles are in article-body coordinates, so scrolling needs no
+// remeasurement. Resizing, font loading and layout shifts do.
+window.addEventListener("resize", () => scheduleHighlightGeometry());
+document.fonts?.addEventListener?.("loadingdone", () => scheduleHighlightGeometry());
+
 
 function element(tag, className, value) {
   const node = document.createElement(tag);
@@ -270,25 +280,31 @@ function renderVocabulary(words) {
     row.setAttribute("role", "button");
     row.setAttribute("aria-label", "定位词汇 " + word.word);
     row.append(element("div", "word-head", word.word));
-    row.append(element("div", "phonetics",
-      "UK " + (word.phoneticUk ?? "—") + "  |  US " + (word.phoneticUs ?? "—")));
-    const pronunciations = element("div", "word-pronunciations");
+    const phonetics = element("div", "phonetic-line");
     for (const accent of ["uk", "us"]) {
-      const button = element("button", "", accent === "uk" ? "▶ 英音" : "▶ 美音");
+      // The break opportunity belongs between the two pronunciation groups.
+      const unit = element("span", "phonetic-unit");
+      unit.append(element("span", "phonetic-text",
+        (accent === "uk" ? "UK " : "US ") +
+        (accent === "uk" ? word.phoneticUk ?? "—" : word.phoneticUs ?? "—")));
+      const button = element("button", "phonetic-audio");
       button.type = "button";
       button.disabled = accent === "uk" ? !word.canPlayUk : !word.canPlayUs;
       button.title = accent === "uk" ? "播放英音" : "播放美音";
+      button.setAttribute("aria-label", button.title);
+      const speaker = element("img");
+      speaker.src = "icons/sound.svg";
+      speaker.alt = "";
+      button.append(speaker);
       button.addEventListener("click", event => {
         event.stopPropagation();
-        if (!button.disabled && sessionId) {
-          send("playWord", {
-            payload: { index, word: word.word, accent }
-          });
-        }
+        if (!button.disabled && sessionId)
+          send("playWord", { payload: { index, word: word.word, accent } });
       });
-      pronunciations.append(button);
+      unit.append(button);
+      phonetics.append(unit);
     }
-    row.append(pronunciations);
+    row.append(phonetics);
     for (const meaning of word.meanings ?? []) {
       const line = element("p", "meaning");
       line.append(element("span", "part-of-speech", meaning.pos));
@@ -309,11 +325,71 @@ function renderVocabulary(words) {
   updateEditControls();
 }
 
+// Range geometry, not nested text spans, owns the rounded background.
+let highlightFrame = 0;
 function clearHighlights() {
-  if (CSS.highlights) {
-    CSS.highlights.delete("reader-vocabulary");
-    CSS.highlights.delete("reader-focused");
+  if (highlightFrame) cancelAnimationFrame(highlightFrame);
+  highlightFrame = 0;
+  byId("word-highlight-layer")?.remove();
+  // No CSS Custom Highlight backgrounds: ::highlight cannot have round corners.
+  CSS.highlights?.delete("reader-vocabulary");
+  CSS.highlights?.delete("reader-focused");
+}
+
+function scheduleHighlightGeometry() {
+  if (!highlightsVisible || highlightFrame) return;
+  highlightFrame = requestAnimationFrame(() => {
+    highlightFrame = 0;
+    paintRoundedHighlights();
+  });
+}
+
+function paintRoundedHighlights() {
+  const body = byId("article-body");
+  let layer = byId("word-highlight-layer");
+  if (!highlightsVisible || !matches.length) {
+    layer?.remove();
+    return;
   }
+  if (!layer) {
+    layer = element("div", "word-highlight-layer");
+    layer.id = "word-highlight-layer";
+    layer.setAttribute("aria-hidden", "true");
+    body.append(layer);
+  }
+  const base = body.getBoundingClientRect();
+  const fragments = document.createDocumentFragment();
+  const focused = selectedWord === null ? null : ordinalFold(selectedWord);
+
+  for (const match of matches) {
+    const selected = focused !== null && ordinalFold(match.word) === focused;
+    const lineRects = [...match.range.getClientRects()]
+      .filter(rect => rect.width > 0.25 && rect.height > 0.25)
+      .sort((a, b) => a.top - b.top || a.left - b.left);
+
+    // Adjacent fragments of a multi-unit word share one rounded capsule.
+    const rows = [];
+    for (const rect of lineRects) {
+      const last = rows[rows.length - 1];
+      if (last && Math.abs(rect.top - last.top) < 2 &&
+          rect.left <= last.right + 2) {
+        last.right = Math.max(last.right, rect.right);
+        last.bottom = Math.max(last.bottom, rect.bottom);
+      } else {
+        rows.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+      }
+    }
+    for (const rect of rows) {
+      const capsule = element("div", "word-highlight-rect");
+      capsule.style.left = (rect.left - base.left - 1) + "px";
+      capsule.style.top = (rect.top - base.top - 1) + "px";
+      capsule.style.width = (rect.right - rect.left + 2) + "px";
+      capsule.style.height = (rect.bottom - rect.top + 2) + "px";
+      capsule.style.backgroundColor = selected ? "#f6bec8" : "#f9d3e3";
+      fragments.append(capsule);
+    }
+  }
+  layer.replaceChildren(fragments);
 }
 
 function refreshHighlights(recalculate) {
@@ -361,15 +437,11 @@ function refreshHighlights(recalculate) {
       }
     }
   }
-  clearHighlights();
-  if (!highlightsVisible || !CSS.highlights || typeof Highlight === "undefined") return;
-  if (matches.length)
-    CSS.highlights.set("reader-vocabulary", new Highlight(...matches.map(match => match.range)));
-  if (selectedWord !== null) {
-    const selected = matches.filter(match => ordinalFold(match.word) === ordinalFold(selectedWord));
-    if (selected.length)
-      CSS.highlights.set("reader-focused", new Highlight(...selected.map(match => match.range)));
+  if (!highlightsVisible) {
+    clearHighlights();
+    return;
   }
+  scheduleHighlightGeometry();
 }
 
 function focusVocabulary(word, index) {
@@ -397,9 +469,95 @@ function sentenceFor(node) {
   return sentence?.closest(".script-paint") ? null : sentence;
 }
 
+function stopSelectionAddPositionTimer() {
+  if (selectionAddPositionFrame) cancelAnimationFrame(selectionAddPositionFrame);
+  selectionAddPositionFrame = 0;
+  selectionAddLastFrameAt = -Infinity;
+}
+
+function scheduleSelectionAddFrame() {
+  if (selectedPassage && !document.hidden && !selectionAddPositionFrame)
+    selectionAddPositionFrame = requestAnimationFrame(selectionAddFrame);
+}
+
+// RequestAnimationFrame tracks the browser repaint; at faster refresh rates
+// the geometry check is capped at approximately 60 Hz. There is no timer.
+function selectionAddFrame(timestamp) {
+  selectionAddPositionFrame = 0;
+  if (!selectedPassage || document.hidden) {
+    stopSelectionAddPositionTimer();
+    return;
+  }
+  if (timestamp - selectionAddLastFrameAt >= 1000 / selectionAddRefreshHz - 1) {
+    selectionAddLastFrameAt = timestamp;
+    refreshSelectionAddPosition();
+  } else {
+    scheduleSelectionAddFrame();
+  }
+}
+
 function hideSelectionAdd() {
+  stopSelectionAddPositionTimer();
   selectedPassage = null;
   byId("selection-add").hidden = true;
+}
+
+// A fixed-position browser button uses CSS px, matching Range client rects.
+// Anchor after the final selected text fragment, 1px right and 0px below.
+// Flip left/above near viewport edges; the visible em-sized glyph occupies
+// the click target's upper-left corner.
+function positionSelectionAddButton(range, button) {
+  const size = 24;
+  const horizontalGap = 1;
+  const verticalGap = 0;
+  const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+  const anchor = fragments.at(-1) ?? range.getBoundingClientRect();
+  const toRight = anchor.right + horizontalGap;
+  const toLeft = anchor.left - horizontalGap - size;
+  const below = anchor.bottom + verticalGap;
+  const above = anchor.top - verticalGap - size;
+  const left = toRight + size <= window.innerWidth - horizontalGap ? toRight : toLeft;
+  const top = below + size <= window.innerHeight - verticalGap ? below : above;
+  const x = Math.round(Math.max(horizontalGap,
+    Math.min(window.innerWidth - horizontalGap - size, left))) + "px";
+  const y = Math.round(Math.max(verticalGap,
+    Math.min(window.innerHeight - verticalGap - size, top))) + "px";
+  if (button.style.left !== x) button.style.left = x;
+  if (button.style.top !== y) button.style.top = y;
+}
+
+// The repaint loop does geometry only, never word extraction or saving.
+// Keep it only while the selected text is visible; scrolling can reactivate it.
+function refreshSelectionAddPosition() {
+  if (!selectedPassage || document.hidden) {
+    stopSelectionAddPositionTimer();
+    byId("selection-add").hidden = true;
+    return;
+  }
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount !== 1) {
+    hideSelectionAdd();
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  const body = byId("article-body");
+  if (!body.contains(range.startContainer) || !body.contains(range.endContainer)) {
+    hideSelectionAdd();
+    return;
+  }
+  const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+  const anchor = fragments.at(-1);
+  const viewport = byId("article-scroll").getBoundingClientRect();
+  const button = byId("selection-add");
+  if (!anchor || anchor.right <= viewport.left || anchor.left >= viewport.right ||
+      anchor.bottom <= viewport.top || anchor.top >= viewport.bottom) {
+    button.hidden = true;
+    stopSelectionAddPositionTimer();
+    return;
+  }
+  positionSelectionAddButton(range, button);
+  button.hidden = false;
+  scheduleSelectionAddFrame();
 }
 
 function updateSelectionAdd() {
@@ -435,18 +593,18 @@ function updateSelectionAdd() {
         text, offset, length: raw.length
       }
     : { mode: "passage", sid: sentence.dataset.sid, text, offset, length: raw.length };
-  const rect = range.getBoundingClientRect();
   const button = byId("selection-add");
-  button.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 38, rect.right + 8))) + "px";
-  button.style.top = Math.round(Math.max(8, Math.min(window.innerHeight - 40, rect.top - 14))) + "px";
-  button.hidden = false;
   button.disabled = !canWriteVocabulary || !!pendingMutation;
+  refreshSelectionAddPosition();
 }
 
 function formatSeconds(seconds) {
   const value = Math.max(0, Math.floor(Number(seconds) || 0));
-  return String(Math.floor(value / 60)).padStart(2, "0") + ":" +
-    String(value % 60).padStart(2, "0");
+  const minutes = Math.floor(value / 60);
+  const secondsPart = String(value % 60).padStart(2, "0");
+  if (value <= 3600) return String(minutes).padStart(2, "0") + ":" + secondsPart;
+  return String(Math.floor(value / 3600)).padStart(2, "0") + ":" +
+    String(minutes % 60).padStart(2, "0") + ":" + secondsPart;
 }
 
 function renderPlayback(playback) {
@@ -455,12 +613,16 @@ function renderPlayback(playback) {
   const duration = Number(playback.duration) || 0;
   const progress = byId("progress");
   progress.disabled = playback.canSeek !== true;
+  if (progress.disabled) seekDragging = false;
   progress.max = String(Math.max(duration, 1));
   if (!seekDragging) progress.value = String(Math.max(0, Math.min(position, Math.max(duration, 1))));
   byId("playback-time").textContent =
     formatSeconds(seekDragging ? progress.value : position) + " / " + formatSeconds(duration);
   byId("article-play").disabled = playback.canPlay !== true;
-  byId("article-play").textContent = playback.state === "playing" ? "暂停" : "播放";
+  const playButton = byId("article-play");
+  playButton.querySelector("img").src = playback.state === "playing"
+    ? "icons/pause.svg" : "icons/play.svg";
+  playButton.setAttribute("aria-label", playback.state === "playing" ? "暂停文章音频" : "播放文章音频");
   byId("article-stop").disabled = playback.isArticleActive !== true;
   paintScriptProgress(playback);
 }
@@ -618,23 +780,58 @@ function renderNotifications(notifications) {
     window.requestAnimationFrame(entry.checkOverflow);
   }
 }
+function fontStack(selected, choices) {
+  const names = [selected, ...choices.filter(name => name !== selected)];
+  return names.filter(name => choices.includes(name))
+    .map(name => '"' + name + '"').join(", ") + ", sans-serif";
+}
+
 function renderSettings(settings) {
-  const fontSize = Number(settings.fontSize);
-  document.documentElement.style.setProperty("--reader-font",
-    (Number.isFinite(fontSize) && fontSize >= 10 && fontSize <= 30 ? fontSize : 15) + "px");
   currentSettings = { ...settings };
+  const a = settings.appearance ?? {};
+  const title = a.title ?? {};
+  const body = a.body ?? {};
+  const word = a.vocabulary ?? {};
+  const phonetic = a.phonetics ?? {};
+  const meaning = a.meanings ?? {};
+  const english = ["Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI"];
+  const chinese = ["Microsoft YaHei", "SimSun", "KaiTi"];
+  const variables = {
+    "--title-font": fontStack(title.font ?? "Georgia", english),
+    "--title-size": (title.size ?? 18) + "px",
+    "--title-line": String(title.lineHeight ?? 1.7),
+    "--title-after": (title.paragraphAfter ?? 16) + "px",
+    "--title-color": title.color ?? "#283747",
+    "--body-font": fontStack(body.font ?? "Georgia", english),
+    "--body-size": (body.size ?? 15) + "px",
+    "--body-line": String(body.lineHeight ?? 1.7),
+    "--body-after": (body.paragraphAfter ?? 16) + "px",
+    "--body-indent": (body.firstLineIndent ?? 2) + "em",
+    "--body-color": body.color ?? "#283747",
+    "--reading-bg": body.background ?? "#F8F8F6",
+    "--script-color": body.scriptColor ?? "#B64550",
+    "--selection-add-size": (body.selectionAddSize ?? 0.65) + "em",
+    "--selection-background": body.selectionBackground ?? "#DDE8F2",
+    "--word-font": fontStack(word.font ?? "Georgia", english),
+    "--word-size": (word.size ?? 16) + "px",
+    "--word-color": word.color ?? "#B7394D",
+    "--phonetic-size": (phonetic.size ?? 14) + "px",
+    "--phonetic-color": phonetic.color ?? "#0A7785",
+    "--meaning-font": fontStack(meaning.font ?? "Microsoft YaHei", chinese),
+    "--meaning-size": (meaning.size ?? 15) + "px",
+    "--meaning-line": String(meaning.lineHeight ?? 1.5),
+    "--meaning-color": meaning.color ?? "#283747"
+  };
+  for (const [name, value] of Object.entries(variables))
+    document.documentElement.style.setProperty(name, value);
   applyPaneWidth(settings.rightWidth);
-  for (const [id, value] of [
-    ["reader-font-size", settings.fontSize],
-    ["reader-accent", settings.accent],
-    ["reader-forward-step", settings.forwardStep],
-    ["reader-backward-step", settings.backwardStep]
-  ]) {
-    if (value !== undefined) byId(id).value = String(value);
-  }
   highlightsVisible = settings.highlightsVisible === true;
   byId("highlight-toggle").setAttribute("aria-pressed", String(highlightsVisible));
+  byId("highlight-toggle").querySelector("img").src = highlightsVisible
+    ? "icons/not-show-vocabulary.svg" : "icons/show-vocabulary.svg";
   refreshHighlights(false);
+  scheduleHighlightGeometry();
+  if (selectedPassage) refreshSelectionAddPosition();
   if (currentMode === "script") scheduleScriptGeometry();
 }
 
@@ -670,6 +867,8 @@ function send(type, additional = {}) {
 function updateReadingModeButton() {
   const button = byId("script-toggle");
   button.setAttribute("aria-pressed", String(currentMode === "script"));
+  button.querySelector("img").src = currentMode === "script"
+    ? "icons/show-passage.svg" : "icons/show-script.svg";
   button.disabled = !sessionId || !byId("article-body").querySelector(".sentence, .script-sentence") ||
     !!pendingModeRequest || !!pendingMutation;
 }
@@ -724,30 +923,9 @@ function selectedWordPayload() {
   return { index: selectedIndex, word: vocabulary[selectedIndex].word };
 }
 
-function setSettingsOpen(open) {
-  byId("reader-settings-panel").hidden = !open;
-  byId("reader-settings-toggle").setAttribute("aria-expanded", String(open));
-}
-byId("reader-settings-toggle").addEventListener("click", () =>
-  setSettingsOpen(byId("reader-settings-panel").hidden));
-document.addEventListener("pointerdown", event => {
-  if (!byId("reader-settings-panel").hidden &&
-      !byId("reader-settings-panel").contains(event.target) &&
-      !byId("reader-settings-toggle").contains(event.target))
-    setSettingsOpen(false);
-});
-
-for (const [id, type, field, convert] of [
-  ["reader-font-size", "setFontSize", "size", Number],
-  ["reader-accent", "setAccent", "accent", String],
-  ["reader-forward-step", "setForwardStep", "seconds", Number],
-  ["reader-backward-step", "setBackwardStep", "seconds", Number]
-]) {
-  byId(id).addEventListener("change", () => {
-    if (!sessionId) return;
-    send(type, { payload: { [field]: convert(byId(id).value) } });
-  });
-}
+const highlightResizeObserver = new ResizeObserver(() => scheduleHighlightGeometry());
+highlightResizeObserver.observe(byId("article-body"));
+highlightResizeObserver.observe(byId("article-scroll"));
 
 const splitter = byId("reader-splitter");
 function applyPaneWidth(width) {
@@ -811,6 +989,18 @@ splitter.addEventListener("keydown", event => {
   send("setPanelWidth", { payload: { width: next } });
 });
 
+function seekByArrowKey(event) {
+  if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
+      (event.key !== "ArrowLeft" && event.key !== "ArrowRight") ||
+      currentPlayback.canSeek !== true)
+    return;
+  event.preventDefault();
+  // The C# player owns the current position; relative requests cannot lose
+  // rapid repeated key presses while a WebView2 playback snapshot is in flight.
+  const direction = event.key === "ArrowLeft" ? "backward" : "forward";
+  send("seekArticle", { payload: { direction } });
+}
+
 document.addEventListener("keydown", event => {
   if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
       event.target?.closest("input, select, textarea, button, [role='button'], [contenteditable='true'], [role='separator']"))
@@ -819,19 +1009,12 @@ document.addEventListener("keydown", event => {
     if (currentPlayback.canPlay !== true || event.repeat) return;
     event.preventDefault();
     send("playArticle");
-  } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-    if (currentPlayback.canSeek !== true) return;
-    event.preventDefault();
-    const step = event.key === "ArrowLeft"
-      ? -(Number(currentSettings.backwardStep) || 5)
-      : Number(currentSettings.forwardStep) || 4;
-    const target = Math.max(0, Math.min(Number(currentPlayback.duration) || 0,
-      (Number(currentPlayback.position) || 0) + step));
-    send("seekArticle", { payload: { position: target } });
-  } else if (event.key === "Escape") {
-    setSettingsOpen(false);
+  } else {
+    seekByArrowKey(event);
   }
 });
+
+byId("progress").addEventListener("keydown", seekByArrowKey);
 
 byId("article-play").addEventListener("click", () => {
   if (!byId("article-play").disabled) send("playArticle");
@@ -840,6 +1023,11 @@ byId("article-stop").addEventListener("click", () => {
   if (!byId("article-stop").disabled) send("stopArticle");
 });
 byId("progress").addEventListener("pointerdown", () => { seekDragging = true; });
+// A click without a value change does not emit "change". Never retain dragging
+// after release, cancellation, lost focus, or stopping the current audio.
+document.addEventListener("pointerup", () => { seekDragging = false; });
+document.addEventListener("pointercancel", () => { seekDragging = false; });
+byId("progress").addEventListener("blur", () => { seekDragging = false; });
 byId("progress").addEventListener("input", () => {
   seekDragging = true;
   renderPlayback(currentPlayback);
@@ -857,6 +1045,19 @@ byId("script-toggle").addEventListener("click", () => {
 });
 byId("article-scroll").addEventListener("scroll", () => {
   readingScroll[currentMode] = byId("article-scroll").scrollTop;
+  if (selectedPassage && !selectionAddPositionFrame)
+    refreshSelectionAddPosition();
+});
+window.addEventListener("resize", () => {
+  if (selectedPassage) refreshSelectionAddPosition();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopSelectionAddPositionTimer();
+    byId("selection-add").hidden = true;
+  } else if (selectedPassage) {
+    updateSelectionAdd();
+  }
 });
 window.addEventListener("resize", scheduleScriptGeometry);
 const scriptSizeObserver = new ResizeObserver(scheduleScriptGeometry);

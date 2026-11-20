@@ -50,7 +50,6 @@ function Run-Case($name, [scriptblock]$body) {
         Check ((Get-Content -LiteralPath (Join-Path $app 'user-notes.txt') -Raw) -eq 'keep-me') 'Other user files were changed.'
         Check ((Get-Content -LiteralPath (Join-Path $dist 'other-user-file.txt') -Raw) -eq 'keep-root-file') 'Other files in dist changed.'
         Check (@(Get-ChildItem -LiteralPath $dist -Directory -Filter '.publish-*').Count -eq 0) 'Staging directory leaked.'
-        Check (@(Get-ChildItem -LiteralPath $app -Directory -Filter '.userdata-migrate-*').Count -eq 0) 'Migration staging directory leaked.'
         $script:passed++
         Write-Host "PASS $name"
     }
@@ -117,32 +116,18 @@ try {
         Check (@(Get-ChildItem -LiteralPath $app -File -Filter 'ReadArticles.exe.previous-*').Count -eq 0) 'First release should not contain previous executable.'
         Check-UserData
     }
-    Run-Case 'legacy userdata migrates once without deleting its original' {
+    Run-Case 'old root data is ignored during the breaking upgrade' {
         $oldData = Join-Path $dist 'userdata'
-        $oldConfig = Join-Path $oldData 'config'
-        New-Item -ItemType Directory -Path $oldConfig -Force | Out-Null
-        [IO.File]::WriteAllText((Join-Path $oldConfig 'settings.json'), 'legacy-settings')
-        [IO.File]::WriteAllText((Join-Path $oldData 'important.txt'), 'legacy-data')
+        New-Item -ItemType Directory -Path $oldData -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $oldData 'old-data.txt'), 'do-not-import')
+        $legacySettings = Join-Path $dist 'ReadArticles.settings.json'
+        [IO.File]::WriteAllText($legacySettings, 'legacy-source')
         Remove-Item -LiteralPath $userData -Recurse -Force
         & (Join-Path $tools 'Publish.ps1')
-        Check ((Get-Content -LiteralPath $settings -Raw) -eq 'legacy-settings') 'Old settings were not copied.'
-        Check ((Get-Content -LiteralPath (Join-Path $userData 'important.txt') -Raw) -eq 'legacy-data') 'Other userdata was not copied.'
-        Check ((Get-Content -LiteralPath (Join-Path $oldConfig 'settings.json') -Raw) -eq 'legacy-settings') 'Old settings were destroyed.'
-        [IO.File]::WriteAllText($settings, 'new-settings')
-        & (Join-Path $tools 'Publish.ps1')
-        Check ((Get-Content -LiteralPath $settings -Raw) -eq 'new-settings') 'Update overwrote migrated settings.'
-    }
-    Run-Case 'legacy sibling settings are copied without overwriting the source' {
-        $oldSettings = Join-Path $dist 'ReadArticles.settings.json'
-        $newSettings = Join-Path $app 'ReadArticles.settings.json'
-        [IO.File]::WriteAllText($oldSettings, 'legacy-sibling')
-        & (Join-Path $tools 'Publish.ps1')
-        Check ((Get-Content -LiteralPath $newSettings -Raw) -eq 'legacy-sibling') 'Legacy sibling settings were not copied.'
-        Check ((Get-Content -LiteralPath $oldSettings -Raw) -eq 'legacy-sibling') 'Legacy settings source was modified.'
-        [IO.File]::WriteAllText($newSettings, 'new-sibling')
-        & (Join-Path $tools 'Publish.ps1')
-        Check ((Get-Content -LiteralPath $newSettings -Raw) -eq 'new-sibling') 'Existing sibling settings were overwritten.'
-        Check-UserData
+        Check (-not (Test-Path -LiteralPath $userData)) 'Legacy userdata was unexpectedly imported.'
+        Check (-not (Test-Path -LiteralPath (Join-Path $app 'ReadArticles.settings.json'))) 'Legacy settings were unexpectedly imported.'
+        Check ((Get-Content -LiteralPath (Join-Path $oldData 'old-data.txt') -Raw) -eq 'do-not-import') 'Legacy source was altered.'
+        Check ((Get-Content -LiteralPath $legacySettings -Raw) -eq 'legacy-source') 'Legacy settings were altered.'
     }
     Run-Case 'existing portable readme is never replaced' {
         $readme = Join-Path $app 'README.txt'
@@ -151,15 +136,7 @@ try {
         Check ((Get-Content -LiteralPath $readme -Raw) -eq 'my portable notes') 'User readme was overwritten.'
         Check-UserData
     }
-    Run-Case 'existing userdata has precedence over legacy userdata' {
-        $oldData = Join-Path $dist 'userdata'
-        $oldConfig = Join-Path $oldData 'config'
-        New-Item -ItemType Directory -Path $oldConfig -Force | Out-Null
-        [IO.File]::WriteAllText((Join-Path $oldConfig 'settings.json'), 'older-settings')
-        & (Join-Path $tools 'Publish.ps1')
-        Check-UserData
-        Check ((Get-Content -LiteralPath (Join-Path $oldConfig 'settings.json') -Raw) -eq 'older-settings') 'Old source settings were changed.'
-    }
+
 }
 finally {
     Remove-Item Function:\dotnet

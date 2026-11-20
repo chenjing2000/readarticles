@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -32,24 +31,22 @@ public partial class MainWindow
         // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
         LeftColumn.Width = new GridLength(settings.LeftWidth);
 
-        ApplyReadingFont((int)settings.FontSize);
-        player.Volume = settings.Volume;
-        pronunciationPlayer.Volume = player.Volume;
+        // The reader owns no volume setting: both native players run at 100%.
+        player.Volume = 1.0;
+        pronunciationPlayer.Volume = 1.0;
         ViewModel.Accent = settings.Accent;
-        RefreshSettingsChecks();
     }
 
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
         if (!persistSettings) return;
-        SaveSettings(player.Volume, showDialogOnFailure: true);
+        SaveSettings(showDialogOnFailure: true);
     }
 
-    private bool SaveSettings(double volume, bool showDialogOnFailure = false)
+    private bool SaveSettings(bool showDialogOnFailure = false)
     {
         if (!persistSettings) return true;
 
-        settings.Volume = volume;
         settings.Accent = ViewModel.Accent;
         settings.Library = ViewModel.LibraryRoot;
         try
@@ -72,7 +69,7 @@ public partial class MainWindow
     private void SettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ViewModel.Accent) || e.PropertyName == nameof(ViewModel.LibraryRoot))
-            SaveSettings(player.Volume);
+            SaveSettings();
     }
 
     // One layout authority for both splitters. The center absorbs changes
@@ -139,61 +136,32 @@ public partial class MainWindow
         e.Handled = true;
     }
 
-    private void AccentClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem item)
-        {
-            ViewModel.Accent = (string)item.Tag;
-            RefreshSettingsChecks();
-        }
-    }
-
     private void SettingsClicked(object sender, RoutedEventArgs e)
     {
-        SettingsButton.ContextMenu.PlacementTarget = SettingsButton;
-        SettingsButton.ContextMenu.IsOpen = true;
+        var dialog = new SettingsDialog(settings, ApplyDialogSettings) { Owner = this };
+        dialog.ShowDialog();
     }
 
-    private void FontClicked(object sender, RoutedEventArgs e)
+    private bool ApplyDialogSettings(ReaderSettings edited)
     {
-        ApplyReadingFont(int.Parse((string)((MenuItem)sender).Tag));
-        SaveSettings(player.Volume);
-    }
+        edited.Library = ViewModel.LibraryRoot;
+        edited.LeftWidth = settings.LeftWidth;
+        edited.RightWidth = settings.RightWidth;
+        try
+        {
+            if (persistSettings) edited.Save();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            AppLogger.Default.Error("SettingsSaveFailed", error);
+            MessageBox.Show(this, "无法保存设置：" + error.Message,
+                "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
 
-    private void ApplyReadingFont(int size)
-    {
-        settings.FontSize = size;
-        RefreshSettingsChecks();
+        settings.Apply(edited);
+        ViewModel.Accent = settings.Accent;
         SendWebPilotSettings();
+        return true;
     }
-
-    private void RefreshSettingsChecks()
-    {
-        Font14Option.IsChecked = settings.FontSize == 14;
-        Font15Option.IsChecked = settings.FontSize == 15;
-        Font16Option.IsChecked = settings.FontSize == 16;
-        AccentUkOption.IsChecked = ViewModel.Accent == "uk";
-        AccentUsOption.IsChecked = ViewModel.Accent == "us";
-        RefreshStepChecks(ForwardStepMenu, settings.ForwardStep);
-        RefreshStepChecks(BackwardStepMenu, settings.BackwardStep);
-    }
-
-    private void ProgressStepClicked(object sender, RoutedEventArgs e)
-    {
-        var item = (MenuItem)sender;
-        double step = double.Parse((string)item.Tag, CultureInfo.InvariantCulture);
-        if (ReferenceEquals(item.Parent, ForwardStepMenu)) settings.ForwardStep = step;
-        else settings.BackwardStep = step;
-        RefreshSettingsChecks();
-        SaveSettings(player.Volume);
-        SendWebPilotSettings();
-    }
-
-    private static void RefreshStepChecks(MenuItem menu, double step)
-    {
-        foreach (MenuItem item in menu.Items)
-            item.IsChecked = double.Parse((string)item.Tag, CultureInfo.InvariantCulture) == step;
-    }
-
-
 }

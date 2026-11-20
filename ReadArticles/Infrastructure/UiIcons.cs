@@ -11,6 +11,8 @@ public static class UiIcons
     public static ImageSource AppIcon { get; } = Png("maple_leaf.png");
     public static ImageSource Plus { get; } = Svg("tree/plus.svg");
     public static ImageSource Minus { get; } = Svg("tree/minus.svg");
+    public static ImageSource Settings { get; } = Svg("icons/setting.svg");
+    public static ImageSource Refresh { get; } = Svg("icons/refresh.svg");
 
     private static Uri Resource(string path) => new Uri($"pack://application:,,,/ReadArticles;component/ui/{path}");
     private static ImageSource Png(string path)
@@ -50,11 +52,25 @@ public static class UiIcons
             if (element.Attribute("transform") is { } transform)
             {
                 string value = transform.Value.Trim();
-                if (!value.StartsWith("translate(", StringComparison.Ordinal) || !value.EndsWith(')'))
+                // Support the centered translate()+scale() transform in the
+                // approved settings icon as well as the existing tree icons.
+                var matches = System.Text.RegularExpressions.Regex.Matches(value,
+                    @"(translate|scale)\(([^)]*)\)");
+                var groupTransform = new TransformGroup();
+                // In SVG, the rightmost transformation is applied first.
+                foreach (System.Text.RegularExpressions.Match match in
+                    matches.Cast<System.Text.RegularExpressions.Match>().Reverse())
+                {
+                    var args = match.Groups[2].Value.Split(new[] { ' ', ',' },
+                        StringSplitOptions.RemoveEmptyEntries)
+                        .Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+                    groupTransform.Children.Add(match.Groups[1].Value == "scale"
+                        ? new ScaleTransform(args[0], args.Length > 1 ? args[1] : args[0])
+                        : new TranslateTransform(args[0], args.Length > 1 ? args[1] : 0));
+                }
+                if (matches.Count == 0)
                     throw new NotSupportedException($"Unsupported SVG transform: {value}");
-                var coordinates = value.Substring(10, value.Length - 11).Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
-                group.Transform = new TranslateTransform(coordinates[0], coordinates.Length > 1 ? coordinates[1] : 0);
+                group.Transform = groupTransform;
             }
             foreach (var child in element.Elements()) group.Children.Add(ReadElement(child, grayscale, tint));
             return group;

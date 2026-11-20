@@ -1,42 +1,68 @@
-# ReadArticles — 开发交接（2026-11-19）
+# ReadArticles — 开发交接（2026-11-20）
 
-## 当前稳定基线
+> **新会话从这里开始。** 当前重点是尚未合并的 **PR #19：阅读设置弹窗、WebView2 图标与视觉交互改造**。不要误以为这些修改已经进入 `main`。
 
-- **仓库与正式分支：** [chenjing2000/readarticles](https://github.com/chenjing2000/readarticles) 的稳定开发基线是 `main`。本轮三栏布局 PR [#18](https://github.com/chenjing2000/readarticles/pull/18) 已于 2026-11-19 **squash merge**，功能合并提交为 `71b5cd188ae344ef013d3e8a8cd7d349656dfbae`；此 HANDOFF 的后续文档提交位于其上。先前 PR [#17](https://github.com/chenjing2000/readarticles/pull/17) 已合并，#16 已合并，#15 已关闭；不要从旧迁移分支继续开发。
-- **本轮交付：** 三栏宽度和两条分隔条行为已经按用户确认的规则统一：左侧 WPF 书库栏、WebView2 文章中栏和词汇右栏双向联动。清除了旧 WPF `GridSplitter` 的自动宽度竞争、CSS 动态右栏压缩和 JavaScript 抢先修改最终右栏宽度。C# 是唯一三栏宽度求解者，浏览器应用 C# 返回的权威右栏尺寸。
-- **PR #18 合并前验证：** 功能分支最终提交 `22341c5264a8a8b7605233c9a91833b1894c5c17` 的 [GitHub Windows CI #44445487538](https://github.com/chenjing2000/readarticles/actions/runs/44445487538) 为 **Success**。用户提供的 Windows Release 构建成功；Core **10/10** 组、UI **13/13** 组、Full **6/6** 组（应用回归 **96/96**、源文件保护 **2/2**）。此前 `left splitter keyboard width survives window resize` 失败项最终已 **PASS**；用户另外确认左右分隔条视觉跳动已消除，**本轮实机交互验收通过**。这些结论针对 PR #18 最终功能提交，不能替代未来改动的测试。合并后 `main` 与此文档提交的 CI 状态应另行核对，不要沿用 PR CI 作为其结果。
-- **前一阶段记录：** PR #17（合并提交 `3fc6e217c94313535579788fb179160b5f17f451`）完成键盘焦点、WebView2 词汇 Enter/Space、设置无变化跳过写入及备份轮换、遗留 WPF 命令清理和相关回归；此前用户完成发布 EXE **20/20** 项实机验收。见历史 PR 和 [测试文档](Testing.md)，不重演已合入的旧补丁。
-- **Git/工作区边界：** PR #18 已合并；其原功能分支 `fix/three-pane-width-constraints` 未在本次操作中删除。远程 `feature/exercise` 属于独立工作，**必须保留**。当前只可确认 GitHub 远程状态，不能据此断言用户本地 `main` 已同步或 `git status` 为空。下一轮请先 `git fetch origin`，检查本地未提交更改，再更新 `main` 和建立新功能分支；旧版 postmigration 分支及 V2 stash 的清理属于历史记录。
-- **后续操作约定：** 优先通过已连接的 GitHub 工具直接修改并提交到获准功能分支，再由用户在 Windows 本地构建、测试和验收。修改、推送、PR、合并及分支清理分别遵循当轮授权；不要未经同意删除其他分支。
+## 1. 当前 GitHub 基线与验收状态
 
-## 最终架构与职责
+- 仓库：[chenjing2000/readarticles](https://github.com/chenjing2000/readarticles)；本地项目通常为 `C:\Projects\ReadArticles`。
+- **正在开发的功能分支：** `feature/reading-settings-dialog-icons`。
+- **PR：** [#19](https://github.com/chenjing2000/readarticles/pull/19)，状态 **Open / Draft / 未合并**；审查整改功能提交为 `25281f9127c0e0e21da8222b4534a24770c7667a`，上次交接文档提交为 `f32361822980054aef265fa85027565d1f6de807`；本次验收收尾再次更新文档后，以 GitHub 远程 HEAD 为准。
+- **审查整改 CI：** [Windows CI #44713901764](https://github.com/chenjing2000/readarticles/actions/runs/44713901764) 针对 `25281f9` **Success**；[Windows CI #44714360403](https://github.com/chenjing2000/readarticles/actions/runs/44714360403) 针对 `f323618` **Success**。Build application、Core regression、Publish actual portable release、Verify portable release layout 均通过。此后若有新提交仍须检查独立 CI。
+- **Windows 实机验收：** 用户已确认 540 DIP 弹窗、五种选词背景、选词加号、选区失效定位、保存/取消/恢复默认符合预期；Nunito 字体选择、保存及重启保持正常；进度条焦点无外框、左右方向键、暂停/停止边界与鼠标跳转通过。**2026-11-20 用户再次逐项确认 Code Review 整改四项实机验收均通过：**无变化点击/拖动释放与取消或失焦后进度持续刷新、快速连续方向键累计跳转、长音频 `hh:mm:ss`、恢复默认时缺失字体回退。**用户已同意本轮收尾，但没有明确授权合并 PR #19；必须保持 Draft、未合并。**
+- `main` 仍是稳定分支，包含于 2026-11-19 合并的 PR #18（三栏布局）。PR #18 已经用户 Windows 实机验收；**不要重做**它的三栏求解器。保留与本项目无关的 `feature/exercise` 分支，不随意清理。
+- 这里只能确定 GitHub 远程状态，**不能推断本地工作区干净或本地分支已经同步**。先检查 `git status --short`、当前分支及远端最新提交。
 
-- **WPF / .NET 10 / Windows x64：** Windows 宿主、左侧异步逐层加载的书库树、系统对话框、应用生命周期和原生错误/退出界面。旧 WPF 正文、词汇编辑界面、工具栏、Toast、选区 Adorner 与重复的 C# 文本匹配器已删除；没有第二套阅读器。
-- **唯一 WebView2：** Passage/Script 阅读、右侧词表与工具栏、文本匹配/高亮/定位、选区添加、独立滚动、消息通知及 Script 的 SVG 逐词着色。WebView2 不直接访问或改写用户 JSON，也不使用 HTML Audio。
-- **C# 业务：** 文章/Script/词汇 JSON 解析和校验、音频资源路径与播放时钟、词汇新增/移动/删除/导入的事务提交、外部改动检测、原子保存、备份恢复、FIFO 通知、配置及日志。文章和媒体只读；仅当前词汇伴随 JSON 可由编辑操作改写。
-- **数据与发布：** Framework-dependent、非 trimming、Windows x64 便携式单文件 EXE；发布到 `dist/ReadArticles/ReadArticles.exe`，用户设置和备份位于 EXE 同级 `userdata/`。设置路径 `userdata/config/settings.json`；左右面板宽度仅当前会话有效。WebView2 Evergreen Runtime 和 .NET 10 Windows Desktop Runtime 为运行依赖。
-- **必须保留的边界：** 切换文章失败保留已提交状态；目录扫描不阻塞 UI，折叠/切库使旧请求失效；词汇写入必须保留未知字段、并发检测及备份；音频旧回调不能改变新的播放状态。MP3 存在时优先，解码失败不自动回退 WAV；句子录音只在请求时检测。WebView2 初始化、进程或渲染失败时显示原生错误及退出界面，不回退旧 WPF 阅读器。
-- **Script：** 同目录 `<name>.script.json` 按需加载，必须符合 `filetype: "script"`、字符串 `title`、`paragraphs`、`text`、`timed_units` 的约定。未对齐单元不着色，且不改变 Passage 的 SID、词表或全篇音频来源。
+## 2. PR #19 已实现并在功能分支提交的内容
 
+### 设置弹窗与数据配置
 
-## 三栏布局约定（PR #18）
+- 原“阅读设置”名称统一为 **“设置”**；左上齿轮按钮只显示 SVG 图标。单个原生 WPF Fluent 设置弹窗，固定 **500 × 540 DIP**，不允许改变窗口大小；四个功能列宽 **72 / 140 / 72 / 140 DIP**，第二与第三功能列中间留 **20 DIP**（Grid 实际列宽 `72/140/20/72/140`）。各列控件**靠左对齐**，但下拉框显示文字和选项内部仍居中。标签/选项/底部按钮文字 13 DIP，单位标签 12 DIP，分组标题 15 DIP。底部“恢复默认 / 取消 / 保存”按既有草稿式提交行为。
+- **英文字体列表按此顺序：** `Georgia / Microsoft YaHei UI / Nunito / Segoe UI`，默认 **Georgia**；标题、正文、词头使用此列表。**中文释义字体**仍为 `Microsoft YaHei / SimSun / KaiTi`（微软雅黑/宋体/楷体）。WPF 通过 `Fonts.SystemFontFamilies` 检查 **Georgia、Nunito、Segoe UI** 是否存在；缺少时弹出**非阻断浮动提示**（仅显示“未检测到字体 {name}。”），保留/恢复可用字体。不对中文字体或 Microsoft YaHei UI 进行存在性检查；不开发字体下载安装功能。根据用户后续确认，已从三个英文字体选择器、配置合法值及 WebView2 字体回退列表移除 `Noto Sans`；旧设置的 `Noto Sans` 值按现有归一化规则恢复为 Georgia。用户表示已正确安装 `Nunito`。
+- **文字排版默认值：** 标题 18 px、行高 **1.7**（1.6/1.7/1.8）、段后 16 px；正文 15 px、行高 **1.7**（1.6/1.7/1.8）、段后 16 px、首行缩进 2 em；词头 16 px（15/16/17）、音标 14 px（13/14/15）；释义 15 px（14/15/16）、行高 **1.5**（1.5/1.6/1.7）。下拉框数值选项、数据归一化和 WebView2 fallback 已联动更新。
+- 颜色设置是**八处五色圆球**（不是 HEX 文本输入框），色球每组占 140 DIP，默认在第一位。普通文字：`#283747/#344054/#3F4750/#315247/#513D4D`；词头：`#B7394D/#9D3E68/#7D50A1/#1F6795/#8B593B`；音标：`#0A7785/#256CA5/#38735A/#7657A0/#995431`；阅读背景：`#F8F8F6/#F0F3F7/#F7F1E6/#EFF5F0/#F1F0F7`。新增**“台词颜色”**与背景颜色同一行：`#B64550/#A33D30/#A45A2C/#856300/#53713C`，默认 `#B64550`，只用于 Script 已播放文字；Script 原 SVG clip 定时着色机制保持。正文“文字颜色”标签替换原“颜色”；新增选词背景 `#DDE8F2/#E5EDE0/#F3E9DC/#EBE5F2/#F2E5E7`，默认雾蓝 `#DDE8F2`，使用原生 CSS `::selection`，不改变前景色。
+- 正文设置 **“选词加号”**（原“选项加号”），候选 `0.65/0.70/0.75/0.80 em`，默认 **0.65 em**，根据正文实际字体大小显示 SVG。点击区域仍 **24 × 24 CSS px**、可见图形放在点击区域左上角；相对选中文字末行右下角**水平 1 CSS px、垂直 0 CSS px**。定位改用唯一的 `requestAnimationFrame` 循环，**最多约 60 Hz** 检查；不再设毫秒刷新周期，页面不可见/选区失效/文章或模式切换时停止，滚出可视范围隐藏，滚回时可恢复。浏览器绘制节奏限制实际频率，不保证精确 60 Hz。
+- 设置路径为 EXE 同级 `userdata/config/settings.json`；用户已确定**破坏性配置升级，不迁移旧格式**。新版本正常保存采用原子写入及最近一次有效备份；应用日志、备份、WebView2 用户数据仍归 `userdata/`。图书馆里的文章/Script/词汇 JSON 与音频保留在用户指定目录。账户与左下角 User 显示/专属代码已删除。
+- 设置中**无音量滑块**；文章音频、单词/句子发音两套播放器都固定 `Volume = 1.0`（应用级 100%，不强制 Windows 系统音量）。音频设置仅保留英/美音、前进和后退秒数。
 
-- **尺寸：** 左侧图书馆默认 **250 DIP**、范围 **200–400 DIP**；文章中栏 **至少 200 DIP**、宽度自适应；词汇右栏默认 **300 DIP**、范围 **200–400 DIP**。两条分隔条各 **3 DIP**，所以 WPF 中 WebView2 宿主必须至少有 **403 DIP**（文章 200 + 右分隔条 3 + 词汇 200）。窗口启动居中，高度约为工作区的 70%，宽度默认约为工作区的 70%，有空间时不少于 **796 DIP**、不能超过工作区宽度。
-- **精确的双向规则：** 拖动左分隔条，先压缩/扩大**中栏**；中栏压至 200 DIP 后才压缩**右栏**。拖动右分隔条同理，优先改变**中栏**，再压缩**左栏**。反向拖动先恢复中栏、另一侧外栏维持**当前值**，不强制重置到 250/300。三栏均达到 200 DIP 时，不可继续向压缩方向拖动。窗口本身变窄时同样遵循最小值并调整到可行布局。
-- **唯一控制入口：** `ReadArticles/MainWindow.Settings.cs` 的 `AvailablePaneWidth`、`SetPaneWidths`、`ResizeLibraryPane`、`ResizeVocabularyPane` 及 `WorkspaceResized` 负责实际宽度计算和 WPF 左栏更新。左分隔条是 WPF `Thumb`，其鼠标和键盘事件交给相同求解器。右分隔条位于唯一 WebView2 页面里，通过 `dragPanelWidth`、`setPanelWidth` 与 `cancelPanelDrag` 向 C# 提交意图，C# 用 `setPaneWidth` 给浏览器返回确认值；浏览器不再先行设置最终宽度。JS 右侧拖动使用屏幕坐标，避免 WPF 宿主移动产生坐标反馈。
-- **浏览器和状态边界：** `ReadArticles/web/reader.css` 仅根据 C# 确认的 `--word-width` 渲染词汇栏，**不要重新引入**独立的 `clamp(... calc(100% - 203px))` 或新的浏览器宽度求解器；CSS 保留最小文章宽度等安全约束。`ReaderSettings.LeftWidth/RightWidth` 均标记 `[JsonIgnore]`，仅会话有效，重启恢复默认值；不可让面板拖动写入 `userdata/config/settings.json` 或触发无意义的备份轮换。
-- **必测路径：** 两条分隔条向两个方向慢速/快速拖动、文章到 200 DIP 后另一侧才压缩、反向拖动不回弹、三栏最小值停止、改变窗口宽度、左右键键盘操作、浏览器实际 DOM 宽度与 C# 一致。现有覆盖在 `ReaderControlsChecks.cs`、`WebViewPilotChecks.cs`、`WebViewSettingsChecks.cs` 和目录树测试里；视觉无跳动仍需实机检查。
+### 阅读 UI、按钮与播放边界
 
-## 下一轮工作入口
+- 已采用 V5 SVG 图标，设置、播放/暂停、停止、词汇工具、Script/Passage 等按钮按约定使用无边框圆形样式；三栏底部保持 **48 DIP** 对齐。进度条左侧“文章音频”标签已删除。
+- 正文词汇背景采用方案 B：`Range.getClientRects()` 测量文字，在独立不可交互图层绘制 **4 px 圆角**背景，不修改实际文本节点，保留文本选择和 Script 定时单元。
+- **不要重新定义音频时间轴。** 用户明确撤销“停止后仍可拖动”提议：停止后进度条**不可拖动**、进度着色清除，暂停/播放期间可以 seek；切换文章成功后清零旧进度与通知，打开失败保留原文章状态。
+- **音频进度条方向键：** 用户报告单击进度条后出现外部焦点框，且左右方向键只触发原生 `0.05` 秒滑块步长。保留滑块键盘焦点，但通过仅针对 `#progress:focus` 的 CSS 隐藏外部焦点轮廓；`#progress` 与阅读区共用 `seekArticle` 消息。审查整改后，方向键携带 forward/backward 意图，由 C# 按播放器实时位置和已配置步长计算相对跳转，连续快速按键可累加；鼠标滑块继续传入绝对位置。阻止浏览器原生方向键步进。鼠标点击、拖动、暂停和停止边界不改变；上述四项已通过用户 Windows 实机验证。
 
-1. 阅读根目录 `AGENTS.md`、`docs/project-contract.md`、`docs/Testing.md`、`docs/Publishing.md`、`docs/skills/project-code-review/SKILL.md`；WebView2 迁移历史与技术取舍见 `docs/WebView2-Migration.md`。按需参照 WindowsAppPlaybook，贯彻最小必要设计，删除不必要复杂性，避免为精简而牺牲数据安全。
-2. 核对 `git status --short`、`git log -1 --oneline`、远程分支状态；本地如无阻塞的未提交改动，可用 `git switch main` 与 `git pull --ff-only origin main` 同步。以 PR #18 合并后的实际源码为依据，不重放旧的三栏宽度补丁、V2 补丁或历史 stash；`feature/exercise` 不得随意改动或删除。
-3. 新一轮整改先确认目标与验收边界，在独立分支提交最小改动及相关测试。Windows 验证入口：`dotnet build ReadArticles.Tests -c Release`、`.\tools\Test.ps1 -Suite Core`、`-Suite UI`、`-Suite Full`；发布使用 `.\tools\Publish.ps1`、`.\tools\Test-PublishedApp.ps1`，对**实际发布的 EXE**再次进行交互验收。涉及数据修改一律使用隔离文章库副本。
-4. Windows 回归、GitHub CI、人工验收及最终 PR 差异审核通过后，取得明确授权方可合并到 `main`；合并后核对 `main` 新一轮 CI，再按独立授权清理临时分支或 stash。
+- **本轮代码审查整改：** 修复进度条无 `change` 事件导致的 `seekDragging` 滞留；时间标签在超过 3600 秒时切换 `hh:mm:ss`（恰好 3600 秒仍为 `60:00`）；恢复默认时重新检查字体、重建字体下拉框引用；修复连续快速方向键因浏览器播放快照滞后而重复使用同一跳转目标的问题。测试覆盖各边界，CI #191、#192 均通过，用户已完成本轮 Windows 实机复验并确认符合预期。
 
-## 相关文档
+## 3. 技术架构与不可破坏的边界
 
-- [架构与模块](Application-Overview.md) · [文件格式及目录约定](Library-Layout.md) · [测试与人工验收](Testing.md) · [发布](Publishing.md)
-- [WebView2 迁移历史](WebView2-Migration.md) · [项目代码审查 Skill](skills/project-code-review/SKILL.md)
+- C# / WPF / .NET 10 Windows x64；唯一 WebView2 承载 Passage/Script、词表、选区与通知，WPF 保留左栏树和原生窗口；音频由独立的 C# 文章播放器与词/句发音播放器管理，不引入 HTML Audio 或第二套 WPF 阅读器。
+- C# 是三栏宽度的唯一求解者：左栏默认 250 DIP、右栏默认 300 DIP（均允许 200–400），中栏至少 200 DIP，两分隔条各 3 DIP；三栏宽度**仅会话有效**，不写入设置 JSON。具体算法见 [Application-Overview.md](Application-Overview.md) 与 PR #18 历史。
+- 失败文章切换不破坏当前阅读状态；目录扫描不阻塞 WPF；过期异步操作不能写回新文章；词汇编辑需保留未知 JSON 字段、并发检测、原子写入与备份；Script/Passage 源文件及 MP3/WAV 只读。MP3 存在时优先，不因解码失败自动换 WAV。
+- 贯彻第一性原理与奥卡姆剃刀：优先最小改动和删除多余逻辑，不增加不必要功能、兼容层或文件；用户明确验收前**不合并 PR #19，不修改无关分支**。
 
-**历史内容提醒：** 早期第六、七阶段 WPF 视觉测试、WebView2 试点开关和旧 PR 分支是历史材料；不要按旧交接中的 `--webview-pilot`、旧 WPF 阅读器或过期开发分支命令执行下一轮工作。
+## 4. 下一会话最重要的工作
+
+1. **先读取此文档，再核对 PR #19、`feature/reading-settings-dialog-icons` HEAD、最新 CI、源码与本地状态**；功能审查整改提交为 `25281f9`，之后有文档提交，不能用旧提交代替实际 HEAD。入口文件：`ReadArticles/SettingsDialog.cs`、`Infrastructure/ReaderSettings.cs`、`MainWindow.Settings.cs`、`MainWindow.WebView.cs`、`web/reader.js`、`reader.css`，相关测试位于 `ReadArticles.Tests/`。
+2. **本轮 Code Review 整改与 Windows 实机验收已经结束。** 用户已逐项确认进度条状态恢复、连续快速方向键、长音频时间显示及恢复默认字体回退均符合预期；不要在没有新缺陷的情况下重复修改或要求重复验收。下一步如需合并 PR #19，须先取得用户明确的合并授权。
+3. 本机可执行（先确认本地未提交修改）：
+
+   ```powershell
+   cd C:\Projects\ReadArticles
+   git status --short
+   git fetch origin
+   git switch feature/reading-settings-dialog-icons
+   git pull --ff-only origin feature/reading-settings-dialog-icons
+
+   .\tools\Test.ps1 -Suite UI
+   .\tools\Test.ps1 -Suite Full
+   # 确保 ReadArticles.exe 已退出，避免发布文件被锁定
+   .\tools\Publish.ps1
+   .\tools\Test-PublishedApp.ps1
+   ```
+
+4. 本轮代码与实机验收已收尾。如有新需求，先讨论范围、风险与最小修改，配套测试和 CI；**用户明确授权合并 PR #19 前绝不修改 `main`、合并 PR 或清理其他分支**。合并后另行验证 `main` CI 和决定是否删除功能分支。
+
+## 参考文档与历史
+
+- [Configuration.md](Configuration.md)（最新 UI 和配置参数）、[Testing.md](Testing.md)、[Publishing.md](Publishing.md)、[project-contract.md](project-contract.md)、根目录 `AGENTS.md`、[project-code-review/SKILL.md](skills/project-code-review/SKILL.md)。
+- 2026-11-19 的 PR #18 三栏布局基线已验收并合并，曾对应 [CI #44445487538](https://github.com/chenjing2000/readarticles/actions/runs/44445487538)。PR #17 为更早的输入与词汇控制收尾。老 WPF 阅读器、旧迁移分支、旧账户模型均属历史，不要重新启用。

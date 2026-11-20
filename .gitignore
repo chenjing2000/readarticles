@@ -9,6 +9,8 @@
 # Machine-specific application settings
 reader-settings.json
 *.settings.json
+ReadArticles.config.json
+ReadArticles.config.json.*.corrupt
 
 # IDE and local tool files
 .vs/

@@ -117,144 +117,311 @@ internal static class ReaderControlsChecks
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
-        Program.Run("settings own value normalization on load and save", () =>
+        Program.Run("current structured settings normalize values and keep pane widths session-only", () =>
         {
             string path = ReaderSettings.PathName;
-            string legacyPath = AppPaths.LegacySettingsFile;
-            string markerPath = AppPaths.LegacySettingsMigrationMarker;
-            byte[]? before = File.Exists(path) ? File.ReadAllBytes(path) : null;
-            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
-            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
+            string backup = AppPaths.SettingsBackupFile;
+            byte[]? old = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            byte[]? oldBackup = File.Exists(backup) ? File.ReadAllBytes(backup) : null;
             try
             {
-                if (File.Exists(legacyPath)) File.Delete(legacyPath);
-                if (File.Exists(markerPath)) File.Delete(markerPath);
-                JsonFiles.WriteAtomic(path, new { LeftWidth = 221.4, RightWidth = 281.8, FontSize = 99,
-                    Volume = 3, Accent = "invalid", ForwardStep = 1, BackwardStep = 1 });
-                var settings = ReaderSettings.Load(out var warning);
-                // Persisted legacy widths are ignored: every launch starts at defaults.
-                Program.Check(warning == null && settings.LeftWidth == 250 && settings.RightWidth == 300);
-                Program.Check(settings.FontSize == 16 && settings.Volume == 1 && settings.Accent == "uk");
-                Program.Check(settings.ForwardStep == 4 && settings.BackwardStep == 5);
-                settings.FontSize = double.NaN;
-                settings.Volume = double.NaN;
-                settings.Save();
-                settings = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && settings.FontSize == 15 && settings.Volume == 0.65);
-                // Repeated saves and session-only width changes may not rotate the backup.
-                byte[] persisted = File.ReadAllBytes(path);
-                byte[] backup = File.ReadAllBytes(AppPaths.SettingsBackupFile);
-                settings.LeftWidth = 517;
-                settings.RightWidth = 645;
-                settings.Save();
-                settings.Save();
-                Program.Check(File.ReadAllBytes(path).SequenceEqual(persisted) &&
-                    File.ReadAllBytes(AppPaths.SettingsBackupFile).SequenceEqual(backup));
-            }
-            finally
-            {
-                if (before == null) { if (File.Exists(path)) File.Delete(path); } else File.WriteAllBytes(path, before);
-                if (legacyBefore == null) { if (File.Exists(legacyPath)) File.Delete(legacyPath); } else File.WriteAllBytes(legacyPath, legacyBefore);
-                if (markerBefore == null) { if (File.Exists(markerPath)) File.Delete(markerPath); } else File.WriteAllBytes(markerPath, markerBefore);
-            }
-        });
-        Program.Run("legacy settings migrate to userdata config without deleting the source", () =>
-        {
-            string currentPath = ReaderSettings.PathName;
-            string legacyPath = AppPaths.LegacySettingsFile;
-            string markerPath = AppPaths.LegacySettingsMigrationMarker;
-            byte[]? currentBefore = File.Exists(currentPath) ? File.ReadAllBytes(currentPath) : null;
-            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
-            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
-            try
-            {
-                if (File.Exists(currentPath)) File.Delete(currentPath);
-                if (File.Exists(markerPath)) File.Delete(markerPath);
-                // Simulate a genuine old JSON file that still contains widths.
-                JsonFiles.WriteAtomic(legacyPath, new
+                var invalid = new ReaderSettings
                 {
-                    LeftWidth = 244,
-                    RightWidth = 355,
-                    FontSize = 16,
-                    Volume = 0.4,
-                    Accent = "us",
-                    Library = TestData.LibraryRoot
-                });
-                var migrated = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && migrated.LeftWidth == 250 && migrated.RightWidth == 300);
-                Program.Check(migrated.Accent == "us" && migrated.Volume == 0.4 && migrated.Library == TestData.LibraryRoot);
-                Program.Check(File.Exists(currentPath) && File.Exists(legacyPath));
-                Program.Check(File.Exists(markerPath));
-                var persisted = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && persisted.Accent == "us" &&
-                    persisted.LeftWidth == 250 && persisted.RightWidth == 300);
-                persisted.Accent = "uk";
-                persisted.Save();
-                var updated = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && updated.Accent == "uk");
+                    LeftWidth = 221.4, RightWidth = 281.8,
+                    Accent = "invalid", ForwardStep = 1, BackwardStep = 1
+                };
+                invalid.Appearance.Body.Size = 99;
+                invalid.Appearance.Body.ParagraphAfter = -5;
+                invalid.Appearance.Body.SelectionAddSize = 0.60;
+                invalid.Appearance.Title.Font = "Noto Sans";
+                invalid.Appearance.Body.Font = "Nunito Sans";
+                invalid.Appearance.Vocabulary.Font = "Noto Sans";
+                invalid.Appearance.Body.SelectionBackground = "#BAD";
+                invalid.Appearance.Title.LineHeight = 1.3;
+                invalid.Appearance.Vocabulary.Color = "#BAD";
+                JsonFiles.WriteAtomic(path, invalid);
+                var loaded = ReaderSettings.Load(out var warning);
+                Program.Check(warning == null && loaded.LeftWidth == 250 && loaded.RightWidth == 300);
+                Program.Check(loaded.FontSize == 15 && loaded.Accent == "uk");
+                Program.Check(loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
+                Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
+                    loaded.Appearance.Title.LineHeight == 1.7 &&
+                    loaded.Appearance.Body.LineHeight == 1.7 &&
+                    loaded.Appearance.Body.ScriptColor == "#B64550" &&
+                    loaded.Appearance.Body.SelectionAddSize == 0.65 &&
+                    loaded.Appearance.Title.Font == "Georgia" &&
+                    loaded.Appearance.Body.Font == "Georgia" &&
+                    loaded.Appearance.Vocabulary.Font == "Georgia" &&
+                    loaded.Appearance.Body.SelectionBackground == "#DDE8F2" &&
+                    loaded.Appearance.Vocabulary.Size == 16 &&
+                    loaded.Appearance.Phonetics.Size == 14 &&
+                    loaded.Appearance.Vocabulary.Color == "#B7394D");
+                loaded.Appearance.Body.SelectionAddSize = 0.80;
+                loaded.Appearance.Title.Font = "Nunito";
+                loaded.Appearance.Body.Font = "Nunito";
+                loaded.Appearance.Vocabulary.Font = "Nunito";
+                loaded.Appearance.Body.SelectionBackground = "#EBE5F2";
+                loaded.Save();
+                loaded = ReaderSettings.Load(out warning);
+                Program.Check(warning == null &&
+                    loaded.Appearance.Body.SelectionAddSize == 0.80 &&
+                    loaded.Appearance.Title.Font == "Nunito" &&
+                    loaded.Appearance.Body.Font == "Nunito" &&
+                    loaded.Appearance.Vocabulary.Font == "Nunito" &&
+                    loaded.Appearance.Body.SelectionBackground == "#EBE5F2");
+                loaded.FontSize = double.NaN;
+                loaded.Save();
+                loaded = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && loaded.FontSize == 15);
+                byte[] persisted = File.ReadAllBytes(path);
+                byte[] backupBytes = File.ReadAllBytes(backup);
+                loaded.LeftWidth = 517;
+                loaded.RightWidth = 645;
+                loaded.Save();
+                loaded.Save();
+                Program.Check(File.ReadAllBytes(path).SequenceEqual(persisted) &&
+                    File.ReadAllBytes(backup).SequenceEqual(backupBytes));
             }
-            finally
-            {
-                if (currentBefore == null) { if (File.Exists(currentPath)) File.Delete(currentPath); }
-                else File.WriteAllBytes(currentPath, currentBefore);
-                if (legacyBefore == null) { if (File.Exists(legacyPath)) File.Delete(legacyPath); }
-                else File.WriteAllBytes(legacyPath, legacyBefore);
-                if (markerBefore == null) { if (File.Exists(markerPath)) File.Delete(markerPath); }
-                else File.WriteAllBytes(markerPath, markerBefore);
-            }
+            finally { Restore(path, old); Restore(backup, oldBackup); }
         });
-        Program.Run("settings initialize in userdata config and changes save before close", () =>
+
+        Program.Run("breaking change replaces old flat configuration without importing values", () =>
         {
             string path = ReaderSettings.PathName;
-            string legacyPath = AppPaths.LegacySettingsFile;
-            string markerPath = AppPaths.LegacySettingsMigrationMarker;
-            byte[]? previous = File.Exists(path) ? File.ReadAllBytes(path) : null;
-            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
-            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
+            byte[]? old = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            try
+            {
+                JsonFiles.WriteAtomic(path, new
+                {
+                    FontSize = 17, Accent = "us",
+                    ForwardStep = 15, Library = TestData.LibraryRoot
+                });
+                var fresh = ReaderSettings.Load(out var warning);
+                Program.Check(warning != null &&
+                    fresh.FontSize == 15 &&
+                    fresh.Accent == "uk" && fresh.Library == null &&
+                    fresh.Appearance.Vocabulary.Size == 16);
+                var reopened = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && reopened.Appearance.Title.LineHeight == 1.7 &&
+                    reopened.Appearance.Meanings.LineHeight == 1.5);
+            }
+            finally { Restore(path, old); }
+        });
+
+        Program.Run("native settings persist only in exe-adjacent userdata config", () =>
+        {
+            string path = ReaderSettings.PathName;
+            byte[]? old = File.Exists(path) ? File.ReadAllBytes(path) : null;
             ReadArticles.MainWindow? window = null;
             try
             {
-                if (File.Exists(legacyPath)) File.Delete(legacyPath);
-                if (File.Exists(markerPath)) File.Delete(markerPath);
-                File.Delete(path);
-                window = new ReadArticles.MainWindow { ShowActivated = false, Left = -10000, Top = -10000 };
+                if (File.Exists(path)) File.Delete(path);
+                window = new ReadArticles.MainWindow
+                    { ShowActivated = false, Left = -10000, Top = -10000 };
                 window.Show();
-                Program.Check(File.Exists(path) && path == AppPaths.SettingsFile && Path.GetRelativePath(AppPaths.ApplicationDirectory, path) == Path.Combine("userdata", "config", "settings.json"));
+                Program.Check(File.Exists(path) &&
+                    Path.GetRelativePath(AppPaths.ApplicationDirectory, path) ==
+                        Path.Combine("userdata", "config", "settings.json"));
                 var defaults = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && defaults.ForwardStep == 4 && defaults.BackwardStep == 5 && defaults.FontSize == 15);
-                var menu = ((Button)window.FindName("SettingsButton")).ContextMenu;
-                var progress = (MenuItem)menu.Items[2];
-                var step7 = (MenuItem)((MenuItem)progress.Items[0]).Items[1];
-                step7.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-                window.ViewModel.Accent = "us";
+                Program.Check(warning == null &&
+                    typeof(ReaderSettings).GetProperty("Volume") == null &&
+                    typeof(ReaderAudioPreferences).GetProperty("Volume") == null &&
+                    defaults.FontSize == 15 &&
+                    defaults.Appearance.Title.Size == 18 &&
+                    defaults.Appearance.Title.LineHeight == 1.7 &&
+                    defaults.Appearance.Body.LineHeight == 1.7 &&
+                    defaults.Appearance.Meanings.LineHeight == 1.5 &&
+                    defaults.Appearance.Body.SelectionAddSize == 0.65 &&
+                    defaults.Appearance.Body.SelectionBackground == "#DDE8F2" &&
+                    defaults.Appearance.Body.ScriptColor == "#B64550" &&
+                    defaults.Appearance.Title.Font == "Georgia" &&
+                    defaults.Appearance.Body.ParagraphAfter == 16 &&
+                    defaults.Appearance.Phonetics.Size == 14);
+                Program.Check(((Button)window.FindName("SettingsButton")).ContextMenu is null);
+                var player = (WpfAudioPlayer)typeof(ReadArticles.MainWindow)
+                    .GetField("player", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                var pronunciationPlayer = (WpfAudioPlayer)typeof(ReadArticles.MainWindow)
+                    .GetField("pronunciationPlayer", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                Program.Check(player.Volume == 1.0 && pronunciationPlayer.Volume == 1.0);
                 Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
+                var draft = defaults.Copy();
+                draft.ForwardStep = 7;
+                draft.Accent = "us";
+                draft.Appearance.Body.Size = 17;
+                draft.Appearance.Body.Background = "#F7F1E6";
+                var apply = typeof(ReadArticles.MainWindow).GetMethod("ApplyDialogSettings",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!;
+                Program.Check((bool)apply.Invoke(window, [draft])!);
                 var saved = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && saved.ForwardStep == 7 && saved.Accent == "us" && saved.Library == TestData.LibraryRoot);
-                saved.LeftWidth = 221.4;
-                saved.RightWidth = 281.8;
-                saved.Save();
-                saved = ReaderSettings.Load(out warning);
-                Program.Check(saved.LeftWidth == 250 && saved.RightWidth == 300 && saved.FontSize == 15);
-                // Resizing is allowed in this session; closing must not persist either width.
-                ((ColumnDefinition)window.FindName("LeftColumn")).Width = new GridLength(275);
-                window.UpdateLayout();
+                Program.Check(warning == null && saved.FontSize == 17 &&
+                    saved.ForwardStep == 7 && saved.Accent == "us" &&
+                    saved.Library == TestData.LibraryRoot &&
+                    saved.Appearance.Body.Background == "#F7F1E6");
                 window.Close();
                 window = null;
-                var closedSettings = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && closedSettings.LeftWidth == 250 &&
-                    closedSettings.RightWidth == 300 && closedSettings.ForwardStep == 7 &&
-                    closedSettings.Accent == "us");
-                string serialized = File.ReadAllText(path);
-                Program.Check(!serialized.Contains("LeftWidth", StringComparison.Ordinal) &&
-                    !serialized.Contains("RightWidth", StringComparison.Ordinal));
+                string raw = File.ReadAllText(path);
+                Program.Check(!raw.Contains("LeftWidth", StringComparison.Ordinal) &&
+                    !raw.Contains("RightWidth", StringComparison.Ordinal) &&
+                    !raw.Contains("\"Volume\"", StringComparison.Ordinal) &&
+                    raw.Contains("\"Appearance\"", StringComparison.Ordinal) &&
+                    raw.Contains("\"Audio\"", StringComparison.Ordinal));
+                var closed = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && closed.LeftWidth == 250 &&
+                    closed.RightWidth == 300 && closed.FontSize == 17);
             }
             finally
             {
                 window?.Close();
-                if (previous == null) { if (File.Exists(path)) File.Delete(path); } else File.WriteAllBytes(path, previous);
-                if (legacyBefore == null) { if (File.Exists(legacyPath)) File.Delete(legacyPath); } else File.WriteAllBytes(legacyPath, legacyBefore);
-                if (markerBefore == null) { if (File.Exists(markerPath)) File.Delete(markerPath); } else File.WriteAllBytes(markerPath, markerBefore);
+                Restore(path, old);
             }
         });
+        Program.Run("settings dialog has fixed Fluent layout and eight five-color palettes", () =>
+        {
+            var type = typeof(ReadArticles.MainWindow).Assembly
+                .GetType("ReadArticles.SettingsDialog", throwOnError: true)!;
+            var ctor = type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null, types: [typeof(ReaderSettings), typeof(Func<ReaderSettings, bool>)],
+                modifiers: null)!;
+            var dialog = (Window)ctor.Invoke([new ReaderSettings(),
+                new Func<ReaderSettings, bool>(_ => true)]);
+            try
+            {
+                Program.Check(dialog.Title == "设置" && dialog.ResizeMode == ResizeMode.NoResize &&
+                    dialog.Width == 500 && dialog.Height == 540 && !dialog.ShowInTaskbar &&
+                    dialog.FontSize == 13);
+                var sections = (StackPanel)type.GetField("sections",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(sections.Width == 444);
+                var scroll = ((Grid)dialog.Content).Children.OfType<ScrollViewer>().Single();
+                Program.Check(scroll.HorizontalContentAlignment == HorizontalAlignment.Left);
+                int palettes = 0;
+                foreach (var section in sections.Children.OfType<StackPanel>())
+                {
+                    var heading = section.Children.OfType<TextBlock>().Single();
+                    Program.Check(heading.FontSize == 15);
+                    foreach (var row in section.Children.OfType<Grid>())
+                    {
+                        Program.Check(row.ColumnDefinitions.Select(c => c.Width.Value)
+                            .SequenceEqual(new[] { 72d, 140d, 20d, 72d, 140d }));
+                        foreach (var label in row.Children.OfType<TextBlock>())
+                            Program.Check(label.FontSize == 13 &&
+                                label.HorizontalAlignment == HorizontalAlignment.Left &&
+                                label.TextAlignment == TextAlignment.Left &&
+                                Grid.GetColumn(label) is 0 or 3);
+                        foreach (var editor in row.Children.OfType<FrameworkElement>()
+                            .Where(child => child is not TextBlock))
+                        {
+                            Program.Check(editor.HorizontalAlignment == HorizontalAlignment.Left &&
+                                Grid.GetColumn(editor) is 1 or 4);
+                        }
+                        foreach (var selector in row.Children.OfType<ComboBox>())
+                            Program.Check(selector.Width == 100);
+                        foreach (var group in row.Children.OfType<Grid>())
+                        {
+                            if (group.ColumnDefinitions.Count == 5)
+                            {
+                                Program.Check(group.Width == 140 &&
+                                    group.ColumnDefinitions.All(c => c.Width.Value == 28));
+                                var buttons = group.Children.OfType<Button>().ToArray();
+                                Program.Check(buttons.Length == 5 &&
+                                    buttons.All(button => button.Width == 28));
+                                int selected = buttons.Count(button =>
+                                    ((Grid)button.Content).Children.OfType<TextBlock>()
+                                    .Single().Visibility == Visibility.Visible);
+                                Program.Check(selected == 1);
+                                palettes++;
+                            }
+                            else if (group.ColumnDefinitions.Count == 2)
+                            {
+                                // The 100-DIP dropdown + 20-DIP unit label
+                                // retains the established compact layout.
+                                Program.Check(group.ColumnDefinitions.Select(c => c.Width.Value)
+                                    .SequenceEqual(new[] { 100d, 20d }));
+                                Program.Check(group.Children.OfType<ComboBox>()
+                                    .Single().Width == 100);
+                                Program.Check(group.Children.OfType<TextBlock>()
+                                    .Single().FontSize == 12);
+                            }
+                        }
+                    }
+                }
+                var body = sections.Children.OfType<StackPanel>().ElementAt(1);
+                Program.Check(body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词加号")) &&
+                    body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词背景")) &&
+                    body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "文字颜色")) &&
+                    body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "台词颜色")));
+                var selectionRow = body.Children.OfType<Grid>().Single(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词加号"));
+                var selectionSize = selectionRow.Children.OfType<Grid>()
+                    .SelectMany(group => group.Children.OfType<ComboBox>()).Single();
+                Program.Check(selectionSize.Items.OfType<ComboBoxItem>()
+                    .Select(item => (double)item.Tag)
+                    .SequenceEqual(new[] { 0.65, 0.70, 0.75, 0.80 }) &&
+                    (double)((ComboBoxItem)selectionSize.SelectedItem).Tag == 0.65);
+                var fontDropdowns = sections.Children.OfType<StackPanel>()
+                    .SelectMany(section => section.Children.OfType<Grid>())
+                    .SelectMany(row => row.Children.OfType<ComboBox>())
+                    .ToArray();
+                var englishSelectors = fontDropdowns.Where(combo =>
+                    combo.Items.Count == 4 &&
+                    combo.Items.OfType<ComboBoxItem>().All(item => item.Tag is string)).ToArray();
+                Program.Check(englishSelectors.Length == 3);
+                foreach (var selector in englishSelectors)
+                    Program.Check(selector.Items.OfType<ComboBoxItem>()
+                        .Select(item => item.Tag?.ToString())
+                        .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",
+                            "Nunito", "Segoe UI" }));
+                var audio = sections.Children.OfType<StackPanel>().Last();
+                Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
+                    !audio.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<Grid>())
+                        .Any(group => group.Children.OfType<Slider>().Any()));
+                Program.Check(palettes == 8 &&
+                    !sections.Children.OfType<StackPanel>()
+                        .SelectMany(section => section.Children.OfType<Grid>())
+                        .SelectMany(row => row.Children.OfType<TextBlock>())
+                        .Any(label => label.Text == "播放音量"));
+
+                // Reset must not reintroduce an unavailable default font or
+                // retain selectors from the previous draft visual tree.
+                var installed = (HashSet<string>)type.GetField("installedFontNames",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                installed.Remove("Georgia");
+                var footer = ((Grid)dialog.Content).Children.OfType<Grid>().Single();
+                var resetButton = footer.Children.OfType<Button>().First();
+                resetButton.RaiseEvent(new RoutedEventArgs(
+                    System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                var resetDraft = (ReaderSettings)type.GetField("draft",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                var selectors = (List<ComboBox>)type.GetField("englishFontSelectors",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
+                    resetDraft.Appearance.Body.Font == "Microsoft YaHei UI" &&
+                    resetDraft.Appearance.Vocabulary.Font == "Microsoft YaHei UI" &&
+                    selectors.Count == 3 &&
+                    selectors.All(combo => combo.SelectedItem is ComboBoxItem item &&
+                        (string)item.Tag == "Microsoft YaHei UI"));
+            }
+            finally { dialog.Close(); }
+        });
+    }
+
+
+    private static void Restore(string path, byte[]? bytes)
+    {
+        if (bytes == null)
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        else
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, bytes);
+        }
     }
 }

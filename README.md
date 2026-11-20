@@ -4,7 +4,7 @@ ReadArticles is a local C# / WPF application for English reading, vocabulary edi
 
 ## Run
 
-On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch) and the Microsoft Edge WebView2 Evergreen Runtime, launch `dist/ReadArticles/ReadArticles.exe`. User settings are stored under `dist/ReadArticles/userdata/config/`; keep the entire application folder together and place it in a location where the current user has write permission. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
+On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch) and the Microsoft Edge WebView2 Evergreen Runtime, launch `dist/ReadArticles/ReadArticles.exe`. User settings are stored in `dist/ReadArticles/userdata/config/settings.json` (with backups under `userdata/`); keep the entire application folder together and place it in a location where the current user has write permission. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
 
 Startup loads only a collapsed library tree. It does not restore a passage or vocabulary. Routine successful actions are quiet; informational and warning notifications expire automatically, while unacknowledged errors remain accessible until dismissed. The former bottom status row is removed.
 
@@ -14,7 +14,7 @@ The bottom play/pause, stop, and progress controls own only the first sorted MP3
 
 A passage `<name>.json` can optionally have a read-only `<name>.script.json` in the same directory. The music button to the left of the vocabulary-highlighting button loads that companion only when clicked, then toggles between Passage and Script views. Script files do not appear separately in the library tree. Missing or invalid Script companions leave Passage and article audio untouched.
 
-Script JSON requires `"filetype": "script"`, a string `"title"` (empty is allowed), and `"paragraphs"` of sentences containing `"text"` and `"timed_units"`. Each timed unit is `[text, startSeconds, endSeconds]`; a pair of null times means no coloring. No cross-file text matching is required. The script view has no sentence pronunciation, but retains word selection, vocabulary highlights, and whole-article audio. Its `#B81A35` foreground follows the absolute article playback position; Seek/rewind updates it, and stop/end clears it. Source Script and Passage JSON are never rewritten.
+Script JSON requires `"filetype": "script"`, a string `"title"` (empty is allowed), and `"paragraphs"` of sentences containing `"text"` and `"timed_units"`. Each timed unit is `[text, startSeconds, endSeconds]`; a pair of null times means no coloring. No cross-file text matching is required. The script view has no sentence pronunciation, but retains word selection, vocabulary highlights, and whole-article audio. Its configurable foreground (default `#B64550`) follows the absolute article playback position; Seek/rewind updates it, and stop/end clears it. Source Script and Passage JSON are never rewritten.
 
 ## Documentation
 
@@ -54,7 +54,7 @@ See the testing guide for the unified test-data layout and Core/UI/Full suites. 
 
 ## Unified publishing
 
-Run `.\tools\Publish.ps1` from this repository root. The application uses Portable.pubxml and staged validation. The single EXE and its `userdata/` directory are under `dist/ReadArticles/`. Publication preserves existing userdata and migrates old `dist/userdata/` without deleting the source. See [Publishing](docs/Publishing.md), [health check](docs/Health-Check-2026-10-13.md), and [Release notes](docs/Release-Notes.md).
+Run `.\tools\Publish.ps1` from this repository root. The application uses Portable.pubxml and staged validation. The single EXE and its `userdata/` directory are under `dist/ReadArticles/`. Publication preserves existing userdata without importing obsolete `dist/userdata/` or sibling settings. See [Publishing](docs/Publishing.md), [health check](docs/Health-Check-2026-10-13.md), and [Release notes](docs/Release-Notes.md).
 
 
 ## Unified testing and acceptance
