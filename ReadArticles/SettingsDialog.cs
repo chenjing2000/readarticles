@@ -18,7 +18,6 @@ internal sealed class SettingsDialog : Window
     private readonly List<TextBox> colorInputs = new();
 
     private static readonly string[] EnglishFonts = ["Nunito Sans", "Microsoft YaHei", "Arial"];
-    private static readonly string[] ChineseFonts = ["Microsoft YaHei", "SimSun", "KaiTi"];
     private static readonly double[] Lines = [1.2, 1.3, 1.4, 1.5];
     private static readonly double[] BodySizes = [14, 15, 16, 17];
 
@@ -157,6 +156,28 @@ internal sealed class SettingsDialog : Window
         return combo;
     }
 
+    private static ComboBox ChooseLabels((string Value, string Label)[] candidates,
+        string value, Action<string> changed)
+    {
+        var combo = new ComboBox
+        {
+            Height = 30, VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 16, 0)
+        };
+        foreach (var option in candidates)
+        {
+            var item = new ComboBoxItem { Content = option.Label, Tag = option.Value };
+            combo.Items.Add(item);
+            if (option.Value == value) combo.SelectedItem = item;
+        }
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (combo.SelectedItem is ComboBoxItem item && item.Tag is string selected)
+                changed(selected);
+        };
+        return combo;
+    }
+
     private UIElement ColorEditor(string hex, Action<string> changed)
     {
         var wrapper = new Grid { Margin = new Thickness(0, 0, 16, 0) };
@@ -248,13 +269,14 @@ internal sealed class SettingsDialog : Window
             "颜色", ColorEditor(a.Phonetics.Color, v => a.Phonetics.Color = v));
 
         var meanings = Section("含义");
-        Row(meanings, "字体", Choose(ChineseFonts, a.Meanings.Font, v => a.Meanings.Font = v),
+        Row(meanings, "字体", ChooseLabels([("Microsoft YaHei", "微软雅黑"), ("SimSun", "宋体"), ("KaiTi", "楷体")],
+            a.Meanings.Font, v => a.Meanings.Font = v),
             "大小", Choose(BodySizes, a.Meanings.Size, v => a.Meanings.Size = v));
         Row(meanings, "行高", Choose(Lines, a.Meanings.LineHeight, v => a.Meanings.LineHeight = v),
             "颜色", ColorEditor(a.Meanings.Color, v => a.Meanings.Color = v));
 
         var audio = Section("音频");
-        Row(audio, "默认发音", Choose(new[] { "uk", "us" }, draft.Accent, v => draft.Accent = v),
+        Row(audio, "默认发音", ChooseLabels([("uk", "英音"), ("us", "美音")], draft.Accent, v => draft.Accent = v),
             "播放音量", VolumeEditor());
         Row(audio, "前进", Choose(new double[] { 4, 7, 10, 15 }, draft.ForwardStep, v => draft.ForwardStep = v),
             "后退", Choose(new double[] { 5, 8, 11, 16 }, draft.BackwardStep, v => draft.BackwardStep = v));
