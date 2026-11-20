@@ -15,4 +15,4 @@ public interface IAudioPlayer : IDisposable
     void Stop();
 }
 public enum PlaybackState { Stopped, Playing, Paused }
-public sealed record AudioItem(string Path, string? Sid = null);
+public sealed record AudioItem(string Path);
