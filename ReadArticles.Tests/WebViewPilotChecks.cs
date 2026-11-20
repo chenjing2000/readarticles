@@ -124,9 +124,8 @@ internal static class WebViewPilotChecks
                       playable: !document.getElementById('article-play').disabled
                     }))()
                     """);
-                // ArticleRepository derives Passage titles from the opened filename.
-                // The isolated test copy is WebViewFixture.json, not the source name.
-                string expectedTitle = Path.GetFileNameWithoutExtension(article);
+                // Passage titles come exclusively from JSON, never from the test copy's filename.
+                string expectedTitle = "When America walks away";
                 bool validPassage = passage.GetProperty("title").GetString() == expectedTitle &&
                     passage.GetProperty("paragraphs").GetInt32() == 13 &&
                     passage.GetProperty("sentences").GetInt32() == 62 &&
