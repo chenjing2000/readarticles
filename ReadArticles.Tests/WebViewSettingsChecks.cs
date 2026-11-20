@@ -52,7 +52,11 @@ internal static class WebViewSettingsChecks
                 var root = snap.RootElement;
                 Program.Check(root.GetProperty("rightWidth").GetDouble() == selected.RightWidth &&
                     root.GetProperty("appearance").GetProperty("title").GetProperty("size").GetDouble() == 18 &&
-                    root.GetProperty("appearance").GetProperty("title").GetProperty("lineHeight").GetDouble() == 1.6 &&
+                    root.GetProperty("appearance").GetProperty("title").GetProperty("lineHeight").GetDouble() == 1.7 &&
+                    root.GetProperty("appearance").GetProperty("body").GetProperty("lineHeight").GetDouble() == 1.7 &&
+                    root.GetProperty("appearance").GetProperty("body").GetProperty("scriptColor").GetString() == "#B64550" &&
+                    root.GetProperty("appearance").GetProperty("body").GetProperty("selectionAddSize").GetDouble() == 0.65 &&
+                    root.GetProperty("appearance").GetProperty("meanings").GetProperty("lineHeight").GetDouble() == 1.5 &&
                     root.GetProperty("appearance").GetProperty("body").GetProperty("paragraphAfter").GetDouble() == 16 &&
                     root.GetProperty("appearance").GetProperty("phonetics").GetProperty("size").GetDouble() == 14 &&
                     root.GetProperty("appearance").GetProperty("phonetics").GetProperty("color").GetString() == "#0A7785");

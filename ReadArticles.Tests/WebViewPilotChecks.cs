@@ -163,8 +163,8 @@ internal static class WebViewPilotChecks
                     visual.GetProperty("grouped").GetBoolean() &&
                     visual.GetProperty("images").GetBoolean());
 
-                // The selection-add action uses the final line's rectangle,
-                // with a 2 CSS-px gap and edge-safe left/above fallbacks.
+                // Selection-add anchors to the final fragment at +1px horizontally
+                // and +0px vertically, with edge-safe left/above fallbacks.
                 JsonElement selectionAction = Evaluate(browser, """
                     (() => {
                       const button = document.getElementById('selection-add');
@@ -197,7 +197,8 @@ internal static class WebViewPilotChecks
                       const style = getComputedStyle(button);
                       const result = {
                         width: style.width, height: style.height,
-                        iconWidth: getComputedStyle(button.querySelector('img')).width,
+                        iconWidth: Number.parseFloat(getComputedStyle(button.querySelector('img')).width),
+                        fontSize: Number.parseFloat(getComputedStyle(button).fontSize),
                         iconCornerAligned: (() => {
                           const box = button.getBoundingClientRect();
                           const icon = button.querySelector('img').getBoundingClientRect();
@@ -212,16 +213,17 @@ internal static class WebViewPilotChecks
                     """);
                 Program.Check(selectionAction.GetProperty("width").GetString() == "24px" &&
                     selectionAction.GetProperty("height").GetString() == "24px" &&
-                    selectionAction.GetProperty("iconWidth").GetString() == "24px" &&
+                    Math.Abs(selectionAction.GetProperty("iconWidth").GetDouble() -
+                        selectionAction.GetProperty("fontSize").GetDouble() * 0.65) < 0.1 &&
                     selectionAction.GetProperty("iconCornerAligned").GetBoolean() &&
-                    selectionAction.GetProperty("afterLastLine").GetProperty("x").GetInt32() == 132 &&
-                    selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 131 &&
+                    selectionAction.GetProperty("afterLastLine").GetProperty("x").GetInt32() == 131 &&
+                    selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 130 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("x").GetInt32() ==
-                        Evaluate(browser, "innerWidth").GetInt32() - 56 &&
+                        Evaluate(browser, "innerWidth").GetInt32() - 55 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("y").GetInt32() ==
-                        Evaluate(browser, "innerHeight").GetInt32() - 55);
+                        Evaluate(browser, "innerHeight").GetInt32() - 54);
 
-                // The one active 50-ms timer follows text layout changes even
+                // The frame-paced loop checks geometry at up to 60Hz, even
                 // without another selectionchange, and clears when selection ends.
                 JsonElement selectionTracking = Evaluate(browser, """
                     (() => {
@@ -239,8 +241,8 @@ internal static class WebViewPilotChecks
                       selection.addRange(range);
                       updateSelectionAdd();
                       const button = document.getElementById('selection-add');
-                      const started = !button.hidden && selectionAddPositionTimer !== null &&
-                        selectionAddIntervalMs === 50;
+                      const started = !button.hidden && selectionAddPositionFrame !== 0 &&
+                        selectionAddRefreshHz === 60;
                       const previousX = Number.parseInt(button.style.left);
                       sentence.parentElement.style.transform = 'translateX(12px)';
                       return { started, previousX };
@@ -250,13 +252,13 @@ internal static class WebViewPilotChecks
                 int originalX = selectionTracking.GetProperty("previousX").GetInt32();
                 WaitFor(() => Evaluate(browser,
                     "Number.parseInt(document.getElementById('selection-add').style.left)")
-                    .GetInt32() >= originalX + 10, "50ms selection-add tracking after layout shift");
+                    .GetInt32() >= originalX + 10, "repaint-paced selection tracking after layout shift");
                 Program.Check(Evaluate(browser, """
                     (() => {
                       document.querySelector('#article-body .sentence[data-sid]').parentElement.style.transform = '';
                       window.getSelection().removeAllRanges();
                       updateSelectionAdd();
-                      return selectionAddPositionTimer === null &&
+                      return selectionAddPositionFrame === 0 &&
                         document.getElementById('selection-add').hidden;
                     })()
                     """).GetBoolean());
@@ -428,7 +430,9 @@ internal static class WebViewPilotChecks
                     .GetValue(window)!;
                 var draft = readSettings.Copy();
                 draft.Appearance.Body.Size = 16;
-                draft.Appearance.Body.Background = "#FFF8E7";
+                draft.Appearance.Body.Background = "#F7F1E6";
+                draft.Appearance.Body.SelectionAddSize = 0.60;
+                draft.Appearance.Body.ScriptColor = "#856300";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
                     "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 Program.Check((bool)applyDialog.Invoke(window, [draft])!);
@@ -437,7 +441,13 @@ internal static class WebViewPilotChecks
                     .GetString() == "16px", "native font-size setting roundtrip");
                 Program.Check(Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--reading-bg')")
-                    .GetString() == "#FFF8E7");
+                    .GetString() == "#F7F1E6");
+                Program.Check(Evaluate(browser,
+                    "document.documentElement.style.getPropertyValue('--selection-add-size')")
+                    .GetString() == "0.6em" &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--script-color')")
+                        .GetString() == "#856300");
 
                 var notice = window.ViewModel.Notifications.Publish("dom-test",
                     "WebView2 DOM notification", NotificationSeverity.Error);
@@ -472,7 +482,7 @@ internal static class WebViewPilotChecks
                       return Boolean(paint && clip && clip.id.startsWith('script-clip-') &&
                         clip.querySelectorAll('rect').length >= 3 &&
                         clipReference === 'url(#' + clip.id + ')' &&
-                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(36, 117, 168)');
+                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(133, 99, 0)');
                     })()
                     """).GetBoolean(), "Script SVG clipping and foreground");
                 // Exercise the actual SVG clipping update at 0%, 50%, 100%, and stop.

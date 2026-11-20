@@ -140,7 +140,10 @@ internal static class ReaderControlsChecks
                 Program.Check(loaded.FontSize == 15 && loaded.Accent == "uk");
                 Program.Check(loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
                 Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
-                    loaded.Appearance.Title.LineHeight == 1.6 &&
+                    loaded.Appearance.Title.LineHeight == 1.7 &&
+                    loaded.Appearance.Body.LineHeight == 1.7 &&
+                    loaded.Appearance.Body.ScriptColor == "#B64550" &&
+                    loaded.Appearance.Body.SelectionAddSize == 0.65 &&
                     loaded.Appearance.Vocabulary.Size == 16 &&
                     loaded.Appearance.Phonetics.Size == 14 &&
                     loaded.Appearance.Vocabulary.Color == "#B7394D");
@@ -177,8 +180,8 @@ internal static class ReaderControlsChecks
                     fresh.Accent == "uk" && fresh.Library == null &&
                     fresh.Appearance.Vocabulary.Size == 16);
                 var reopened = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && reopened.Appearance.Title.LineHeight == 1.6 &&
-                    reopened.Appearance.Meanings.LineHeight == 1.4);
+                Program.Check(warning == null && reopened.Appearance.Title.LineHeight == 1.7 &&
+                    reopened.Appearance.Meanings.LineHeight == 1.5);
             }
             finally { Restore(path, old); }
         });
@@ -203,7 +206,12 @@ internal static class ReaderControlsChecks
                     typeof(ReaderAudioPreferences).GetProperty("Volume") == null &&
                     defaults.FontSize == 15 &&
                     defaults.Appearance.Title.Size == 18 &&
-                    defaults.Appearance.Title.LineHeight == 1.6 &&
+                    defaults.Appearance.Title.LineHeight == 1.7 &&
+                    defaults.Appearance.Body.LineHeight == 1.7 &&
+                    defaults.Appearance.Meanings.LineHeight == 1.5 &&
+                    defaults.Appearance.Body.SelectionAddSize == 0.65 &&
+                    defaults.Appearance.Body.ScriptColor == "#B64550" &&
+                    defaults.Appearance.Title.Font == "Georgia" &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
                     defaults.Appearance.Phonetics.Size == 14);
                 Program.Check(((Button)window.FindName("SettingsButton")).ContextMenu is null);
@@ -316,11 +324,26 @@ internal static class ReaderControlsChecks
                         }
                     }
                 }
+                var body = sections.Children.OfType<StackPanel>().ElementAt(1);
+                Program.Check(body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选项加号")) &&
+                    body.Children.OfType<Grid>().Any(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "台词颜色")));
+                var fontDropdowns = sections.Children.OfType<StackPanel>()
+                    .SelectMany(section => section.Children.OfType<Grid>())
+                    .SelectMany(row => row.Children.OfType<ComboBox>())
+                    .ToArray();
+                Program.Check(fontDropdowns.Count(combo => combo.Items.Count == 4) == 3);
+                foreach (var selector in fontDropdowns.Where(combo => combo.Items.Count == 4))
+                    Program.Check(selector.Items.OfType<ComboBoxItem>()
+                        .Select(item => item.Tag?.ToString())
+                        .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",
+                            "Nunito Sans", "Segoe UI" }));
                 var audio = sections.Children.OfType<StackPanel>().Last();
                 Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
                     !audio.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<Grid>())
                         .Any(group => group.Children.OfType<Slider>().Any()));
-                Program.Check(palettes == 6 &&
+                Program.Check(palettes == 7 &&
                     !sections.Children.OfType<StackPanel>()
                         .SelectMany(section => section.Children.OfType<Grid>())
                         .SelectMany(row => row.Children.OfType<TextBlock>())
