@@ -193,7 +193,7 @@ internal static class AudioChecks
                 Program.Check(controller.Owner == "word:uk:life");
                 Program.Check(controller.ToggleCurrent("word:uk:life"));
                 Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 1);
-                Program.Check(controller.ToggleCurrent("segment:s001"));
+                Program.Check(controller.ToggleCurrent("word:uk:life"));
                 Program.Check(controller.State == PlaybackState.Playing && player.Resumes == 1);
                 player.Complete(player.Played.Last().Request);
                 Program.Check(controller.State == PlaybackState.Stopped && controller.Owner == "");
