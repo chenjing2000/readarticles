@@ -4,7 +4,7 @@ ReadArticles is a local C# / WPF application for English reading, vocabulary edi
 
 ## Run
 
-On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch) and the Microsoft Edge WebView2 Evergreen Runtime, launch `dist/ReadArticles/ReadArticles.exe`. User settings are stored under `dist/ReadArticles/userdata/config/`; keep the entire application folder together and place it in a location where the current user has write permission. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
+On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch) and the Microsoft Edge WebView2 Evergreen Runtime, launch `dist/ReadArticles/ReadArticles.exe`. User settings are stored in `dist/ReadArticles/ReadArticles.config.json` (with backups under `userdata/`); keep the entire application folder together and place it in a location where the current user has write permission. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
 
 Startup loads only a collapsed library tree. It does not restore a passage or vocabulary. Routine successful actions are quiet; informational and warning notifications expire automatically, while unacknowledged errors remain accessible until dismissed. The former bottom status row is removed.
 

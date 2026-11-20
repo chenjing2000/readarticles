@@ -18,7 +18,7 @@ dist/
       backups/
 ```
 
-`userdata/` is created on demand when the application saves settings or backups; it is never cleared during publishing. The application still uses the external library directory selected by the user. Keep the entire portable `ReadArticles/` folder together when moving it, and place it in a directory where the current Windows user has write permission. The machine must have **.NET 10 Windows Desktop Runtime x64**, patch 10.0.11 or later, not just the standard .NET runtime.
+`ReadArticles.config.json` is created beside the EXE on first launch if no old settings can be migrated; `userdata/` is created as needed for backups, WebView2 data or logs, and is never cleared during publishing. The application still uses the external library directory selected by the user. Keep the entire portable `ReadArticles/` folder together when moving it, and place it in a directory where the current Windows user has write permission. The machine must have **.NET 10 Windows Desktop Runtime x64**, patch 10.0.11 or later, not just the standard .NET runtime.
 
 ## Safe publishing
 
@@ -57,6 +57,6 @@ After a real publish:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-PublishedApp.ps1
 ```
 
-`Test-PublishedApp.ps1` tests a copied executable from a directory with spaces and a different working directory, checks that settings are created under `userdata/config/`, and checks the native missing-.NET instructions. Run `tools/Test.ps1 -Suite Core` in CI, and local `-Suite UI` and `-Suite Full` for interactive and media behavior.
+`Test-PublishedApp.ps1` tests a copied executable from a directory with spaces and a different working directory, checks that `ReadArticles.config.json` is created beside the renamed executable, and checks the native missing-.NET instructions. Run `tools/Test.ps1 -Suite Core` in CI, and local `-Suite UI` and `-Suite Full` for interactive and media behavior.
 
 The `dist/` directory is local build output and is not committed. The project does not automatically install .NET, create an installer, or update itself online.

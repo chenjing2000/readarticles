@@ -21,7 +21,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `MainWindow.xaml.cs` | Construct the state model and two independent media players; initialize modules and coordinate shutdown |
 | `MainWindow.Library.cs` | Folder selection, tree selection, library restoration and article selection |
 | `MainWindow.Playback.cs` | C# audio playback snapshots, timing and resource cleanup |
-| `MainWindow.Settings.cs` | Native pane settings, width handling and preference persistence |
+| `MainWindow.Settings.cs`, `SettingsDialog.cs` | Shared pane-width solver, native modal settings and preference persistence |
 
 | `ViewModels/MainViewModel.cs` | Shared state, notifications, and operation errors |
 | `ViewModels/MainViewModel.Library.cs` | Prepare and commit library/article changes; resolve account-display context |
@@ -43,7 +43,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `Infrastructure/UiIcons.cs` | Load remaining native window/tree icons |
 | `Infrastructure/WpfAudioPlayer.cs` | Native audio playback adapter |
 | `MainWindow.WebView.cs` | Browser initialization, verified bridge messages and native terminal failure handling |
-| `web/reader.html`, `reader.css`, `reader.js` | Article/Script DOM, vocabulary matching and editing UI, selection, playback visuals, settings and notifications |
+| `web/reader.html`, `reader.css`, `reader.js`, `web/icons/*.svg` | Article/Script DOM, matching, selection, playback visuals, embedded icon states, styles and notifications |
 
 The window and main view model each use partial files to group responsibilities while sharing their existing state. `ReaderPlayback` is a concrete service with no window or view-model dependency. `PlaybackController` operates through `IAudioPlayer`, which includes media-open events and progress. The window sends playback snapshots to the page; the page sends validated seek/playback intents to `ReaderPlayback`. Repositories own validation and persistence, the workspace owns committed content, and the browser owns text/selection display. No additional service interfaces or generic frameworks are introduced.
 
@@ -95,12 +95,12 @@ On close, normal application windows save final settings during `Closing`, befor
 ## Display and settings
 
 - The window starts centered. Height is 70% of the rounded work-area height; width is the larger of 70% of the rounded work-area width or 796 DIP, capped at the work-area width. Previous window dimensions are not restored.
-- The native tree uses 11 pt. Browser article/word text uses the shared 14/15/16 px font setting, default 15; browser headings and controls have their own CSS. The native settings menu uses 10 pt.
+- The native tree uses 11 pt. The single centered WPF settings dialog edits a detached structured Appearance/Audio draft. Title 18px bold, body 15px, word head 16px semibold, phonetics 15px, meanings 15px, body paragraph gap 12px, reading background #F8F8F6; browser CSS variables receive only C#-confirmed values.
 - Each paragraph has a two-em first-line indent. All panes scroll independently. Library width defaults to 250 DIP (200–400), vocabulary width to 300 DIP (200–400), the article width has a 200-DIP minimum, and both splitters are 3 DIP. The native WebView2 host has a fixed 403-DIP minimum. One WPF width solver coordinates both splitters: moving either edge changes article width first (minimum 200 DIP), then shrinks the opposite outer pane (minimum 200 DIP), and stops when all three reach their minima. WebView2 sends live right-divider requests with screen-anchored pointer coordinates and renders only C#-confirmed width values. CSS has minimum article/host safeguards but no competing dynamic vocabulary-width clamp.
 - The two reading-workspace toolbars live in WebView2. Playback controls remain present when disabled.
 - Highlighting starts off. A browser-owned selection-add control follows the active selection and hides when invalid or outside the viewport.
-- Progress settings provide Forward (4/7/10 seconds) and Backward (5/8/15 seconds) steps. Browser focus handles Space for article play/pause and Left/Right for seek; native controls retain only their own focus behavior.
-- Font size, accent, progress steps, library and player volume are persisted. Pane widths can change during a session but reset to their defaults on restart; window dimensions, active passage and highlighting are not saved. Legacy width fields in settings JSON are ignored.
+- Audio settings provide Forward (4/7/10/15 seconds) and Backward (5/8/11/16 seconds) steps. Browser focus handles Space for article play/pause and Left/Right for seek; native controls retain only their own focus behavior.
+- Appearance styles, accent, progress steps, library and player volume are persisted. Pane widths can change during a session but reset to their defaults on restart; window dimensions, active passage and highlighting are not saved. Legacy width fields in settings JSON are ignored.
 
 ## Current boundaries
 
@@ -116,9 +116,9 @@ Keyboard focus is available in both native tree controls and browser controls; f
 
 Native button focus and browser `:focus-visible` are styled independently. Local MP3s and personal resource directories are excluded from Git; required icons remain embedded.
 
-The Portable publish profile creates one framework-dependent Windows x64 executable in `dist/ReadArticles/`. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses `userdata/config/settings.json` beside the executable directory; missing settings initialize at startup, recoverable JSON corruption keeps a backup, and settings changes save without waiting for exit. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
+The Portable publish profile creates one framework-dependent Windows x64 executable in `dist/ReadArticles/`. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses `ReadArticles.config.json` directly beside the executable, importing prior userdata settings if necessary; missing settings initialize at startup, recoverable JSON corruption keeps a backup, and settings changes save without waiting for exit. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
 
-ReaderSettings owns defaults, recovery and validation for font, volume, accent, progress choices and legacy width fields. The native left width and browser vocabulary width have separate layout controls; persisted legacy widths are ignored on restart.
+ReaderSettings owns structured defaults, recovery and validation for typography, colors, volume, accent, progress choices and legacy width fields. The native left width and browser vocabulary width have separate layout controls; persisted legacy widths are ignored on restart.
 
 Native window/column dimensions use WPF layout; browser scrollbars, text wrapping, SVG clip geometry and selection positions use Chromium layout. Saved legacy pane widths do not restore on restart.
 
