@@ -137,6 +137,10 @@ internal static class WebViewPilotChecks
                     throw new Exception($"Unexpected Passage DOM: {passage.GetRawText()}; " +
                         $"expectedTitle={expectedTitle}, nativeReaderHost={window.FindName("ParagraphHost")}");
 
+                WaitFor(() => Evaluate(browser, """
+                    [...document.querySelectorAll('.toolbar button img')].every(img =>
+                        img.complete && img.naturalWidth > 0)
+                    """).GetBoolean(), "embedded toolbar icons loaded");
                 JsonElement visual = Evaluate(browser, """
                     (() => ({
                       popupGone: !document.getElementById('reader-settings-panel') &&
@@ -306,18 +310,23 @@ internal static class WebViewPilotChecks
                     wordKeys.GetProperty("enter").GetBoolean() &&
                     !window.ViewModel.Playback.IsArticleActive);
 
-                // The browser settings control must round-trip through the C# bridge.
-                Evaluate(browser, """
-                    (() => {
-                      const font = document.getElementById('reader-font-size');
-                      font.value = '16';
-                      font.dispatchEvent(new Event('change', { bubbles: true }));
-                      return true;
-                    })()
-                    """);
+                // The native modal is the sole settings entry. Its validated
+                // draft must update the browser without a second HTML form.
+                var readSettings = (ReaderSettings)typeof(ReadArticles.MainWindow)
+                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(window)!;
+                var draft = readSettings.Copy();
+                draft.Appearance.Body.Size = 16;
+                draft.Appearance.Body.Background = "#FFF8E7";
+                var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
+                    "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                Program.Check((bool)applyDialog.Invoke(window, [draft])!);
                 WaitFor(() => Evaluate(browser,
-                    "document.documentElement.style.getPropertyValue('--reader-font')")
-                    .GetString() == "16px", "browser font-size setting roundtrip");
+                    "document.documentElement.style.getPropertyValue('--body-size')")
+                    .GetString() == "16px", "native font-size setting roundtrip");
+                Program.Check(Evaluate(browser,
+                    "document.documentElement.style.getPropertyValue('--reading-bg')")
+                    .GetString() == "#FFF8E7");
 
                 var notice = window.ViewModel.Notifications.Publish("dom-test",
                     "WebView2 DOM notification", NotificationSeverity.Error);
