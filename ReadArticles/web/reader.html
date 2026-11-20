@@ -19,9 +19,8 @@
       <footer class="toolbar">
         <label class="progress-label">文章音频 <input id="progress" type="range" min="0" max="1" step="0.05" value="0" disabled></label>
         <output id="playback-time">00:00 / 00:00</output>
-        <button id="article-play" disabled title="播放或暂停文章音频">播放</button>
-        <button id="article-stop" disabled title="停止文章音频">停止</button>
-        <button id="reader-settings-toggle" aria-expanded="false" aria-controls="reader-settings-panel" title="阅读设置">设置</button>
+        <button id="article-play" disabled title="播放或暂停文章音频" aria-label="播放或暂停文章音频"><img src="icons/play.svg" alt=""></button>
+        <button id="article-stop" disabled title="停止文章音频" aria-label="停止文章音频"><img src="icons/stop.svg" alt=""></button>
       </footer>
       <aside id="notifications" aria-label="通知">
         <div id="notification-cards" class="notification-cards"></div>
@@ -35,31 +34,16 @@
         <div id="vocabulary-list"></div>
       </div>
       <footer class="toolbar vocabulary-toolbar">
-        <button id="word-up" disabled title="上移所选词汇">上移</button>
-        <button id="word-down" disabled title="下移所选词汇">下移</button>
-        <button id="word-delete" disabled title="删除所选词汇">删除</button>
-        <button id="script-toggle" disabled aria-pressed="false" title="切换 Passage/Script 阅读模式">Script</button>
-        <button id="highlight-toggle" aria-pressed="false" title="切换正文词汇高亮">高亮</button>
-        <button id="word-import" disabled title="导入词汇 JSON（替换当前词表）">导入</button>
+        <button id="word-up" disabled title="上移所选词汇" aria-label="上移所选词汇"><img src="icons/move-up.svg" alt=""></button>
+        <button id="word-down" disabled title="下移所选词汇" aria-label="下移所选词汇"><img src="icons/move-down.svg" alt=""></button>
+        <button id="word-delete" disabled title="删除所选词汇" aria-label="删除所选词汇"><img src="icons/delete.svg" alt=""></button>
+        <button id="script-toggle" disabled aria-pressed="false" title="切换 Passage/Script 阅读模式" aria-label="切换 Passage/Script 阅读模式"><img src="icons/show-script.svg" alt=""></button>
+        <button id="highlight-toggle" aria-pressed="false" title="切换正文词汇高亮" aria-label="切换正文词汇高亮"><img src="icons/show-vocabulary.svg" alt=""></button>
+        <button id="word-import" disabled title="导入词汇 JSON（替换当前词表）" aria-label="导入词汇 JSON（替换当前词表）"><img src="icons/import.svg" alt=""></button>
       </footer>
     </section>
     <button type="button" id="selection-add" class="selection-add" hidden
-            aria-label="添加所选词汇" title="添加所选词汇">+</button>
-    <section id="reader-settings-panel" class="settings-popover" hidden aria-label="阅读设置">
-      <div class="settings-title">阅读设置</div>
-      <label>正文字号
-        <select id="reader-font-size"><option value="14">14</option><option value="15">15</option><option value="16">16</option></select>
-      </label>
-      <label>默认句子发音
-        <select id="reader-accent"><option value="uk">英音</option><option value="us">美音</option></select>
-      </label>
-      <label>向前跳转
-        <select id="reader-forward-step"><option value="4">4 秒</option><option value="7">7 秒</option><option value="10">10 秒</option></select>
-      </label>
-      <label>向后跳转
-        <select id="reader-backward-step"><option value="5">5 秒</option><option value="8">8 秒</option><option value="15">15 秒</option></select>
-      </label>
-    </section>
+            aria-label="添加所选词汇" title="添加所选词汇"><img src="icons/selection-add.svg" alt=""></button>
   </div>
 </body>
 </html>
