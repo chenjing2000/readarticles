@@ -196,7 +196,7 @@ internal static class WebViewPilotChecks
                         };
                         const left = fire(progress, 'ArrowLeft');
                         const right = fire(progress, 'ArrowRight');
-                        const global = fire(document, 'ArrowRight');
+                        const global = fire(document.getElementById('article-scroll'), 'ArrowRight');
                         const nativeStep = progress.step;
                         renderPlayback({
                           position: 120, duration: 300, canSeek: false,
@@ -216,7 +216,7 @@ internal static class WebViewPilotChecks
                       }
                     })()
                     """);
-                Program.Check(seekKeys.GetProperty("focused").GetBoolean() &&
+                bool validKeys = seekKeys.GetProperty("focused").GetBoolean() &&
                     seekKeys.GetProperty("outline").GetString() == "none" &&
                     seekKeys.GetProperty("left").GetBoolean() &&
                     seekKeys.GetProperty("right").GetBoolean() &&
@@ -231,7 +231,9 @@ internal static class WebViewPilotChecks
                         (Type: "seekArticle", Position: 109d),
                         (Type: "seekArticle", Position: 127d),
                         (Type: "seekArticle", Position: 127d)
-                    }));
+                    });
+                if (!validKeys)
+                    throw new Exception("Unexpected progress keyboard outcome: " + seekKeys.GetRawText());
 
                 // Selection-add anchors to the final fragment at +1px horizontally
                 // and +0px vertically, with edge-safe left/above fallbacks.
