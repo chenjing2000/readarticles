@@ -22,12 +22,12 @@ These limits are best-effort when files are locked or the directory is not writa
 
 ## Cache
 
-`userdata/cache/` is reserved but is not currently created. ReadArticles has no persistent application cache requiring storage or cleanup. If a future feature introduces one, its ownership, size bound, expiry, and safe cleanup behavior must be specified and tested before use.
+`userdata/cache/webview2/` holds the WebView2 user-data directory; it is not business data and is not included in application backups. ReadArticles has no other persistent application cache requiring storage or cleanup. If a future feature adds one, specify and test its ownership, size limits, expiry and safe cleanup.
 
 ## Support bundle
 
 When reporting a problem, share the relevant log file(s) from `userdata/logs/` and the application version. Review logs before sharing them. The logger avoids learning content and absolute media paths, but diagnostic method names and exception types are still included.
 
-## Phase 5 events
+## Backup and navigation events
 
 Backup restore diagnostics use fixed event IDs `BackupRestoreFailed`, `BackupRollbackFailed`, and `RecoveryFilePreserved`. Directory scan failures use fixed warning IDs such as `DirectoryScanFailed` and `DirectoryScanIncomplete`. User-controlled paths and document contents must never be embedded in log event identifiers or arbitrary log messages.

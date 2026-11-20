@@ -1,34 +1,29 @@
 # ReadArticles documentation
 
-The following documents define the responsibilities and reference material for ReadArticles.
+This index links to the **current** application contracts, developer guides, and content-preparation skills. Completed implementation logs and dated audits remain accessible in Git history and merged pull requests, not as competing instructions.
 
-| Document | Responsibility |
+## Application and development
+
+| Document | Purpose |
 | --- | --- |
-| [Handoff](HANDOFF.md) | Current baseline, handoff notes, and next-session workflow |
-| [Getting Started](Getting-Started.md) | Runtime requirements, launch, and first use |
-| [Application Overview](Application-Overview.md) | Purpose, modules, and application-specific architecture |
-| [Configuration](Configuration.md) | Settings location, ownership, preservation, and recovery |
-| [Testing](Testing.md) | Core/UI/Full entry points, media preparation, and published acceptance |
-| [Publishing](Publishing.md) | Portable profile, staged updates, and GitHub Release workflow |
-| [Release Notes](Release-Notes.md) | Distribution changes and runtime requirements |
-| [Health Check](Health-Check-2026-10-13.md) | Dated verification evidence and limitations |
-| [Code Review](Code-Review-2026-10-15.md) | Current module assessment, concurrency correction, and dated verification |
-
-## Application-specific references
-
-- [User Guide](User-Guide.md)
-
-- [Library layout](Library-Layout.md)
-- [Vocabulary preparation](Vocabulary-Preparation.md)
-- [Detailed regression categories](Testing-Reference.md)
+| [Project contract](project-contract.md) | Authoritative technical, data-protection and behavior invariants |
+| [Development handoff](HANDOFF.md) | Current GitHub baseline, review/acceptance evidence and next steps |
+| [Getting started](Getting-Started.md) | Runtime requirements and first launch |
+| [User guide](User-Guide.md) | Reading, vocabulary and audio operation |
+| [Application overview](Application-Overview.md) | Architecture, modules and responsibilities |
+| [Library layout](Library-Layout.md) | JSON formats, directory rules, Script and audio naming |
+| [Configuration](Configuration.md) | Settings, appearance, persistence and recovery |
+| [Vocabulary preparation](Vocabulary-Preparation.md) | Vocabulary JSON authoring and validation |
+| [Runtime logging](Logging.md) | Diagnostic events, retention and privacy |
+| [Testing and acceptance](Testing.md) | Core/UI/Full, fixtures and manual/published checks |
+| [Publishing](Publishing.md) | Portable release and protected replacement |
+| [Test fixtures](../tests/TestData/README.md) | Fixed test data and deliberately missing recordings |
 
 ## Skills
 
-- [Image to passage](skills/image_to_passage/SKILL.md)
-- [Passage segmentation](skills/passage_segment/SKILL.md)
-- [Vocabulary enrichment](skills/vocabulary_enrichment/SKILL.md)
-- [Project code review and cleanup](skills/project-code-review/SKILL.md)
+- [Project code review](skills/project-code-review/SKILL.md) — approved change scope and regression invariants
+- [Image to passage](skills/image_to_passage/SKILL.md) — externally prepare passage JSON from images
+- [Passage segmentation](skills/passage_segment/SKILL.md) — segment and validate passage JSON
+- [Vocabulary enrichment](skills/vocabulary_enrichment/SKILL.md) — enrich and normalize vocabulary JSON
 
-## Maintenance rules
-
-Keep executable commands in Testing and Publishing; link them from usage guides. Keep settings rules in Configuration. Record dated results in Health Check rather than implying that an old result verifies later changes. Domain references describe file formats and behavior, not another publishing pipeline. Historical audits and plans remain historical and are not the current workflow entry point.
+Use the project contract for behavioral rules, the relevant reference for details, and the existing Test/Publish scripts for validation. Avoid duplicating changing settings, test counts, or release instructions across documents.

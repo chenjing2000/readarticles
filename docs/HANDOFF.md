@@ -1,26 +1,27 @@
 # ReadArticles — Development handoff (2026-11-20)
 
-## Current GitHub baseline
+## Verified baseline and PR status
 
-- Repository: [chenjing2000/readarticles](https://github.com/chenjing2000/readarticles); local project directory is typically `C:\Projects\ReadArticles`.
-- `main` baseline: `9565fafea6e0f3a956e26cf87c4437355bdd1472` (PR [#19](https://github.com/chenjing2000/readarticles/pull/19) **merged** with squash). The merged commit passed [Windows CI #194](https://github.com/chenjing2000/readarticles/actions/runs/44717115970).
-- Previous settings, Nunito, selection and audio progress controls, including four code-review edge cases, passed the user's Windows real-machine acceptance on 2026-11-20.
-- Active cleanup branch: `refactor/simplify-reader-code`, created from that `main` baseline. **Do not merge this cleanup into `main` without separate explicit approval.** Confirm the actual HEAD, PR and CI status on GitHub before working.
-- GitHub remote state does not establish the local checkout or working-tree status; check `git status --short` first.
+- Repository: [chenjing2000/readarticles](https://github.com/chenjing2000/readarticles); local Windows directory: `C:\Projects\ReadArticles`.
+- Stable `main`: `9565fafea6e0f3a956e26cf87c4437355bdd1472` (PR [#19](https://github.com/chenjing2000/readarticles/pull/19) merged). [Windows CI #194](https://github.com/chenjing2000/readarticles/actions/runs/44717115970) passed.
+- Current work: `refactor/simplify-reader-code` and [Draft PR #20](https://github.com/chenjing2000/readarticles/pull/20). The code cleanup was committed through `66e0739`; follow-up `6018db1` removes the CS8620 nullable-type warning and updates GitHub Actions to Node.js 24-compatible v6 actions.
+- [Windows CI #199](https://github.com/chenjing2000/readarticles/actions/runs/44723293426) passed at `6018db1`: Windows build, Core regression, protected portable publish and release-layout verification. Zero GitHub check annotations. Subsequent documentation-only changes require their own CI verification.
+- **Windows real-machine acceptance confirmed by the user:** settings dialog and SVG icons; vocabulary add/delete/move/import; article and word audio; Passage/Script switching. This acceptance covers the cleanup application code through `66e0739`. Later changes through `6018db1` were test/workflow-only; no application behavior changed.
+- Local `Suite UI`, `Suite Full`, and direct `Test-PublishedApp.ps1` execution for this cleanup are **not independently confirmed** by the remote CI. Do not report them as executed unless local logs are provided.
+- **Do not merge PR #20 or delete branches without separate, explicit user approval.** The branch HEAD and PR state must be checked again before any change.
 
-## Current cleanup scope
+## Changes in the current cleanup
 
-- Remove unreachable WebView2 handler fallback, unused message parameter and legacy CSS Highlight cleanup.
-- Remove obsolete WPF-style vocabulary action wrappers and the unused synchronous workspace library opener. Keep the existing authoritative `Try*` vocabulary operations and their result checks.
-- Remove an unused segment-availability parameter, the test-only `FontSize` alias and unused SVG recoloring options.
-- Keep asynchronous navigation/session invalidation, C#-owned audio timing, word edit safety, backup/restore, and native WPF settings behavior unchanged.
-- Update affected tests; verify build, CI and Windows UI/Full/manual acceptance before requesting a merge. Do not delete other branches.
+- Removed obsolete vocabulary action wrappers, unused `ReaderWorkspace.OpenLibrary` and `PassageSelection`, unused WebView2 fallback/setting handler argument, old CSS Highlight cleanup, unused segment availability argument, legacy `ReaderSettings.FontSize` alias, and unused SVG recoloring branches.
+- Updated corresponding tests to check `Try*` vocabulary outcomes and to use the current message/appearance APIs.
+- Preserved native WPF tree async cancellation, C# authoritative audio state, backup/restore and vocabulary transactional writes. Deliberately **did not** refactor the duplicate tree-generation invalidation or introduce a new abstraction.
+- This documentation cleanup removes completed migration logs, dated audits/release notes, a superseded implementation plan and redundant testing-reference content. Their history remains in Git.
 
-## Project contracts and validation
+## Next actions and verification
 
-- Read [AGENTS.md](../AGENTS.md), [project-contract.md](project-contract.md), [project-code-review/SKILL.md](skills/project-code-review/SKILL.md), [Configuration.md](Configuration.md), [Application-Overview.md](Application-Overview.md), [Testing.md](Testing.md) and [Publishing.md](Publishing.md). Historical PR #19 specifics are documented in its merged commits and these project specifications; do not mistake the old feature branch for the current development branch.
-- Application: WPF/.NET 10 Windows x64, one WebView2 reading host; Passage and Script are separate modes. Article and audio sources are read-only; vocabulary edits preserve unknown JSON metadata, version checks and verified backups. Settings are EXE-adjacent `userdata/config/settings.json`; pane widths are session-only.
-- Run the existing Windows checks from the repository root (against isolated test data):
+1. Start with [project-contract.md](project-contract.md), [Application-Overview.md](Application-Overview.md), [Testing.md](Testing.md), [Publishing.md](Publishing.md), and [project-code-review skill](skills/project-code-review/SKILL.md). The [documentation index](README.md) lists the retained material.
+2. Confirm GitHub PR #20, current `refactor/simplify-reader-code` HEAD and its latest CI. The last code-bearing HEAD before this documentation cleanup is `6018db1`. Remote status does **not** prove the local working tree is clean.
+3. If additional Windows testing is required, verify `git status --short` before switching or pulling, and use the project's existing checks:
 
 ```powershell
 cd C:\Projects\ReadArticles
@@ -31,8 +32,9 @@ git pull --ff-only origin refactor/simplify-reader-code
 
 .\tools\Test.ps1 -Suite UI
 .\tools\Test.ps1 -Suite Full
+# Close the running application before publishing.
 .\tools\Publish.ps1
 .\tools\Test-PublishedApp.ps1
 ```
 
-- Always distinguish passed GitHub CI from local Windows UI, real-media, and published-app checks that have not actually been executed for the new commit.
+4. No further code cleanup is required solely to close this documentation task. Keep PR #20 Draft pending explicit merge authorization.
