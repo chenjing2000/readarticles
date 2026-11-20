@@ -67,7 +67,7 @@ internal static class WebViewSettingsChecks
                 {
                     using var data = JsonDocument.Parse("{\"payload\":{\"width\":" +
                         width.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}");
-                    handler.Invoke(window, ["setPanelWidth", data.RootElement,
+                    handler.Invoke(window, [data.RootElement,
                         "00000000-0000-4000-8000-000000000001"]);
                 }
             }
