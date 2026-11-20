@@ -23,14 +23,21 @@ public sealed class ReaderPlayback
 
     private void ArticleChanged()
     {
-        if (articlePlayer.State == PlaybackState.Playing && pronunciationPlayer.State != PlaybackState.Stopped)
+        if (articlePlayer.State == PlaybackState.Playing && articlePlayer.IsOpen &&
+            pronunciationPlayer.State != PlaybackState.Stopped)
             pronunciationPlayer.Stop();
         Changed?.Invoke();
     }
 
     private void PronunciationChanged()
     {
-        if (pronunciationPlayer.State == PlaybackState.Playing) articlePlayer.Pause();
+        if (pronunciationPlayer.State == PlaybackState.Playing)
+        {
+            if (articlePlayer.State != PlaybackState.Stopped && !articlePlayer.IsOpen)
+                articlePlayer.Stop();
+            else
+                articlePlayer.Pause();
+        }
         Changed?.Invoke();
     }
 
