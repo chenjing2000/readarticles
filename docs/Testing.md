@@ -14,7 +14,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite 
 
 - **Core** runs publishing safeguards and data/audio/Script contracts, WebView2 snapshot checks, real browser DOM rendering, tree navigation, vocabulary commit and notification tests.
 - **UI** runs Core plus native window/tree checks, WebView2 browser rendering, settings and control checks. Run it on an interactive Windows desktop.
-- **Full** runs the complete application regression suite, real MP3/WAV playback checks, and read-only checks against the unified test article. Run this locally before merging; it does not require a developer-specific article directory.
+- **Full** runs the complete application regression suite, real M4A/MP3/WAV playback checks, and read-only checks against the unified test article. Run this locally before merging; it does not require a developer-specific article directory.
 
 The single Windows CI workflow runs on pushes and pull requests to `main` (and manual dispatch). Its Core suite already includes real WebView2 DOM tests; the retired feature-branch pilot workflow has been removed. Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
 
@@ -27,13 +27,11 @@ tests/TestData/
 ├── Library/                 # Fixed article and vocabulary JSON
 ├── Audio/
 │   ├── audio/               # Shared vocabulary UK/US recordings
-│   └── audio_sentences/     # Shared sentence UK/US recordings
+│   └── audio_sentences/     # Legacy unused source recordings
 └── README.md                # Inventory and fixture rules
 ```
 
-The main article contains 13 paragraphs, 62 stable sentence IDs, and 120 vocabulary entries. The shared audio pool contains UK and US MP3 recordings for every vocabulary entry and every sentence except `s011`. The missing `s011_uk` and `s011_us` files are intentional: opening or switching an article and rendering sentence controls must not probe or report missing sentence recordings. The sentence control remains available for a valid SID; attempting to play `s011` checks only the selected accent and reports that sentence's missing recording.
-
-WAV-only, MP3-priority, corrupt-MP3, and other exceptional media cases are generated in isolated temporary directories by the tests. Do not maintain duplicate WAV-only or missing-audio fixture trees.
+The main Passage contains 13 paragraphs, 62 sentence strings, a JSON title, and 120 vocabulary entries. Only whole-article and vocabulary audio playback are supported; the legacy sentence recording pool is unused. Test-specific WAV/M4A candidates, corrupt media, filename ordering and asynchronous fallback are created under isolated temporary directories. Do not maintain duplicate permanent media fixtures.
 
 ## Outputs
 
@@ -68,7 +66,7 @@ After `Publish.ps1` and `Test-PublishedApp.ps1` succeed, start **the exact** `di
 1. WebView2 reaches the actual Passage DOM, rather than merely creating a WPF window handle; ensure there is no native failure screen. Check independent article/word scrolling and vocabulary selection/highlighting.
 2. Switch Passage -> Script -> Passage and confirm correct title, timed-word foreground/seek behavior and restored selection/scroll where applicable.
 3. Exercise keyboard focus: TreeView Left/Right and Space on native controls must not trigger audio; focused WebView2 word rows activate with Enter **and** Space without triggering whole-article playback. Click the article audio progress slider and confirm it retains keyboard focus without an outer focus frame; Left/Right must seek by the configured backward/forward seconds rather than native slider increments. Test **rapid repeated** arrow keys (each press must accumulate), including while paused; Stop must disable seeking. Click the slider thumb without moving it, drag/release, cancel a drag, and switch focus; the progress display must resume after each interaction.
-4. Verify word/segment and whole-article audio on a real output device. Test pause/resume, mouse click/drag seek, keyboard seek, stop and missing recording feedback. Verify 60:00 at exactly one hour and hh:mm:ss for longer recordings if such a test recording is available.
+4. Verify word and whole-article audio on a real output device. Test pause/resume, mouse click/drag seek, keyboard seek, stop and missing recording feedback. Verify 60:00 at exactly one hour and hh:mm:ss for longer recordings if such a test recording is available.
 5. On a **disposable library copy**, edit a word, move/delete it, import a vocabulary JSON and verify only the companion vocabulary and owned backups change. Confirm settings and notifications, then close and reopen the published executable.
 
 This list is an interactive **release gate**, not proof of automated coverage. Do not use a real article library for destructive tests, and do not claim this checklist passed unless someone actually ran it.
