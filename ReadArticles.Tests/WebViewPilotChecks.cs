@@ -198,6 +198,12 @@ internal static class WebViewPilotChecks
                       const result = {
                         width: style.width, height: style.height,
                         iconWidth: getComputedStyle(button.querySelector('img')).width,
+                        iconCornerAligned: (() => {
+                          const box = button.getBoundingClientRect();
+                          const icon = button.querySelector('img').getBoundingClientRect();
+                          return Math.abs(box.left - icon.left) < 0.5 &&
+                            Math.abs(box.top - icon.top) < 0.5;
+                        })(),
                         afterLastLine, nearEdge
                       };
                       button.hidden = hidden;
@@ -207,6 +213,7 @@ internal static class WebViewPilotChecks
                 Program.Check(selectionAction.GetProperty("width").GetString() == "36px" &&
                     selectionAction.GetProperty("height").GetString() == "36px" &&
                     selectionAction.GetProperty("iconWidth").GetString() == "24px" &&
+                    selectionAction.GetProperty("iconCornerAligned").GetBoolean() &&
                     selectionAction.GetProperty("afterLastLine").GetProperty("x").GetInt32() == 132 &&
                     selectionAction.GetProperty("afterLastLine").GetProperty("y").GetInt32() == 131 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("x").GetInt32() ==
