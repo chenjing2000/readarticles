@@ -600,8 +600,11 @@ function updateSelectionAdd() {
 
 function formatSeconds(seconds) {
   const value = Math.max(0, Math.floor(Number(seconds) || 0));
-  return String(Math.floor(value / 60)).padStart(2, "0") + ":" +
-    String(value % 60).padStart(2, "0");
+  const minutes = Math.floor(value / 60);
+  const secondsPart = String(value % 60).padStart(2, "0");
+  if (value <= 3600) return String(minutes).padStart(2, "0") + ":" + secondsPart;
+  return String(Math.floor(value / 3600)).padStart(2, "0") + ":" +
+    String(minutes % 60).padStart(2, "0") + ":" + secondsPart;
 }
 
 function renderPlayback(playback) {
@@ -610,6 +613,7 @@ function renderPlayback(playback) {
   const duration = Number(playback.duration) || 0;
   const progress = byId("progress");
   progress.disabled = playback.canSeek !== true;
+  if (progress.disabled) seekDragging = false;
   progress.max = String(Math.max(duration, 1));
   if (!seekDragging) progress.value = String(Math.max(0, Math.min(position, Math.max(duration, 1))));
   byId("playback-time").textContent =
@@ -991,12 +995,10 @@ function seekByArrowKey(event) {
       currentPlayback.canSeek !== true)
     return;
   event.preventDefault();
-  const step = event.key === "ArrowLeft"
-    ? -(Number(currentSettings.backwardStep) || 5)
-    : Number(currentSettings.forwardStep) || 4;
-  const target = Math.max(0, Math.min(Number(currentPlayback.duration) || 0,
-    (Number(currentPlayback.position) || 0) + step));
-  send("seekArticle", { payload: { position: target } });
+  // The C# player owns the current position; relative requests cannot lose
+  // rapid repeated key presses while a WebView2 playback snapshot is in flight.
+  const direction = event.key === "ArrowLeft" ? "backward" : "forward";
+  send("seekArticle", { payload: { direction } });
 }
 
 document.addEventListener("keydown", event => {
@@ -1021,6 +1023,11 @@ byId("article-stop").addEventListener("click", () => {
   if (!byId("article-stop").disabled) send("stopArticle");
 });
 byId("progress").addEventListener("pointerdown", () => { seekDragging = true; });
+// A click without a value change does not emit "change". Never retain dragging
+// after release, cancellation, lost focus, or stopping the current audio.
+document.addEventListener("pointerup", () => { seekDragging = false; });
+document.addEventListener("pointercancel", () => { seekDragging = false; });
+byId("progress").addEventListener("blur", () => { seekDragging = false; });
 byId("progress").addEventListener("input", () => {
   seekDragging = true;
   renderPlayback(currentPlayback);

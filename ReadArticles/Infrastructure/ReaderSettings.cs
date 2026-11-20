@@ -5,8 +5,7 @@ using System.Text.Json.Serialization;
 namespace ReadArticles.Infrastructure;
 
 // The executable-adjacent JSON is authoritative. Session-only pane widths
-// are never serialized. Older flat settings are imported once, without
-// deleting their original files.
+// are never serialized. Obsolete flat settings are reset, not imported.
 public sealed class ReaderSettings
 {
     [JsonIgnore]

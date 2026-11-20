@@ -386,6 +386,26 @@ internal static class ReaderControlsChecks
                         .SelectMany(section => section.Children.OfType<Grid>())
                         .SelectMany(row => row.Children.OfType<TextBlock>())
                         .Any(label => label.Text == "播放音量"));
+
+                // Reset must not reintroduce an unavailable default font or
+                // retain selectors from the previous draft visual tree.
+                var installed = (HashSet<string>)type.GetField("installedFontNames",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                installed.Remove("Georgia");
+                var footer = ((Grid)dialog.Content).Children.OfType<Grid>().Single();
+                var resetButton = footer.Children.OfType<Button>().First();
+                resetButton.RaiseEvent(new RoutedEventArgs(
+                    System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                var resetDraft = (ReaderSettings)type.GetField("draft",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                var selectors = (List<ComboBox>)type.GetField("englishFontSelectors",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
+                    resetDraft.Appearance.Body.Font == "Microsoft YaHei UI" &&
+                    resetDraft.Appearance.Vocabulary.Font == "Microsoft YaHei UI" &&
+                    selectors.Count == 3 &&
+                    selectors.All(combo => combo.SelectedItem is ComboBoxItem item &&
+                        (string)item.Tag == "Microsoft YaHei UI"));
             }
             finally { dialog.Close(); }
         });

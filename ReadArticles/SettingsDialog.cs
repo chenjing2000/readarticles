@@ -142,7 +142,11 @@ internal sealed class SettingsDialog : Window
         {
             string? library = draft.Library;
             draft = new ReaderSettings { Library = library };
+            initiallyMissingFont = null;
+            EnsureUsableDefaultFonts();
             BuildSections();
+            if (IsLoaded && initiallyMissingFont != null && englishFontSelectors.Count > 0)
+                ShowFontNotice(englishFontSelectors[0], initiallyMissingFont);
         };
         Grid.SetColumn(reset, 0);
         footer.Children.Add(reset);
@@ -417,6 +421,7 @@ internal sealed class SettingsDialog : Window
     private void BuildSections()
     {
         sections.Children.Clear();
+        englishFontSelectors.Clear();
         var a = draft.Appearance;
 
         var title = Section("标题");

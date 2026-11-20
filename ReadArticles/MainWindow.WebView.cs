@@ -513,11 +513,29 @@ public partial class MainWindow
         {
             if (!ViewModel.Playback.CanSeekArticle ||
                 !root.TryGetProperty("payload", out var data) ||
-                data.ValueKind != JsonValueKind.Object ||
-                !data.TryGetProperty("position", out var time) ||
-                time.ValueKind != JsonValueKind.Number ||
-                !time.TryGetDouble(out double seconds) || !double.IsFinite(seconds) ||
-                seconds < 0 || seconds > ViewModel.Playback.ArticleDuration)
+                data.ValueKind != JsonValueKind.Object)
+            {
+                PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                return;
+            }
+            double seconds;
+            if (data.TryGetProperty("direction", out var direction))
+            {
+                if (direction.ValueKind != JsonValueKind.String ||
+                    direction.GetString() is not ("backward" or "forward"))
+                {
+                    PostWebPilot("actionResult", new { status = "invalid" }, requestId);
+                    return;
+                }
+                double step = direction.GetString() == "backward"
+                    ? -settings.BackwardStep : settings.ForwardStep;
+                seconds = Math.Clamp(ViewModel.Playback.ArticlePosition + step,
+                    0, ViewModel.Playback.ArticleDuration);
+            }
+            else if (!data.TryGetProperty("position", out var time) ||
+                     time.ValueKind != JsonValueKind.Number ||
+                     !time.TryGetDouble(out seconds) || !double.IsFinite(seconds) ||
+                     seconds < 0 || seconds > ViewModel.Playback.ArticleDuration)
             {
                 PostWebPilot("actionResult", new { status = "invalid" }, requestId);
                 return;

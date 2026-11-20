@@ -175,7 +175,7 @@ internal static class WebViewPilotChecks
                       const calls = [];
                       try {
                         send = (type, options = {}) => {
-                          calls.push({ type, position: options.payload?.position });
+                          calls.push({ type, direction: options.payload?.direction });
                           return 'captured';
                         };
                         currentSettings = { ...currentSettings, backwardStep: 11, forwardStep: 7 };
@@ -226,14 +226,64 @@ internal static class WebViewPilotChecks
                     seekKeys.GetProperty("count").GetInt32() == 3 &&
                     seekKeys.GetProperty("calls").EnumerateArray().Select(call => (
                         Type: call.GetProperty("type").GetString(),
-                        Position: call.GetProperty("position").GetDouble()))
+                        Direction: call.GetProperty("direction").GetString()))
                     .SequenceEqual(new[] {
-                        (Type: "seekArticle", Position: 109d),
-                        (Type: "seekArticle", Position: 127d),
-                        (Type: "seekArticle", Position: 127d)
+                        (Type: "seekArticle", Direction: "backward"),
+                        (Type: "seekArticle", Direction: "forward"),
+                        (Type: "seekArticle", Direction: "forward")
                     });
                 if (!validKeys)
                     throw new Exception("Unexpected progress keyboard outcome: " + seekKeys.GetRawText());
+
+                // Time labels preserve 60:00 at one hour, then switch to hh:mm:ss.
+                JsonElement timeFormats = Evaluate(browser, """
+                    (() => ({
+                      short: formatSeconds(625), exactHour: formatSeconds(3600),
+                      overHour: formatSeconds(3601), long: formatSeconds(8100)
+                    }))()
+                    """);
+                Program.Check(timeFormats.GetProperty("short").GetString() == "10:25" &&
+                    timeFormats.GetProperty("exactHour").GetString() == "60:00" &&
+                    timeFormats.GetProperty("overHour").GetString() == "01:00:01" &&
+                    timeFormats.GetProperty("long").GetString() == "02:15:00");
+
+                // A pointer click without change, cancellation, blur or stop
+                // must not leave the range slider frozen in dragging mode.
+                JsonElement dragState = Evaluate(browser, """
+                    (() => {
+                      const progress = document.getElementById('progress');
+                      const previousPlayback = currentPlayback;
+                      const previousDragging = seekDragging;
+                      try {
+                        const active = { position: 42, duration: 200, canSeek: true,
+                          canPlay: true, isArticleActive: true, state: 'paused' };
+                        renderPlayback(active);
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        const held = seekDragging;
+                        document.dispatchEvent(new Event('pointerup'));
+                        const released = !seekDragging;
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        document.dispatchEvent(new Event('pointercancel'));
+                        const cancelled = !seekDragging;
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        progress.dispatchEvent(new Event('blur'));
+                        const blurred = !seekDragging;
+                        progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                        renderPlayback({ ...active, position: 0, canSeek: false, state: 'stopped',
+                          isArticleActive: false });
+                        const stopped = !seekDragging && progress.disabled && progress.value === '0';
+                        return { held, released, cancelled, blurred, stopped };
+                      } finally {
+                        seekDragging = previousDragging;
+                        renderPlayback(previousPlayback);
+                      }
+                    })()
+                    """);
+                Program.Check(dragState.GetProperty("held").GetBoolean() &&
+                    dragState.GetProperty("released").GetBoolean() &&
+                    dragState.GetProperty("cancelled").GetBoolean() &&
+                    dragState.GetProperty("blurred").GetBoolean() &&
+                    dragState.GetProperty("stopped").GetBoolean());
 
                 // Selection-add anchors to the final fragment at +1px horizontally
                 // and +0px vertically, with edge-safe left/above fallbacks.
