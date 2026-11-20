@@ -9,8 +9,8 @@ description: Use when converting English textbook or page images into ReadArticl
 
 Convert English reading images into reader-compatible passage content and optional external authoring companions:
 
-- required `<title>.json` with `filetype: "passage"`;
-- optional `<title>.exercise.json` with `filetype: "exercise"`, for external authoring only.
+- required `<filename>.json` with `filetype: "passage"`;
+- optional `<filename>.exercise.json` with `filetype: "exercise"`, for external authoring only.
 
 The current ReadArticles reader skips `.exercise.json` files during navigation and does not load, display, answer, or grade them. The conventions below describe optional preparation output, not implemented exercise support.
 
@@ -28,11 +28,11 @@ Input may include:
 
 When images overlap, keep duplicated source text only once.
 
-Resolve `<title>` in this order:
+Resolve the JSON display `title` in this order:
 
 1. use an explicit user-supplied title;
 2. otherwise transcribe the genuine article title shown in the source;
-3. otherwise draft a concise English title from the Passage body and continue without asking.
+3. otherwise use an empty string; do not invent a title from the filename or article body.
 
 Do not use page headers, unit labels, Exercise headings, captions, or other textbook metadata as the title.
 
@@ -84,7 +84,7 @@ Follow [Passage Segment](../passage_segment/SKILL.md) for segmentation and valid
 
 ## 4. Exercise Extraction
 
-Inspect the same images for an Exercise belonging to the Passage. If none of the authoring types below is present, create only `<title>.json`.
+Inspect the same images for an Exercise belonging to the Passage. If none of the authoring types below is present, create only `<filename>.json`.
 
 For an optional external exercise companion, use one of these authoring types:
 
@@ -158,7 +158,7 @@ Uses one shared non-empty `options` array with at least two options plus non-emp
 Before returning/writing files, verify:
 
 - Passage and Exercise text are separated correctly and source order is preserved;
-- `<title>.json` satisfies `../passage_segment/SKILL.md`;
+- `<filename>.json` satisfies `../passage_segment/SKILL.md`;
 - Passage has `filetype="passage"`, a required string `title` (empty allowed), and two-dimensional sentence-string `paragraphs`;
 - no sentence-level audio, SID or `text` object exists; fill-in-the-blank placeholders are continuous `[[1]]..[[N]]` when present;
 - optional Exercise has `filetype="exercise"` and one of the listed authoring `article_*` types;
