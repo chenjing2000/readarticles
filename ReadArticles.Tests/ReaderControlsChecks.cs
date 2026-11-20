@@ -133,7 +133,9 @@ internal static class ReaderControlsChecks
                 invalid.Appearance.Body.Size = 99;
                 invalid.Appearance.Body.ParagraphAfter = -5;
                 invalid.Appearance.Body.SelectionAddSize = 0.60;
+                invalid.Appearance.Title.Font = "Noto Sans";
                 invalid.Appearance.Body.Font = "Nunito Sans";
+                invalid.Appearance.Vocabulary.Font = "Noto Sans";
                 invalid.Appearance.Body.SelectionBackground = "#BAD";
                 invalid.Appearance.Title.LineHeight = 1.3;
                 invalid.Appearance.Vocabulary.Color = "#BAD";
@@ -147,23 +149,25 @@ internal static class ReaderControlsChecks
                     loaded.Appearance.Body.LineHeight == 1.7 &&
                     loaded.Appearance.Body.ScriptColor == "#B64550" &&
                     loaded.Appearance.Body.SelectionAddSize == 0.65 &&
+                    loaded.Appearance.Title.Font == "Georgia" &&
                     loaded.Appearance.Body.Font == "Georgia" &&
+                    loaded.Appearance.Vocabulary.Font == "Georgia" &&
                     loaded.Appearance.Body.SelectionBackground == "#DDE8F2" &&
                     loaded.Appearance.Vocabulary.Size == 16 &&
                     loaded.Appearance.Phonetics.Size == 14 &&
                     loaded.Appearance.Vocabulary.Color == "#B7394D");
                 loaded.Appearance.Body.SelectionAddSize = 0.80;
-                loaded.Appearance.Title.Font = "Noto Sans";
+                loaded.Appearance.Title.Font = "Nunito";
                 loaded.Appearance.Body.Font = "Nunito";
-                loaded.Appearance.Vocabulary.Font = "Noto Sans";
+                loaded.Appearance.Vocabulary.Font = "Nunito";
                 loaded.Appearance.Body.SelectionBackground = "#EBE5F2";
                 loaded.Save();
                 loaded = ReaderSettings.Load(out warning);
                 Program.Check(warning == null &&
                     loaded.Appearance.Body.SelectionAddSize == 0.80 &&
-                    loaded.Appearance.Title.Font == "Noto Sans" &&
+                    loaded.Appearance.Title.Font == "Nunito" &&
                     loaded.Appearance.Body.Font == "Nunito" &&
-                    loaded.Appearance.Vocabulary.Font == "Noto Sans" &&
+                    loaded.Appearance.Vocabulary.Font == "Nunito" &&
                     loaded.Appearance.Body.SelectionBackground == "#EBE5F2");
                 loaded.FontSize = double.NaN;
                 loaded.Save();
@@ -365,14 +369,14 @@ internal static class ReaderControlsChecks
                     .SelectMany(row => row.Children.OfType<ComboBox>())
                     .ToArray();
                 var englishSelectors = fontDropdowns.Where(combo =>
-                    combo.Items.Count == 5 &&
+                    combo.Items.Count == 4 &&
                     combo.Items.OfType<ComboBoxItem>().All(item => item.Tag is string)).ToArray();
                 Program.Check(englishSelectors.Length == 3);
                 foreach (var selector in englishSelectors)
                     Program.Check(selector.Items.OfType<ComboBoxItem>()
                         .Select(item => item.Tag?.ToString())
                         .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",
-                            "Nunito", "Segoe UI", "Noto Sans" }));
+                            "Nunito", "Segoe UI" }));
                 var audio = sections.Children.OfType<StackPanel>().Last();
                 Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
                     !audio.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<Grid>())

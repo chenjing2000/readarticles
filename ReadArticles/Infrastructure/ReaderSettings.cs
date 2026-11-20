@@ -154,12 +154,12 @@ public sealed class ReaderSettings
         Appearance.Phonetics ??= new();
         Appearance.Meanings ??= new();
         var a = Appearance;
-        a.Title.Font = Font(a.Title.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI", "Noto Sans");
+        a.Title.Font = Font(a.Title.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI");
         a.Title.Size = Allowed(a.Title.Size, 18, 16, 18, 20, 22, 24);
         a.Title.LineHeight = Allowed(a.Title.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Title.ParagraphAfter = Allowed(a.Title.ParagraphAfter, 16, 16, 18, 20);
         a.Title.Color = ColorCode(a.Title.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
-        a.Body.Font = Font(a.Body.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI", "Noto Sans");
+        a.Body.Font = Font(a.Body.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI");
         a.Body.Size = Allowed(a.Body.Size, 15, 14, 15, 16, 17);
         a.Body.LineHeight = Allowed(a.Body.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Body.ParagraphAfter = Allowed(a.Body.ParagraphAfter, 16, 14, 16, 18);
@@ -170,7 +170,7 @@ public sealed class ReaderSettings
         a.Body.SelectionAddSize = Allowed(a.Body.SelectionAddSize, 0.65, 0.65, 0.70, 0.75, 0.80);
         a.Body.SelectionBackground = ColorCode(a.Body.SelectionBackground, "#DDE8F2",
             "#DDE8F2", "#E5EDE0", "#F3E9DC", "#EBE5F2", "#F2E5E7");
-        a.Vocabulary.Font = Font(a.Vocabulary.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI", "Noto Sans");
+        a.Vocabulary.Font = Font(a.Vocabulary.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI");
         a.Vocabulary.Size = Allowed(a.Vocabulary.Size, 16, 15, 16, 17);
         a.Vocabulary.Color = ColorCode(a.Vocabulary.Color, "#B7394D", "#B7394D", "#9D3E68", "#7D50A1", "#1F6795", "#8B593B");
         a.Phonetics.Size = Allowed(a.Phonetics.Size, 14, 13, 14, 15);

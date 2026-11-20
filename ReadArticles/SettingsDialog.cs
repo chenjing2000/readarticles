@@ -56,7 +56,7 @@ internal sealed class SettingsDialog : Window
     private static readonly (string Value, string Label)[] EnglishFonts =
     [
         ("Georgia", "Georgia"), ("Microsoft YaHei UI", "微软雅黑 UI"),
-        ("Nunito", "Nunito"), ("Segoe UI", "Segoe UI"), ("Noto Sans", "Noto Sans")
+        ("Nunito", "Nunito"), ("Segoe UI", "Segoe UI")
     ];
     private static readonly (string Value, string Label)[] ChineseFonts =
     [
@@ -170,7 +170,7 @@ internal sealed class SettingsDialog : Window
     }
 
     private static bool RequiresEnglishFontCheck(string name) =>
-        name is "Georgia" or "Nunito" or "Segoe UI" or "Noto Sans";
+        name is "Georgia" or "Nunito" or "Segoe UI";
 
     private bool IsAvailableEnglishFont(string name) =>
         !RequiresEnglishFontCheck(name) || installedFontNames.Contains(name);

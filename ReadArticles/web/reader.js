@@ -790,7 +790,7 @@ function renderSettings(settings) {
   const word = a.vocabulary ?? {};
   const phonetic = a.phonetics ?? {};
   const meaning = a.meanings ?? {};
-  const english = ["Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI", "Noto Sans"];
+  const english = ["Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI"];
   const chinese = ["Microsoft YaHei", "SimSun", "KaiTi"];
   const variables = {
     "--title-font": fontStack(title.font ?? "Georgia", english),
