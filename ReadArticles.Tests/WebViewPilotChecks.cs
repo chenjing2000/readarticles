@@ -146,6 +146,9 @@ internal static class WebViewPilotChecks
                       popupGone: !document.getElementById('reader-settings-panel') &&
                                  !document.getElementById('reader-settings-toggle'),
                       defaultSize: getComputedStyle(document.getElementById('article-title')).fontSize,
+                      bottomHeight: Math.round(document.querySelector('.article-pane .toolbar').getBoundingClientRect().height),
+                      wordBottomHeight: Math.round(document.querySelector('.vocabulary-toolbar').getBoundingClientRect().height),
+                      stoppedLocked: document.getElementById('progress').disabled,
                       icon: document.querySelector('#article-play img')?.getAttribute('src'),
                       grouped: document.querySelectorAll('.phonetic-line .phonetic-unit').length >= 2,
                       images: [...document.querySelectorAll('.toolbar button img')].every(img => img.complete && img.naturalWidth > 0)
@@ -154,6 +157,9 @@ internal static class WebViewPilotChecks
                 Program.Check(visual.GetProperty("popupGone").GetBoolean() &&
                     visual.GetProperty("defaultSize").GetString() == "18px" &&
                     visual.GetProperty("icon").GetString() == "icons/play.svg" &&
+                    visual.GetProperty("bottomHeight").GetInt32() == 48 &&
+                    visual.GetProperty("wordBottomHeight").GetInt32() == 48 &&
+                    visual.GetProperty("stoppedLocked").GetBoolean() &&
                     visual.GetProperty("grouped").GetBoolean() &&
                     visual.GetProperty("images").GetBoolean());
 
@@ -284,9 +290,16 @@ internal static class WebViewPilotChecks
                 WaitFor(() => window.ViewModel.HighlightsVisible &&
                     Evaluate(browser, "document.getElementById('highlight-toggle').getAttribute('aria-pressed')")
                         .GetString() == "true", "browser vocabulary highlighting");
-                Program.Check(Evaluate(browser,
-                    "Boolean(CSS.highlights && CSS.highlights.has('reader-vocabulary'))")
-                    .GetBoolean());
+                WaitFor(() => Evaluate(browser,
+                    "document.querySelectorAll('#word-highlight-layer .word-highlight-rect').length > 0")
+                    .GetBoolean(), "rounded vocabulary highlights");
+                Program.Check(Evaluate(browser, """
+                    (() => {
+                      const box = document.querySelector('#word-highlight-layer .word-highlight-rect');
+                      return box && getComputedStyle(box).borderRadius === '4px' &&
+                        !CSS.highlights?.has('reader-vocabulary');
+                    })()
+                    """).GetBoolean());
                 Evaluate(browser, "document.querySelector('#vocabulary-list .word-row').click(); true");
                 Program.Check(Evaluate(browser,
                     "document.querySelectorAll('#vocabulary-list .word-row.selected').length")
@@ -354,14 +367,14 @@ internal static class WebViewPilotChecks
                       const row = document.querySelector('#article-body .script-paragraph');
                       const paint = row?.querySelector(':scope > .script-paint');
                       const clip = row?.querySelector(':scope > .script-clips clipPath');
-                      const redUnit = paint?.querySelector('.script-timed-unit');
+                      const coloredUnit = paint?.querySelector('.script-timed-unit');
                       // Chromium serializes CSS url(#id) as url("#id"). Compare the
                       // referenced ID, not the browser-specific quoting style.
                       const clipReference = paint?.style.clipPath.replace(/["']/g, '');
                       return Boolean(paint && clip && clip.id.startsWith('script-clip-') &&
                         clip.querySelectorAll('rect').length >= 3 &&
                         clipReference === 'url(#' + clip.id + ')' &&
-                        redUnit && getComputedStyle(redUnit).color === 'rgb(184, 26, 53)');
+                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(36, 117, 168)');
                     })()
                     """).GetBoolean(), "Script SVG clipping and foreground");
                 // Exercise the actual SVG clipping update at 0%, 50%, 100%, and stop.

@@ -52,7 +52,9 @@ internal static class WebViewSettingsChecks
                 var root = snap.RootElement;
                 Program.Check(root.GetProperty("rightWidth").GetDouble() == selected.RightWidth &&
                     root.GetProperty("appearance").GetProperty("title").GetProperty("size").GetDouble() == 18 &&
-                    root.GetProperty("appearance").GetProperty("body").GetProperty("paragraphAfter").GetDouble() == 12 &&
+                    root.GetProperty("appearance").GetProperty("title").GetProperty("lineHeight").GetDouble() == 1.6 &&
+                    root.GetProperty("appearance").GetProperty("body").GetProperty("paragraphAfter").GetDouble() == 16 &&
+                    root.GetProperty("appearance").GetProperty("phonetics").GetProperty("size").GetDouble() == 14 &&
                     root.GetProperty("appearance").GetProperty("phonetics").GetProperty("color").GetString() == "#0A7785");
                 Program.Check(!root.TryGetProperty("fontSize", out _));
 
@@ -102,7 +104,7 @@ internal static class WebViewSettingsChecks
         {
             var initial = new ReaderSettings { Accent = "us", ForwardStep = 7 };
             initial.Appearance.Body.Size = 17;
-            initial.Appearance.Body.Background = "#FFF8E7";
+            initial.Appearance.Body.Background = "#F7F1E6";
             initial.LeftWidth = 320;
             initial.RightWidth = 390;
             string serialized = JsonSerializer.Serialize(initial);
@@ -112,7 +114,7 @@ internal static class WebViewSettingsChecks
             var loaded = JsonSerializer.Deserialize<ReaderSettings>(serialized)!;
             Program.Check(loaded.LeftWidth == 250 && loaded.RightWidth == 300 &&
                 loaded.FontSize == 17 && loaded.Accent == "us" &&
-                loaded.ForwardStep == 7 && loaded.Appearance.Body.Background == "#FFF8E7");
+                loaded.ForwardStep == 7 && loaded.Appearance.Body.Background == "#F7F1E6");
         });
 
         Program.Run("WebView2 notification dismiss retains errors until acknowledged", () =>
