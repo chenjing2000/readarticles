@@ -18,13 +18,13 @@
 
 - 发布入口：`dist/ReadArticles/ReadArticles.exe`。
 - 用户数据根目录：可执行文件同级的 `userdata/`。
-- 设置：`ReadArticles.config.json`，位于 EXE 同级；若不存在，先无损迁移 `userdata/config/settings.json` 或旧版 `ReadArticles.settings.json`，否则创建结构化默认设置。
+- 设置：EXE 同级的 `userdata/config/settings.json`。旧配置不迁移，破坏性重置旧格式，账户功能及其专属代码已删除。
 - 设置备份位于 `userdata/backups/settings/`，每个设置文件只保留最近一个有效版本。
 - 词汇备份位于 `userdata/backups/vocabulary/`，每个源词汇文件只保留最近一个有效版本；备份标识由规范化完整源路径的 SHA-256 生成。
 - `userdata/logs/` 保存应用运行日志：按日写入，单文件上限 2 MiB，最多保留 14 天，日志目录总量上限 20 MiB。日志不得包含文章正文、词汇释义、词条文本或媒体绝对路径；日志写入失败不得影响主程序。
 - `userdata/cache/` 仅为预留路径；当前没有需要持久化的应用缓存，不创建空目录，也不备份缓存。
 - 外部文章库和音频仍由用户选择，绝不自动移动到程序目录或 userdata。
-- 正式新配置存在时优先读取；旧版配置只在新配置缺失时迁移，原文件均保留。无效配置保留 `.corrupt` 副本并尝试从最近有效备份恢复。
+- 旧格式不迁移；新版配置损坏时保留 `.corrupt` 副本，尝试恢复最近一个有效设置备份。
 
 ## 构建与交付
 

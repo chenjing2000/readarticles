@@ -18,22 +18,18 @@ dist/
       backups/
 ```
 
-`ReadArticles.config.json` is created beside the EXE on first launch if no old settings can be migrated; `userdata/` is created as needed for backups, WebView2 data or logs, and is never cleared during publishing. The application still uses the external library directory selected by the user. Keep the entire portable `ReadArticles/` folder together when moving it, and place it in a directory where the current Windows user has write permission. The machine must have **.NET 10 Windows Desktop Runtime x64**, patch 10.0.11 or later, not just the standard .NET runtime.
+`userdata/config/settings.json` is created on first launch if absent; `userdata/` also holds backups, WebView2 data and logs and is never cleared during publishing. The application still uses the external library directory selected by the user. Keep the entire portable `ReadArticles/` folder together when moving it, and place it in a directory where the current Windows user has write permission. The machine must have **.NET 10 Windows Desktop Runtime x64**, patch 10.0.11 or later, not just the standard .NET runtime.
 
 ## Safe publishing
 
 1. Publish the new EXE into a unique `dist/.publish-*` staging directory.
 2. Strip PDB/XML build artifacts and reject unexpected packaged files.
 3. Check the existing application EXE for incompatible file locks before making changes.
-4. If `dist/userdata/` exists and `dist/ReadArticles/userdata/` is absent, copy the legacy userdata directory to a staging folder, verify every copied file by SHA-256, and install the copied directory without deleting the original.
-5. Preserve a legacy `dist/ReadArticles.settings.json` alongside the new executable if it exists, so the existing application-level settings migration can read it.
-6. Create a short portable `README.txt` if absent.
-7. Install the new EXE, retaining the previous executable in the portable directory under a `ReadArticles.exe.previous-*` name when replacing an existing release.
-8. Remove only owned temporary staging paths after checking that they contain no reparse points.
+4. Keep existing `dist/ReadArticles/userdata/` untouched. Old directory structures and sibling settings are not migrated.
 
 A failed build, unexpected dependency, locked EXE, or copy-validation failure does not replace the installed EXE. Updating does not overwrite existing `userdata/`, the user's external library, or arbitrary files in `dist/`.
 
-The earlier `dist/ReadArticles.exe` and `dist/userdata/` are deliberately **not deleted** by migration. After validating the new portable installation and verifying the user's configuration, the user may manually archive or remove obsolete root-level files. Do not delete them before checking the new installation. Previous EXE copies may also be removed manually **only after** the new version has passed both `Test-PublishedApp.ps1` and the interactive final-EXE checklist in [Testing](Testing.md). Keep at least the newest verified recovery EXE; archive or delete older `.previous-*` copies as needed (a practical manual target is one or two recovery versions). The publish script deliberately does **not** auto-purge unverified recovery files or touch `userdata/`.
+Legacy `dist/ReadArticles.exe`, `dist/userdata/`, and sibling settings are neither imported nor deleted. Archive old files separately once the new installation is verified. Previous EXE copies may also be removed manually **only after** the new version has passed both `Test-PublishedApp.ps1` and the interactive final-EXE checklist in [Testing](Testing.md). Keep at least the newest verified recovery EXE; archive or delete older `.previous-*` copies as needed (a practical manual target is one or two recovery versions). The publish script deliberately does **not** auto-purge unverified recovery files or touch `userdata/`.
 
 The publish script validates the package structure and safe EXE replacement, **not** a full interactive WebView2 reading-session check. Always run the published-app check on an interactive local Windows desktop before declaring the new version usable.
 
@@ -57,6 +53,6 @@ After a real publish:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-PublishedApp.ps1
 ```
 
-`Test-PublishedApp.ps1` tests a copied executable from a directory with spaces and a different working directory, checks that `ReadArticles.config.json` is created beside the renamed executable, and checks the native missing-.NET instructions. Run `tools/Test.ps1 -Suite Core` in CI, and local `-Suite UI` and `-Suite Full` for interactive and media behavior.
+`Test-PublishedApp.ps1` tests a copied executable from a directory with spaces and a different working directory, checks that `userdata/config/settings.json` is created inside the renamed executable directory, and checks the native missing-.NET instructions. Run `tools/Test.ps1 -Suite Core` in CI, and local `-Suite UI` and `-Suite Full` for interactive and media behavior.
 
 The `dist/` directory is local build output and is not committed. The project does not automatically install .NET, create an installer, or update itself online.
