@@ -24,57 +24,43 @@ internal static class WebViewSettingsChecks
             finally { window.Close(); }
         });
 
-        Program.Run("WebView2 settings intents accept only supported values", () =>
+        Program.Run("browser accepts only session pane-width intent and receives typed appearance snapshot", () =>
         {
             var window = new ReadArticles.MainWindow(false);
             try
             {
                 var type = typeof(ReadArticles.MainWindow);
-                var settings = (ReaderSettings)type.GetField("settings",
+                var selected = (ReaderSettings)type.GetField("settings",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
-                var handle = type.GetMethod("WebPilotSettingIntent",
+                var handler = type.GetMethod("WebPilotSettingIntent",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
                 var center = (ColumnDefinition)window.FindName("CenterColumn");
                 Program.Check(center.MinWidth == 403);
-                Apply("setFontSize", """{"size":16}""");
-                Program.Check(settings.FontSize == 16);
-                Apply("setFontSize", """{"size":40}""");
-                Program.Check(settings.FontSize == 16);
-                Apply("setAccent", """{"accent":"us"}""");
-                Program.Check(window.ViewModel.Accent == "us");
-                Apply("setAccent", """{"accent":"invalid"}""");
-                Program.Check(window.ViewModel.Accent == "us");
-                Apply("setPanelWidth", """{"width":300}""");
-                Program.Check(settings.RightWidth == 300);
-                Apply("setPanelWidth", """{"width":199}""");
-                Program.Check(settings.RightWidth == 300);
-                Apply("setPanelWidth", """{"width":401}""");
-                Program.Check(settings.RightWidth == 300);
-                Apply("setPanelWidth", """{"width":200}""");
-                Program.Check(settings.RightWidth == 200 && center.MinWidth == 403);
-                Apply("setPanelWidth", """{"width":400}""");
-                Program.Check(settings.RightWidth >= 200 && settings.RightWidth <= 400 &&
-                    center.MinWidth == 403);
-                Apply("setPanelWidth", """{"width":300}""");
-                Program.Check(settings.RightWidth >= 200 && settings.RightWidth <= 300 &&
-                    center.MinWidth == 403);
-                var getSnapshot = type.GetMethod("WebPilotSettingsSnapshot",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                Program.Check(getSnapshot is not null);
-                using (var settingsJson = JsonDocument.Parse(JsonSerializer.Serialize(
-                    getSnapshot!.Invoke(window, null))))
-                    Program.Check(settingsJson.RootElement.GetProperty("rightWidth").GetDouble() ==
-                        settings.RightWidth);
-                Apply("setForwardStep", """{"seconds":7}""");
-                Apply("setBackwardStep", """{"seconds":8}""");
-                Program.Check(settings.ForwardStep == 7 && settings.BackwardStep == 8);
-                Apply("setForwardStep", """{"seconds":99}""");
-                Program.Check(settings.ForwardStep == 7);
+                Apply(300);
+                Program.Check(selected.RightWidth == 300);
+                Apply(199);
+                Program.Check(selected.RightWidth == 300);
+                Apply(401);
+                Program.Check(selected.RightWidth == 300);
+                Apply(200);
+                Program.Check(selected.RightWidth == 200);
+                Apply(400);
+                Program.Check(selected.RightWidth >= 200 && selected.RightWidth <= 400);
+                var method = type.GetMethod("WebPilotSettingsSnapshot",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!;
+                using var snap = JsonDocument.Parse(JsonSerializer.Serialize(method.Invoke(window, null)));
+                var root = snap.RootElement;
+                Program.Check(root.GetProperty("rightWidth").GetDouble() == selected.RightWidth &&
+                    root.GetProperty("appearance").GetProperty("title").GetProperty("size").GetDouble() == 18 &&
+                    root.GetProperty("appearance").GetProperty("body").GetProperty("paragraphAfter").GetDouble() == 12 &&
+                    root.GetProperty("appearance").GetProperty("phonetics").GetProperty("color").GetString() == "#0A7785");
+                Program.Check(!root.TryGetProperty("fontSize", out _));
 
-                void Apply(string command, string payload)
+                void Apply(double width)
                 {
-                    using var data = JsonDocument.Parse("{\"payload\":" + payload + "}");
-                    handle.Invoke(window, [command, data.RootElement,
+                    using var data = JsonDocument.Parse("{\"payload\":{\"width\":" +
+                        width.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}");
+                    handler.Invoke(window, ["setPanelWidth", data.RootElement,
                         "00000000-0000-4000-8000-000000000001"]);
                 }
             }
@@ -112,21 +98,21 @@ internal static class WebViewSettingsChecks
             finally { window.Close(); }
         });
 
-        Program.Run("pane widths reset on restart while unrelated reading settings persist", () =>
+        Program.Run("structured appearance persists while session widths reset after serialization", () =>
         {
-            var restored = JsonSerializer.Deserialize<ReaderSettings>(
-                """
-                {"LeftWidth":720,"RightWidth":850,"FontSize":16,"Accent":"us","ForwardStep":7}
-                """)!;
-            Program.Check(restored.LeftWidth == 250 && restored.RightWidth == 300);
-            Program.Check(restored.FontSize == 16 && restored.Accent == "us" &&
-                restored.ForwardStep == 7);
-            restored.LeftWidth = 540;
-            restored.RightWidth = 620;
-            string saved = JsonSerializer.Serialize(restored);
-            Program.Check(!saved.Contains("LeftWidth", StringComparison.Ordinal) &&
-                !saved.Contains("RightWidth", StringComparison.Ordinal));
-            Program.Check(JsonSerializer.Deserialize<ReaderSettings>(saved)!.RightWidth == 300);
+            var initial = new ReaderSettings { Accent = "us", ForwardStep = 7 };
+            initial.Appearance.Body.Size = 17;
+            initial.Appearance.Body.Background = "#FFF8E7";
+            initial.LeftWidth = 320;
+            initial.RightWidth = 390;
+            string serialized = JsonSerializer.Serialize(initial);
+            Program.Check(!serialized.Contains("LeftWidth", StringComparison.Ordinal) &&
+                !serialized.Contains("RightWidth", StringComparison.Ordinal) &&
+                !serialized.Contains("\"FontSize\"", StringComparison.Ordinal));
+            var loaded = JsonSerializer.Deserialize<ReaderSettings>(serialized)!;
+            Program.Check(loaded.LeftWidth == 250 && loaded.RightWidth == 300 &&
+                loaded.FontSize == 17 && loaded.Accent == "us" &&
+                loaded.ForwardStep == 7 && loaded.Appearance.Body.Background == "#FFF8E7");
         });
 
         Program.Run("WebView2 notification dismiss retains errors until acknowledged", () =>
