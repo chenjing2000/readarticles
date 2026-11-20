@@ -35,17 +35,17 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
   font-size: var(--title-size, 18px);
   font-weight: 700;
   color: var(--title-color, #283747);
-  line-height: var(--title-line, 1.3);
-  margin: 4px 8px var(--title-after, 6px);
+  line-height: var(--title-line, 1.6);
+  margin: 4px 8px var(--title-after, 16px);
 }
 #article-title:empty { display: none; }
 #article-body {
   font-family: var(--body-font, "Nunito Sans", "Microsoft YaHei", Arial, sans-serif);
-  font-size: var(--body-size, 15px); line-height: var(--body-line, 1.3);
+  font-size: var(--body-size, 15px); line-height: var(--body-line, 1.5);
   color: var(--body-color, #283747);
 }
 .article-paragraph {
-  margin: 0 0 var(--body-after, 12px);
+  margin: 0 0 var(--body-after, 16px);
   text-indent: var(--body-indent, 2em);
   overflow-wrap: break-word;
 }
@@ -70,7 +70,7 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
 /* Each IPA and its speaker stay together; the two groups may wrap. */
 .phonetic-line { display: flex; flex-wrap: wrap; align-items: center;
   column-gap: 10px; row-gap: 3px; margin: 5px 0;
-  font-size: var(--phonetic-size, 15px); color: var(--phonetic-color, #0A7785); }
+  font-size: var(--phonetic-size, 14px); color: var(--phonetic-color, #0A7785); }
 .phonetic-unit { display: inline-flex; align-items: center; gap: 3px;
   max-width: 100%; min-width: 0; }
 .phonetic-text { min-width: 0; overflow-wrap: anywhere; }
@@ -119,7 +119,7 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
   font-weight: 600; overflow-wrap: anywhere; }
 .meaning { font-family: var(--meaning-font, "Microsoft YaHei", SimSun, KaiTi, sans-serif);
   margin: 3px 0; overflow-wrap: anywhere; font-size: var(--meaning-size, 15px);
-  line-height: var(--meaning-line, 1.3); color: var(--meaning-color, #283747); }
+  line-height: var(--meaning-line, 1.4); color: var(--meaning-color, #283747); }
 .part-of-speech { font-weight: 600; margin-right: 6px; }
 /* Same 48px bottom rail as the native left pane. */
 .toolbar {

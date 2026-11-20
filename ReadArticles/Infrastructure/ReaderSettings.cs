@@ -173,7 +173,7 @@ public sealed class ReaderSettings
         a.Phonetics.Size = Allowed(a.Phonetics.Size, 14, 13, 14, 15);
         a.Phonetics.Color = ColorCode(a.Phonetics.Color, "#0A7785", "#0A7785", "#256CA5", "#38735A", "#7657A0", "#995431");
         a.Meanings.Font = Font(a.Meanings.Font, "Microsoft YaHei", "Microsoft YaHei", "SimSun", "KaiTi");
-        a.Meanings.Size = Allowed(a.Meanings.Size, 15, 14, 15, 16, 17);
+        a.Meanings.Size = Allowed(a.Meanings.Size, 15, 14, 15, 16);
         a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.4, 1.3, 1.4, 1.5);
         a.Meanings.Color = ColorCode(a.Meanings.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         Audio.Volume = double.IsFinite(Audio.Volume) ? Math.Clamp(Audio.Volume, 0, 1) : 0.65;
