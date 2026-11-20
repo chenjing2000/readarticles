@@ -227,7 +227,7 @@ internal static class WebViewPilotChecks
                     seekKeys.GetProperty("calls").EnumerateArray().Select(call => (
                         Type: call.GetProperty("type").GetString(),
                         Direction: call.GetProperty("direction").GetString()))
-                    .SequenceEqual(new[] {
+                    .SequenceEqual(new (string? Type, string? Direction)[] {
                         (Type: "seekArticle", Direction: "backward"),
                         (Type: "seekArticle", Direction: "forward"),
                         (Type: "seekArticle", Direction: "forward")
