@@ -112,18 +112,8 @@ internal static class WebViewPilotChecks
                 Program.Check(window.ViewModel.OpenArticle(article));
                 var browser = (WebView2)window.FindName("ReaderWebView");
                 var overlay = (System.Windows.Controls.Grid)window.FindName("WebPilotOverlay");
-                try
-                {
-                    WaitFor(() => browser.CoreWebView2 is not null &&
-                        overlay.Visibility == System.Windows.Visibility.Visible, "browser render handshake");
-                }
-                catch (Exception error)
-                {
-                    string diagnostics = browser.CoreWebView2 is null ? "no CoreWebView2" :
-                        Evaluate(browser, "({ initError: window.__readerInitDiagnostic ?? null, page: document.readyState, paragraphs: document.querySelectorAll('.article-paragraph').length })").GetRawText();
-                    throw new Exception("Browser handshake: " + diagnostics +
-                        "; nativeError=" + window.FindName("WebFailurePanel")?.ToString(), error);
-                }
+                WaitFor(() => browser.CoreWebView2 is not null &&
+                    overlay.Visibility == System.Windows.Visibility.Visible, "browser render handshake");
 
                 JsonElement passage = Evaluate(browser, """
                     (() => ({
