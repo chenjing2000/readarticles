@@ -1,6 +1,6 @@
 # ReadArticles
 
-ReadArticles is a local C# / WPF application for English reading, vocabulary editing, and playback of existing MP3 and WAV files. It uses a directory tree, passage pane, and vocabulary pane backed by ordinary JSON files.
+ReadArticles is a local C# / WPF application for English reading, vocabulary editing, and playback of existing M4A, MP3 and WAV files. It uses a directory tree, passage pane, and vocabulary pane backed by ordinary JSON files.
 
 ## Run
 
