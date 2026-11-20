@@ -165,7 +165,8 @@ internal sealed class SettingsDialog : Window
         foreach (double width in new[] { 72d, 140d, 20d, 72d, 140d })
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
         grid.Children.Add(Label(first));
-        editor.HorizontalAlignment = HorizontalAlignment.Left;
+        if (editor is FrameworkElement firstControl)
+            firstControl.HorizontalAlignment = HorizontalAlignment.Left;
         Grid.SetColumn(editor, 1);
         grid.Children.Add(editor);
         if (second != null && secondEditor != null)
@@ -173,7 +174,8 @@ internal sealed class SettingsDialog : Window
             var label = Label(second);
             Grid.SetColumn(label, 3);
             grid.Children.Add(label);
-            secondEditor.HorizontalAlignment = HorizontalAlignment.Left;
+            if (secondEditor is FrameworkElement secondControl)
+                secondControl.HorizontalAlignment = HorizontalAlignment.Left;
             Grid.SetColumn(secondEditor, 4);
             grid.Children.Add(secondEditor);
         }

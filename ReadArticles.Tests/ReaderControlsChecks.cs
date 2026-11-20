@@ -253,7 +253,8 @@ internal static class ReaderControlsChecks
                 var sections = (StackPanel)type.GetField("sections",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
                 Program.Check(sections.Width == 444);
-                Program.Check(sections.HorizontalAlignment != HorizontalAlignment.Right);
+                var scroll = ((Grid)dialog.Content).Children.OfType<ScrollViewer>().Single();
+                Program.Check(scroll.HorizontalContentAlignment == HorizontalAlignment.Left);
                 int palettes = 0;
                 int volumeGroups = 0;
                 foreach (var section in sections.Children.OfType<StackPanel>())
@@ -269,8 +270,8 @@ internal static class ReaderControlsChecks
                                 label.HorizontalAlignment == HorizontalAlignment.Left &&
                                 label.TextAlignment == TextAlignment.Left &&
                                 Grid.GetColumn(label) is 0 or 3);
-                        foreach (var editor in row.Children.Where(child =>
-                            child is not TextBlock))
+                        foreach (var editor in row.Children.OfType<FrameworkElement>()
+                            .Where(child => child is not TextBlock))
                         {
                             Program.Check(editor.HorizontalAlignment == HorizontalAlignment.Left &&
                                 Grid.GetColumn(editor) is 1 or 4);
