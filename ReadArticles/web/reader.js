@@ -470,6 +470,24 @@ function hideSelectionAdd() {
   byId("selection-add").hidden = true;
 }
 
+// A fixed-position browser button uses CSS px, matching Range client rects.
+// Anchor after the last selected text fragment, not the bounding box of all
+// lines. Flip to the left/above near viewport edges to keep it fully visible.
+function positionSelectionAddButton(range, button) {
+  const size = 36;
+  const gap = 2;
+  const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+  const anchor = fragments.at(-1) ?? range.getBoundingClientRect();
+  const toRight = anchor.right + gap;
+  const toLeft = anchor.left - gap - size;
+  const below = anchor.bottom + gap;
+  const above = anchor.top - gap - size;
+  const left = toRight + size <= window.innerWidth - gap ? toRight : toLeft;
+  const top = below + size <= window.innerHeight - gap ? below : above;
+  button.style.left = Math.round(Math.max(gap, Math.min(window.innerWidth - gap - size, left))) + "px";
+  button.style.top = Math.round(Math.max(gap, Math.min(window.innerHeight - gap - size, top))) + "px";
+}
+
 function updateSelectionAdd() {
   const selection = window.getSelection();
   if (!selection || selection.isCollapsed || selection.rangeCount !== 1) {
@@ -503,10 +521,8 @@ function updateSelectionAdd() {
         text, offset, length: raw.length
       }
     : { mode: "passage", sid: sentence.dataset.sid, text, offset, length: raw.length };
-  const rect = range.getBoundingClientRect();
   const button = byId("selection-add");
-  button.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 24, rect.right + 5))) + "px";
-  button.style.top = Math.round(Math.max(8, Math.min(window.innerHeight - 24, rect.top - 8))) + "px";
+  positionSelectionAddButton(range, button);
   button.hidden = false;
   button.disabled = !canWriteVocabulary || !!pendingMutation;
 }

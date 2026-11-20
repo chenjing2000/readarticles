@@ -49,14 +49,14 @@ internal sealed class SettingsDialog : Window
         draft = current.Copy();
 
         Title = "设置";
-        Width = 440;
+        Width = 500;
         Height = 690;
         ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.SingleBorderWindow;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ShowInTaskbar = false;
         FontFamily = new FontFamily("Microsoft YaHei");
-        FontSize = 12;
+        FontSize = 13;
         Background = Brushes.White;
 #pragma warning disable WPF0001
         // .NET 10's built-in Windows 11 Fluent theme, only for this dialog.
@@ -67,7 +67,7 @@ internal sealed class SettingsDialog : Window
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        sections.Width = 384;
+        sections.Width = 444;
         sections.Margin = new Thickness(10, 8, 10, 14);
         var scroll = new ScrollViewer
         {
@@ -150,16 +150,16 @@ internal sealed class SettingsDialog : Window
 
     private static TextBlock Label(string text) => new()
     {
-        Text = text, FontSize = 12, Foreground = Brush("#344256"),
+        Text = text, FontSize = 13, Foreground = Brush("#344256"),
         VerticalAlignment = VerticalAlignment.Center
     };
 
-    // 72 + 120 + 72 + 120 = 384 DIP: every row shares the same grid.
+    // Four functional columns separated by 20 DIP: 72 + 140 + 20 + 72 + 140 = 444.
     private static void Row(StackPanel parent, string first, UIElement editor,
         string? second = null, UIElement? secondEditor = null)
     {
         var grid = new Grid { Height = 36, Margin = new Thickness(0, 0, 0, 5) };
-        foreach (double width in new[] { 72d, 120d, 72d, 120d })
+        foreach (double width in new[] { 72d, 140d, 20d, 72d, 140d })
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
         grid.Children.Add(Label(first));
         Grid.SetColumn(editor, 1);
@@ -167,9 +167,9 @@ internal sealed class SettingsDialog : Window
         if (second != null && secondEditor != null)
         {
             var label = Label(second);
-            Grid.SetColumn(label, 2);
+            Grid.SetColumn(label, 3);
             grid.Children.Add(label);
-            Grid.SetColumn(secondEditor, 3);
+            Grid.SetColumn(secondEditor, 4);
             grid.Children.Add(secondEditor);
         }
         parent.Children.Add(grid);
@@ -239,7 +239,7 @@ internal sealed class SettingsDialog : Window
         host.Children.Add(control);
         var unitText = new TextBlock
         {
-            Text = unit, Width = 20, FontSize = 11, Foreground = Brush("#687583"),
+            Text = unit, Width = 20, FontSize = 12, Foreground = Brush("#687583"),
             TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(unitText, 1);
@@ -247,14 +247,14 @@ internal sealed class SettingsDialog : Window
         return host;
     }
 
-    // All five circular swatches have exactly 24 DIP of space each. No hex
+    // All five circular swatches have exactly 28 DIP of space each. No hex
     // input, no border, and the selected swatch displays a check mark.
     private static UIElement ColorPalette((string Value, string Name)[] colors,
         string current, Action<string> changed)
     {
-        var host = new Grid { Width = 120, Height = 30 };
+        var host = new Grid { Width = 140, Height = 30 };
         for (int i = 0; i < colors.Length; i++)
-            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
 
         var checks = new List<TextBlock>();
         for (int index = 0; index < colors.Length; index++)
@@ -280,7 +280,7 @@ internal sealed class SettingsDialog : Window
             // Render just the content, not the platform Button rectangle.
             var button = new Button
             {
-                Width = 24, Height = 30, Content = content,
+                Width = 28, Height = 30, Content = content,
                 BorderThickness = new Thickness(0), Padding = new Thickness(0),
                 Background = Brushes.Transparent, ToolTip = name + "  " + hex,
                 HorizontalAlignment = HorizontalAlignment.Left,
@@ -307,18 +307,19 @@ internal sealed class SettingsDialog : Window
 
     private UIElement VolumeEditor()
     {
-        var host = new Grid { Width = 120, Height = 34 };
-        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
-        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(35) });
+        var host = new Grid { Width = 140, Height = 34 };
+        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
         var value = new TextBlock
         {
             Text = Math.Round(draft.Volume * 100).ToString(CultureInfo.InvariantCulture) + "%",
-            TextAlignment = TextAlignment.Center, FontSize = 11,
+            TextAlignment = TextAlignment.Center, FontSize = 12,
             VerticalAlignment = VerticalAlignment.Center
         };
         var slider = new Slider
         {
-            Width = 85, Minimum = 0, Maximum = 100, Value = Math.Round(draft.Volume * 100),
+            Width = 72, Minimum = 0, Maximum = 100, Value = Math.Round(draft.Volume * 100),
             TickFrequency = 5, IsSnapToTickEnabled = true,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -328,7 +329,7 @@ internal sealed class SettingsDialog : Window
             value.Text = Math.Round(slider.Value).ToString(CultureInfo.InvariantCulture) + "%";
         };
         host.Children.Add(slider);
-        Grid.SetColumn(value, 1);
+        Grid.SetColumn(value, 2);
         host.Children.Add(value);
         return host;
     }
