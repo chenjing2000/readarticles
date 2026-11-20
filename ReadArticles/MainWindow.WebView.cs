@@ -550,18 +550,6 @@ public partial class MainWindow
             }
             ViewModel.PlayWord(ViewModel.Words[index].Entry, accent);
         }
-        else if (type == "playSegment")
-        {
-            if (webPilotScriptMode ||
-                !root.TryGetProperty("payload", out var target) ||
-                !TryMessageString(target, "sid", out string? sid) ||
-                !ViewModel.CanPlaySegment(sid!))
-            {
-                PostWebPilot("actionResult", new { status = "invalid" }, requestId);
-                return;
-            }
-            ViewModel.PlaySegment(sid!);
-        }
         // Playback failures continue to be surfaced by ReaderPlayback notifications.
         // "accepted" is not a false claim that a media file played successfully.
         PostWebPilot("actionResult", new { status = "accepted" }, requestId);
@@ -727,8 +715,7 @@ public partial class MainWindow
             duration = playback.ArticleDuration,
             canSeek = playback.CanSeekArticle,
             canPlay = ViewModel.Article is not null,
-            isArticleActive = playback.IsArticleActive,
-            
+            isArticleActive = playback.IsArticleActive
         };
     }
 
