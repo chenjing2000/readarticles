@@ -6,8 +6,8 @@
 
 - 仓库：[chenjing2000/readarticles](https://github.com/chenjing2000/readarticles)；本地项目通常为 `C:\Projects\ReadArticles`。
 - **正在开发的功能分支：** `feature/reading-settings-dialog-icons`。
-- **PR：** [#19](https://github.com/chenjing2000/readarticles/pull/19)，状态 **Open / Draft / 未合并**；本轮修改前远程 HEAD 为 `c277bd144b5504bfe75cb7bd91899039b3bb4772`，当前最新提交以 GitHub 实际 HEAD 为准。
-- **前一开发基线 CI：** [Windows CI #44702257088](https://github.com/chenjing2000/readarticles/actions/runs/44702257088) 针对 `c277bd1` **Success**：Build application、Core regression、Publish actual portable release、Verify portable release layout 均通过。本轮仅移除 Noto Sans 的提交需要独立 CI。
+- **PR：** [#19](https://github.com/chenjing2000/readarticles/pull/19)，状态 **Open / Draft / 未合并**；本轮修改前远程 HEAD 为 `f7124f5f7288c1defc914b9d068bd1f894c5f576`，当前最新提交以 GitHub 实际 HEAD 为准。
+- **前一开发基线 CI：** [Windows CI #44706541929](https://github.com/chenjing2000/readarticles/actions/runs/44706541929) 针对 `f7124f5` **Success**：Build application、Core regression、Publish actual portable release、Verify portable release layout 均通过。当前进度条方向键与焦点样式的新提交需核对独立 CI。
 - **Windows 实机验收：** 用户已确认上一轮 540 DIP 设置弹窗及滚动、五种选词背景、三档加号、选区自动消失与定位、设置保存/取消/恢复默认等五项实机验收全部符合预期。本轮新增字体与四档加号选项**尚待 Windows 实机验收**；不得未经用户批准合并。
 - `main` 仍是稳定分支，包含于 2026-11-19 合并的 PR #18（三栏布局）。PR #18 已经用户 Windows 实机验收；**不要重做**它的三栏求解器。保留与本项目无关的 `feature/exercise` 分支，不随意清理。
 - 这里只能确定 GitHub 远程状态，**不能推断本地工作区干净或本地分支已经同步**。先检查 `git status --short`、当前分支及远端最新提交。
@@ -29,6 +29,7 @@
 - 已采用 V5 SVG 图标，设置、播放/暂停、停止、词汇工具、Script/Passage 等按钮按约定使用无边框圆形样式；三栏底部保持 **48 DIP** 对齐。进度条左侧“文章音频”标签已删除。
 - 正文词汇背景采用方案 B：`Range.getClientRects()` 测量文字，在独立不可交互图层绘制 **4 px 圆角**背景，不修改实际文本节点，保留文本选择和 Script 定时单元。
 - **不要重新定义音频时间轴。** 用户明确撤销“停止后仍可拖动”提议：停止后进度条**不可拖动**、进度着色清除，暂停/播放期间可以 seek；切换文章成功后清零旧进度与通知，打开失败保留原文章状态。
+- **音频进度条方向键：** 用户报告单击进度条后出现外部焦点框，且左右方向键只触发原生 `0.05` 秒滑块步长。保留滑块键盘焦点，但通过仅针对 `#progress:focus` 的 CSS 隐藏外部焦点轮廓；`#progress` 与阅读区共用现有 `seekArticle` 左右键计算，按设置的前进/后退秒数跳转；阻止浏览器原生方向键步进。鼠标点击、拖动、暂停和停止边界不改变；本项仍待 Windows 实机验证。
 
 ## 3. 技术架构与不可破坏的边界
 
@@ -40,7 +41,7 @@
 ## 4. 下一会话最重要的工作
 
 1. **先读取此文档，再核对 PR #19、`feature/reading-settings-dialog-icons` HEAD、最新 CI、源码与本地状态**；不要把此前的 `6feefda` 功能提交误认成文档提交后的 HEAD。入口文件：`ReadArticles/SettingsDialog.cs`、`Infrastructure/ReaderSettings.cs`、`MainWindow.Settings.cs`、`MainWindow.WebView.cs`、`web/reader.js`、`reader.css`，相关测试位于 `ReadArticles.Tests/`。
-2. **优先处理本轮 Windows 实机验收**：核对 Nunito 字体选项、Noto Sans 已移除、缺失字体提示与回退，以及选词加号新增 `0.80 em` 后的尺寸、定位和点击；上一轮设置、选区背景与保存等五项验收已通过。
+2. **优先处理本轮 Windows 实机验收**：核对音频进度条的键盘焦点隐藏外框、鼠标点击或拖动后的 Left/Right 跳转（使用已配置秒数）、暂停时跳转和停止后不可跳转；同时核对 Nunito 字体选项、Noto Sans 已移除及新增 `0.80 em` 选词加号。上一轮设置、选区背景与保存等五项验收已通过。
 3. 本机可执行（先确认本地未提交修改）：
 
    ```powershell

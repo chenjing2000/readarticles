@@ -157,6 +157,7 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 [hidden] { display: none !important; }
 .progress-label { display: flex; align-items: center; flex: 1; min-width: 0; font-size: .85em; }
 .progress-label input { flex: 1; min-width: 30px; }
+#progress:focus { outline: none; box-shadow: none; }
 #playback-time { font-size: .8em; color: #54616c; font-variant-numeric: tabular-nums; }
 #notifications {
   position: absolute;

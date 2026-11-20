@@ -67,8 +67,8 @@ After `Publish.ps1` and `Test-PublishedApp.ps1` succeed, start **the exact** `di
 
 1. WebView2 reaches the actual Passage DOM, rather than merely creating a WPF window handle; ensure there is no native failure screen. Check independent article/word scrolling and vocabulary selection/highlighting.
 2. Switch Passage -> Script -> Passage and confirm correct title, timed-word foreground/seek behavior and restored selection/scroll where applicable.
-3. Exercise keyboard focus: TreeView Left/Right and Space on native controls must not trigger audio; focused WebView2 word rows activate with Enter **and** Space without triggering whole-article playback.
-4. Verify word/segment and whole-article audio on a real output device. Test pause/resume, seek, stop and missing recording feedback.
+3. Exercise keyboard focus: TreeView Left/Right and Space on native controls must not trigger audio; focused WebView2 word rows activate with Enter **and** Space without triggering whole-article playback. Click the article audio progress slider and confirm it retains keyboard focus without an outer focus frame; Left/Right must seek by the configured backward/forward seconds rather than native slider increments. Verify the same shortcuts outside the slider, including while paused, and confirm Stop disables seeking.
+4. Verify word/segment and whole-article audio on a real output device. Test pause/resume, mouse click/drag seek, keyboard seek, stop and missing recording feedback.
 5. On a **disposable library copy**, edit a word, move/delete it, import a vocabulary JSON and verify only the companion vocabulary and owned backups change. Confirm settings and notifications, then close and reopen the published executable.
 
 This list is an interactive **release gate**, not proof of automated coverage. Do not use a real article library for destructive tests, and do not claim this checklist passed unless someone actually ran it.

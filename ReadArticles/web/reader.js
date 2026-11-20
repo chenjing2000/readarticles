@@ -985,6 +985,20 @@ splitter.addEventListener("keydown", event => {
   send("setPanelWidth", { payload: { width: next } });
 });
 
+function seekByArrowKey(event) {
+  if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
+      (event.key !== "ArrowLeft" && event.key !== "ArrowRight") ||
+      currentPlayback.canSeek !== true)
+    return;
+  event.preventDefault();
+  const step = event.key === "ArrowLeft"
+    ? -(Number(currentSettings.backwardStep) || 5)
+    : Number(currentSettings.forwardStep) || 4;
+  const target = Math.max(0, Math.min(Number(currentPlayback.duration) || 0,
+    (Number(currentPlayback.position) || 0) + step));
+  send("seekArticle", { payload: { position: target } });
+}
+
 document.addEventListener("keydown", event => {
   if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
       event.target?.closest("input, select, textarea, button, [role='button'], [contenteditable='true'], [role='separator']"))
@@ -993,17 +1007,12 @@ document.addEventListener("keydown", event => {
     if (currentPlayback.canPlay !== true || event.repeat) return;
     event.preventDefault();
     send("playArticle");
-  } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-    if (currentPlayback.canSeek !== true) return;
-    event.preventDefault();
-    const step = event.key === "ArrowLeft"
-      ? -(Number(currentSettings.backwardStep) || 5)
-      : Number(currentSettings.forwardStep) || 4;
-    const target = Math.max(0, Math.min(Number(currentPlayback.duration) || 0,
-      (Number(currentPlayback.position) || 0) + step));
-    send("seekArticle", { payload: { position: target } });
+  } else {
+    seekByArrowKey(event);
   }
 });
+
+byId("progress").addEventListener("keydown", seekByArrowKey);
 
 byId("article-play").addEventListener("click", () => {
   if (!byId("article-play").disabled) send("playArticle");

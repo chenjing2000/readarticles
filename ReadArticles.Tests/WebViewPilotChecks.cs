@@ -163,6 +163,76 @@ internal static class WebViewPilotChecks
                     visual.GetProperty("grouped").GetBoolean() &&
                     visual.GetProperty("images").GetBoolean());
 
+                // A focused progress slider must share the document's article-seek
+                // shortcuts, not Chromium's native 0.05-second arrow increments.
+                JsonElement seekKeys = Evaluate(browser, """
+                    (() => {
+                      const progress = document.getElementById('progress');
+                      const previousPlayback = currentPlayback;
+                      const previousSettings = currentSettings;
+                      const previousDragging = seekDragging;
+                      const originalSend = send;
+                      const calls = [];
+                      try {
+                        send = (type, options = {}) => {
+                          calls.push({ type, position: options.payload?.position });
+                          return 'captured';
+                        };
+                        currentSettings = { ...currentSettings, backwardStep: 11, forwardStep: 7 };
+                        seekDragging = false;
+                        renderPlayback({
+                          position: 120, duration: 300, canSeek: true,
+                          canPlay: true, isArticleActive: true, state: 'paused'
+                        });
+                        progress.focus();
+                        const focused = document.activeElement === progress;
+                        const outline = getComputedStyle(progress).outlineStyle;
+                        const fire = (target, key) => {
+                          const event = new KeyboardEvent('keydown', {
+                            key, bubbles: true, cancelable: true
+                          });
+                          target.dispatchEvent(event);
+                          return event.defaultPrevented;
+                        };
+                        const left = fire(progress, 'ArrowLeft');
+                        const right = fire(progress, 'ArrowRight');
+                        const global = fire(document, 'ArrowRight');
+                        const nativeStep = progress.step;
+                        renderPlayback({
+                          position: 120, duration: 300, canSeek: false,
+                          canPlay: true, isArticleActive: false, state: 'stopped'
+                        });
+                        const count = calls.length;
+                        const stopped = fire(progress, 'ArrowRight');
+                        return {
+                          focused, outline, left, right, global, stopped,
+                          nativeStep, count, calls
+                        };
+                      } finally {
+                        send = originalSend;
+                        currentSettings = previousSettings;
+                        seekDragging = previousDragging;
+                        renderPlayback(previousPlayback);
+                      }
+                    })()
+                    """);
+                Program.Check(seekKeys.GetProperty("focused").GetBoolean() &&
+                    seekKeys.GetProperty("outline").GetString() == "none" &&
+                    seekKeys.GetProperty("left").GetBoolean() &&
+                    seekKeys.GetProperty("right").GetBoolean() &&
+                    seekKeys.GetProperty("global").GetBoolean() &&
+                    !seekKeys.GetProperty("stopped").GetBoolean() &&
+                    seekKeys.GetProperty("nativeStep").GetString() == "0.05" &&
+                    seekKeys.GetProperty("count").GetInt32() == 3 &&
+                    seekKeys.GetProperty("calls").EnumerateArray().Select(call => (
+                        Type: call.GetProperty("type").GetString(),
+                        Position: call.GetProperty("position").GetDouble()))
+                    .SequenceEqual(new[] {
+                        (Type: "seekArticle", Position: 109d),
+                        (Type: "seekArticle", Position: 127d),
+                        (Type: "seekArticle", Position: 127d)
+                    }));
+
                 // Selection-add anchors to the final fragment at +1px horizontally
                 // and +0px vertically, with edge-safe left/above fallbacks.
                 JsonElement selectionAction = Evaluate(browser, """
