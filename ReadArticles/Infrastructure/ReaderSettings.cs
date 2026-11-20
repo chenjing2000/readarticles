@@ -1,7 +1,6 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace ReadArticles.Infrastructure;
 
@@ -43,99 +42,45 @@ public sealed class ReaderSettings
         Library = other.Library;
     }
 
-    private sealed class LegacyValues
-    {
-        public double FontSize { get; set; } = 15;
-        public double Volume { get; set; } = 0.65;
-        public string Accent { get; set; } = "uk";
-        public double ForwardStep { get; set; } = 4;
-        public double BackwardStep { get; set; } = 5;
-        public string? Library { get; set; }
-    }
-
-    private static ReaderSettings ReadLegacy(string path)
-    {
-        var legacy = JsonSerializer.Deserialize<LegacyValues>(File.ReadAllText(path), JsonFiles.Options)
-            ?? throw new JsonException("旧配置内容不能为空。");
-        var settings = new ReaderSettings
-        {
-            FontSize = legacy.FontSize,
-            Volume = legacy.Volume,
-            Accent = legacy.Accent,
-            ForwardStep = legacy.ForwardStep,
-            BackwardStep = legacy.BackwardStep,
-            Library = legacy.Library
-        };
-        settings.Normalize();
-        return settings;
-    }
-
+    // A deliberate breaking configuration upgrade: old flat settings are
+    // never migrated. Only the structured Appearance/Audio format is accepted.
     public static ReaderSettings Load(out string? warning)
     {
         warning = null;
         try
         {
             AppPaths.EnsureConfigDirectory();
-            if (File.Exists(PathName)) return Deserialize(PathName);
-
-            // Preserve old sources for rollback. Never silently discard a
-            // valid legacy preference or overwrite an invalid source.
-            foreach (string source in new[] { AppPaths.PreviousSettingsFile, AppPaths.LegacySettingsFile })
+            if (File.Exists(PathName))
             {
-                if (!File.Exists(source)) continue;
                 try
                 {
-                    var migrated = ReadLegacy(source);
-                    migrated.Save();
-                    return migrated;
+                    using var document = JsonDocument.Parse(File.ReadAllText(PathName));
+                    var root = document.RootElement;
+                    if (root.ValueKind == JsonValueKind.Object &&
+                        root.TryGetProperty("Appearance", out var appearance) &&
+                        appearance.ValueKind == JsonValueKind.Object &&
+                        root.TryGetProperty("Audio", out var audio) &&
+                        audio.ValueKind == JsonValueKind.Object)
+                        return Deserialize(PathName);
                 }
-                catch (JsonException error)
+                catch (JsonException)
                 {
-                    warning = "旧配置损坏，原文件已保留：" + error.Message;
-                    // Do not replace an invalid existing configuration with
-                    // defaults until all migration candidates are examined.
+                    warning = "配置文件无效，已重新创建默认设置。";
                 }
+                // Ignore old/invalid formats, replacing them with new defaults.
+                // Do not rotate an obsolete file into the current backup.
+                var clean = new ReaderSettings();
+                JsonFiles.WriteAtomic(PathName, clean);
+                return clean;
             }
 
             var defaults = new ReaderSettings();
             defaults.Save();
             return defaults;
         }
-        catch (JsonException error)
-        {
-            warning = "配置文件损坏：" + error.Message;
-            try
-            {
-                string corruptPath = PathName + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
-                if (File.Exists(PathName)) File.Move(PathName, corruptPath);
-                if (File.Exists(AppPaths.SettingsBackupFile))
-                {
-                    try
-                    {
-                        _ = Deserialize(AppPaths.SettingsBackupFile);
-                        BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
-                        warning += " 已从最近一次有效备份恢复，损坏文件保留为：" + Path.GetFileName(corruptPath);
-                        return Deserialize(PathName);
-                    }
-                    catch (Exception restoreError) when (restoreError is JsonException or IOException or UnauthorizedAccessException)
-                    {
-                        warning += " 最近一次备份无法恢复：" + restoreError.Message;
-                    }
-                }
-                var defaults = new ReaderSettings();
-                defaults.Save();
-                warning += " 当前使用默认设置。";
-                return defaults;
-            }
-            catch (Exception saveError) when (saveError is IOException or UnauthorizedAccessException)
-            {
-                warning += " 无法初始化配置：" + saveError.Message;
-                return new ReaderSettings();
-            }
-        }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            warning = "无法读取或保存配置，设置暂存于内存。请将程序放在有写入权限的目录：" + error.Message;
+            warning = "配置无法读写，暂时使用内存设置。请检查程序目录权限：" + error.Message;
             return new ReaderSettings();
         }
     }
@@ -172,8 +117,8 @@ public sealed class ReaderSettings
         double.IsFinite(value) && choices.Contains(value) ? value : fallback;
     private static string Font(string? value, string fallback, params string[] choices) =>
         choices.Contains(value, StringComparer.Ordinal) ? value! : fallback;
-    private static string ColorCode(string? value, string fallback) =>
-        value != null && Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$")
+    private static string ColorCode(string? value, string fallback, params string[] palette) =>
+        value != null && palette.Contains(value, StringComparer.OrdinalIgnoreCase)
             ? value.ToUpperInvariant() : fallback;
 
     public void Normalize()
@@ -190,25 +135,25 @@ public sealed class ReaderSettings
         var a = Appearance;
         a.Title.Font = Font(a.Title.Font, "Nunito Sans", "Nunito Sans", "Microsoft YaHei", "Arial");
         a.Title.Size = Allowed(a.Title.Size, 18, 16, 18, 20, 22, 24);
-        a.Title.LineHeight = Allowed(a.Title.LineHeight, 1.3, 1.2, 1.3, 1.4, 1.5);
-        a.Title.ParagraphAfter = Allowed(a.Title.ParagraphAfter, 6, 3, 6, 12);
-        a.Title.Color = ColorCode(a.Title.Color, "#283747");
+        a.Title.LineHeight = Allowed(a.Title.LineHeight, 1.6, 1.4, 1.6, 1.8);
+        a.Title.ParagraphAfter = Allowed(a.Title.ParagraphAfter, 16, 16, 18, 20);
+        a.Title.Color = ColorCode(a.Title.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         a.Body.Font = Font(a.Body.Font, "Nunito Sans", "Nunito Sans", "Microsoft YaHei", "Arial");
         a.Body.Size = Allowed(a.Body.Size, 15, 14, 15, 16, 17);
-        a.Body.LineHeight = Allowed(a.Body.LineHeight, 1.3, 1.2, 1.3, 1.4, 1.5);
-        a.Body.ParagraphAfter = Allowed(a.Body.ParagraphAfter, 12, 8, 12, 16, 20);
+        a.Body.LineHeight = Allowed(a.Body.LineHeight, 1.5, 1.5, 1.6, 1.7);
+        a.Body.ParagraphAfter = Allowed(a.Body.ParagraphAfter, 16, 14, 16, 18);
         a.Body.FirstLineIndent = Allowed(a.Body.FirstLineIndent, 2, 0, 1, 2, 3);
-        a.Body.Color = ColorCode(a.Body.Color, "#283747");
-        a.Body.Background = ColorCode(a.Body.Background, "#F8F8F6");
+        a.Body.Color = ColorCode(a.Body.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
+        a.Body.Background = ColorCode(a.Body.Background, "#F8F8F6", "#F8F8F6", "#F0F3F7", "#F7F1E6", "#EFF5F0", "#F1F0F7");
         a.Vocabulary.Font = Font(a.Vocabulary.Font, "Nunito Sans", "Nunito Sans", "Microsoft YaHei", "Arial");
-        a.Vocabulary.Size = Allowed(a.Vocabulary.Size, 16, 14, 15, 16, 17, 18, 20);
-        a.Vocabulary.Color = ColorCode(a.Vocabulary.Color, "#B7394D");
-        a.Phonetics.Size = Allowed(a.Phonetics.Size, 15, 12, 13, 14, 15, 16, 18);
-        a.Phonetics.Color = ColorCode(a.Phonetics.Color, "#0A7785");
+        a.Vocabulary.Size = Allowed(a.Vocabulary.Size, 16, 15, 16, 17);
+        a.Vocabulary.Color = ColorCode(a.Vocabulary.Color, "#B7394D", "#B7394D", "#9D3E68", "#7D50A1", "#1F6795", "#8B593B");
+        a.Phonetics.Size = Allowed(a.Phonetics.Size, 14, 13, 14, 15);
+        a.Phonetics.Color = ColorCode(a.Phonetics.Color, "#0A7785", "#0A7785", "#256CA5", "#38735A", "#7657A0", "#995431");
         a.Meanings.Font = Font(a.Meanings.Font, "Microsoft YaHei", "Microsoft YaHei", "SimSun", "KaiTi");
         a.Meanings.Size = Allowed(a.Meanings.Size, 15, 14, 15, 16, 17);
-        a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.3, 1.2, 1.3, 1.4, 1.5);
-        a.Meanings.Color = ColorCode(a.Meanings.Color, "#283747");
+        a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.4, 1.3, 1.4, 1.5);
+        a.Meanings.Color = ColorCode(a.Meanings.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         Audio.Volume = double.IsFinite(Audio.Volume) ? Math.Clamp(Audio.Volume, 0, 1) : 0.65;
         if (Audio.Accent is not ("uk" or "us")) Audio.Accent = "uk";
         Audio.ForwardStep = Allowed(Audio.ForwardStep, 4, 4, 7, 10, 15);
@@ -218,7 +163,7 @@ public sealed class ReaderSettings
 
 public sealed class ReaderAppearance
 {
-    public ReaderTextStyle Title { get; set; } = new() { Size = 18, LineHeight = 1.3, ParagraphAfter = 6 };
+    public ReaderTextStyle Title { get; set; } = new() { Size = 18, LineHeight = 1.6, ParagraphAfter = 16 };
     public ReaderBodyStyle Body { get; set; } = new();
     public ReaderWordStyle Vocabulary { get; set; } = new();
     public ReaderPhoneticStyle Phonetics { get; set; } = new();
@@ -234,7 +179,7 @@ public class ReaderTextStyle
 }
 public sealed class ReaderBodyStyle : ReaderTextStyle
 {
-    public ReaderBodyStyle() { Size = 15; ParagraphAfter = 12; }
+    public ReaderBodyStyle() { Size = 15; LineHeight = 1.5; ParagraphAfter = 16; }
     public double FirstLineIndent { get; set; } = 2;
     public string Background { get; set; } = "#F8F8F6";
 }
@@ -246,14 +191,14 @@ public sealed class ReaderWordStyle
 }
 public sealed class ReaderPhoneticStyle
 {
-    public double Size { get; set; } = 15;
+    public double Size { get; set; } = 14;
     public string Color { get; set; } = "#0A7785";
 }
 public sealed class ReaderMeaningStyle
 {
     public string Font { get; set; } = "Microsoft YaHei";
     public double Size { get; set; } = 15;
-    public double LineHeight { get; set; } = 1.3;
+    public double LineHeight { get; set; } = 1.4;
     public string Color { get; set; } = "#283747";
 }
 public sealed class ReaderAudioPreferences
