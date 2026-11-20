@@ -23,7 +23,7 @@ Select the parent directory of marked book directories. Startup and folder selec
 4. Select a vocabulary entry to show move-up, move-down, and delete. These actions write the active companion JSON immediately.
 5. Use the highlight toggle to display or hide literal vocabulary matches. Highlighting begins off.
 6. Use the import button beside the highlight toggle to replace the active vocabulary with a selected structured JSON file after confirmation.
-7. Click the cog icon next to 选择图书馆 to open the centered 设置 dialog. Adjust title, body, word, IPA, meanings, background colors and default accent/volume/seek steps; click 保存 to commit all changes, 取消 to discard, or 恢复默认 to reset the entire draft.
+7. Click the cog icon next to 选择图书馆 to open the centered 设置 dialog. Adjust title, body, word, IPA, meanings, background colors, default accent and seek steps; click 保存 to commit all changes, 取消 to discard, or 恢复默认 to reset the entire draft.
 
 Right-clicking anywhere in the vocabulary pane has no action or popup menu. Use the bottom buttons to move or delete the selected word.
 

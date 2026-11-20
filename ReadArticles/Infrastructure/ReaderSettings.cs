@@ -20,7 +20,6 @@ public sealed class ReaderSettings
 
     // Compatibility aliases for existing native business and playback paths.
     [JsonIgnore] public double FontSize { get => Appearance.Body.Size; set => Appearance.Body.Size = value; }
-    [JsonIgnore] public double Volume { get => Audio.Volume; set => Audio.Volume = value; }
     [JsonIgnore] public string Accent { get => Audio.Accent; set => Audio.Accent = value; }
     [JsonIgnore] public double ForwardStep { get => Audio.ForwardStep; set => Audio.ForwardStep = value; }
     [JsonIgnore] public double BackwardStep { get => Audio.BackwardStep; set => Audio.BackwardStep = value; }
@@ -176,7 +175,6 @@ public sealed class ReaderSettings
         a.Meanings.Size = Allowed(a.Meanings.Size, 15, 14, 15, 16);
         a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.4, 1.3, 1.4, 1.5);
         a.Meanings.Color = ColorCode(a.Meanings.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
-        Audio.Volume = double.IsFinite(Audio.Volume) ? Math.Clamp(Audio.Volume, 0, 1) : 0.65;
         if (Audio.Accent is not ("uk" or "us")) Audio.Accent = "uk";
         Audio.ForwardStep = Allowed(Audio.ForwardStep, 4, 4, 7, 10, 15);
         Audio.BackwardStep = Allowed(Audio.BackwardStep, 5, 5, 8, 11, 16);
@@ -226,7 +224,6 @@ public sealed class ReaderMeaningStyle
 public sealed class ReaderAudioPreferences
 {
     public string Accent { get; set; } = "uk";
-    public double Volume { get; set; } = 0.65;
     public double ForwardStep { get; set; } = 4;
     public double BackwardStep { get; set; } = 5;
 }

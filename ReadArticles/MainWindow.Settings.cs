@@ -31,22 +31,22 @@ public partial class MainWindow
         // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
         LeftColumn.Width = new GridLength(settings.LeftWidth);
 
-        player.Volume = settings.Volume;
-        pronunciationPlayer.Volume = player.Volume;
+        // The reader owns no volume setting: both native players run at 100%.
+        player.Volume = 1.0;
+        pronunciationPlayer.Volume = 1.0;
         ViewModel.Accent = settings.Accent;
     }
 
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
         if (!persistSettings) return;
-        SaveSettings(player.Volume, showDialogOnFailure: true);
+        SaveSettings(showDialogOnFailure: true);
     }
 
-    private bool SaveSettings(double volume, bool showDialogOnFailure = false)
+    private bool SaveSettings(bool showDialogOnFailure = false)
     {
         if (!persistSettings) return true;
 
-        settings.Volume = volume;
         settings.Accent = ViewModel.Accent;
         settings.Library = ViewModel.LibraryRoot;
         try
@@ -69,7 +69,7 @@ public partial class MainWindow
     private void SettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ViewModel.Accent) || e.PropertyName == nameof(ViewModel.LibraryRoot))
-            SaveSettings(player.Volume);
+            SaveSettings();
     }
 
     // One layout authority for both splitters. The center absorbs changes
@@ -160,8 +160,6 @@ public partial class MainWindow
         }
 
         settings.Apply(edited);
-        player.Volume = settings.Volume;
-        pronunciationPlayer.Volume = settings.Volume;
         ViewModel.Accent = settings.Accent;
         SendWebPilotSettings();
         return true;

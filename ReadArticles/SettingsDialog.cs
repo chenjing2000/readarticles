@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -314,35 +313,6 @@ internal sealed class SettingsDialog : Window
         return host;
     }
 
-    private UIElement VolumeEditor()
-    {
-        var host = new Grid { Width = 140, Height = 34 };
-        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
-        host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
-        var value = new TextBlock
-        {
-            Text = Math.Round(draft.Volume * 100).ToString(CultureInfo.InvariantCulture) + "%",
-            TextAlignment = TextAlignment.Center, FontSize = 12,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        var slider = new Slider
-        {
-            Width = 72, Minimum = 0, Maximum = 100, Value = Math.Round(draft.Volume * 100),
-            TickFrequency = 5, IsSnapToTickEnabled = true,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        slider.ValueChanged += (_, _) =>
-        {
-            draft.Volume = slider.Value / 100;
-            value.Text = Math.Round(slider.Value).ToString(CultureInfo.InvariantCulture) + "%";
-        };
-        host.Children.Add(slider);
-        Grid.SetColumn(value, 2);
-        host.Children.Add(value);
-        return host;
-    }
-
     private void BuildSections()
     {
         sections.Children.Clear();
@@ -393,7 +363,7 @@ internal sealed class SettingsDialog : Window
 
         var audio = Section("音频");
         Row(audio, "默认发音", DropdownLabels([("uk", "英音"), ("us", "美音")], draft.Accent,
-            v => draft.Accent = v), "播放音量", VolumeEditor());
+            v => draft.Accent = v));
         Row(audio, "前进", WithUnit(Dropdown(new double[] { 4, 7, 10, 15 }, draft.ForwardStep,
             v => draft.ForwardStep = v), "秒"),
             "后退", WithUnit(Dropdown(new double[] { 5, 8, 11, 16 }, draft.BackwardStep,

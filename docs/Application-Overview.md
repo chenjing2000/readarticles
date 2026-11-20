@@ -99,7 +99,7 @@ On close, normal application windows save final settings during `Closing`, befor
 - The two reading-workspace toolbars live in WebView2. Playback controls remain present when disabled.
 - Highlighting starts off. Rounded word backgrounds are painted from Range rectangles in a non-interactive layer, without changing article or Script text nodes. The selection-add control follows valid text selection.
 - Audio settings provide Forward (4/7/10/15 seconds) and Backward (5/8/11/16 seconds) steps. Browser focus handles Space for article play/pause and Left/Right for seek; native controls retain only their own focus behavior.
-- Appearance styles, accent, progress steps, library and player volume are persisted. Pane widths can change during a session but reset to their defaults on restart; window dimensions, active passage and highlighting are not saved. Legacy width fields in settings JSON are ignored.
+- Appearance styles, accent, progress steps and library are persisted; both media players use fixed 100% volume. Pane widths can change during a session but reset to their defaults on restart; window dimensions, active passage and highlighting are not saved. Legacy width fields in settings JSON are ignored.
 
 ## Current boundaries
 
@@ -117,7 +117,7 @@ Native button focus and browser `:focus-visible` are styled independently. Local
 
 The Portable publish profile creates one framework-dependent Windows x64 executable in `dist/ReadArticles/`. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses `userdata/config/settings.json` under the executable directory. Old schemas reset without migration; corrupted current settings may recover from a verified backup. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
 
-ReaderSettings owns structured defaults, recovery and validation for typography, palette colors, volume, accent and progress choices. The native left width and browser vocabulary width have separate layout controls; persisted legacy widths are ignored on restart.
+ReaderSettings owns structured defaults, recovery and validation for typography, palette colors, accent and progress choices. The native left width and browser vocabulary width have separate layout controls; persisted legacy widths are ignored on restart.
 
 Native window/column dimensions use WPF layout; browser scrollbars, text wrapping, SVG clip geometry and selection positions use Chromium layout. Saved legacy pane widths do not restore on restart.
 

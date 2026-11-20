@@ -128,7 +128,7 @@ internal static class ReaderControlsChecks
                 var invalid = new ReaderSettings
                 {
                     LeftWidth = 221.4, RightWidth = 281.8,
-                    Volume = 3, Accent = "invalid", ForwardStep = 1, BackwardStep = 1
+                    Accent = "invalid", ForwardStep = 1, BackwardStep = 1
                 };
                 invalid.Appearance.Body.Size = 99;
                 invalid.Appearance.Body.ParagraphAfter = -5;
@@ -137,7 +137,7 @@ internal static class ReaderControlsChecks
                 JsonFiles.WriteAtomic(path, invalid);
                 var loaded = ReaderSettings.Load(out var warning);
                 Program.Check(warning == null && loaded.LeftWidth == 250 && loaded.RightWidth == 300);
-                Program.Check(loaded.FontSize == 15 && loaded.Volume == 1 && loaded.Accent == "uk");
+                Program.Check(loaded.FontSize == 15 && loaded.Accent == "uk");
                 Program.Check(loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
                 Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
                     loaded.Appearance.Title.LineHeight == 1.6 &&
@@ -145,10 +145,9 @@ internal static class ReaderControlsChecks
                     loaded.Appearance.Phonetics.Size == 14 &&
                     loaded.Appearance.Vocabulary.Color == "#B7394D");
                 loaded.FontSize = double.NaN;
-                loaded.Volume = double.NaN;
                 loaded.Save();
                 loaded = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && loaded.FontSize == 15 && loaded.Volume == 0.65);
+                Program.Check(warning == null && loaded.FontSize == 15);
                 byte[] persisted = File.ReadAllBytes(path);
                 byte[] backupBytes = File.ReadAllBytes(backup);
                 loaded.LeftWidth = 517;
@@ -169,12 +168,12 @@ internal static class ReaderControlsChecks
             {
                 JsonFiles.WriteAtomic(path, new
                 {
-                    FontSize = 17, Volume = 0.1, Accent = "us",
+                    FontSize = 17, Accent = "us",
                     ForwardStep = 15, Library = TestData.LibraryRoot
                 });
                 var fresh = ReaderSettings.Load(out var warning);
                 Program.Check(warning != null &&
-                    fresh.FontSize == 15 && fresh.Volume == 0.65 &&
+                    fresh.FontSize == 15 &&
                     fresh.Accent == "uk" && fresh.Library == null &&
                     fresh.Appearance.Vocabulary.Size == 16);
                 var reopened = ReaderSettings.Load(out warning);
@@ -199,7 +198,10 @@ internal static class ReaderControlsChecks
                     Path.GetRelativePath(AppPaths.ApplicationDirectory, path) ==
                         Path.Combine("userdata", "config", "settings.json"));
                 var defaults = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && defaults.FontSize == 15 &&
+                Program.Check(warning == null &&
+                    typeof(ReaderSettings).GetProperty("Volume") == null &&
+                    typeof(ReaderAudioPreferences).GetProperty("Volume") == null &&
+                    defaults.FontSize == 15 &&
                     defaults.Appearance.Title.Size == 18 &&
                     defaults.Appearance.Title.LineHeight == 1.6 &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
@@ -224,6 +226,7 @@ internal static class ReaderControlsChecks
                 string raw = File.ReadAllText(path);
                 Program.Check(!raw.Contains("LeftWidth", StringComparison.Ordinal) &&
                     !raw.Contains("RightWidth", StringComparison.Ordinal) &&
+                    !raw.Contains("\"Volume\"", StringComparison.Ordinal) &&
                     raw.Contains("\"Appearance\"", StringComparison.Ordinal) &&
                     raw.Contains("\"Audio\"", StringComparison.Ordinal));
                 var closed = ReaderSettings.Load(out warning);
@@ -256,7 +259,6 @@ internal static class ReaderControlsChecks
                 var scroll = ((Grid)dialog.Content).Children.OfType<ScrollViewer>().Single();
                 Program.Check(scroll.HorizontalContentAlignment == HorizontalAlignment.Left);
                 int palettes = 0;
-                int volumeGroups = 0;
                 foreach (var section in sections.Children.OfType<StackPanel>())
                 {
                     var heading = section.Children.OfType<TextBlock>().Single();
@@ -293,17 +295,6 @@ internal static class ReaderControlsChecks
                                 Program.Check(selected == 1);
                                 palettes++;
                             }
-                            else if (group.ColumnDefinitions.Count == 3)
-                            {
-                                Program.Check(group.Width == 140 &&
-                                    group.ColumnDefinitions.Select(c => c.Width.Value)
-                                        .SequenceEqual(new[] { 72d, 16d, 52d }));
-                                var slider = group.Children.OfType<Slider>().Single();
-                                var percent = group.Children.OfType<TextBlock>().Single();
-                                Program.Check(slider.Width == 72 && percent.FontSize == 12 &&
-                                    Grid.GetColumn(percent) == 2);
-                                volumeGroups++;
-                            }
                             else if (group.ColumnDefinitions.Count == 2)
                             {
                                 // The 100-DIP dropdown + 20-DIP unit label
@@ -318,7 +309,11 @@ internal static class ReaderControlsChecks
                         }
                     }
                 }
-                Program.Check(palettes == 6 && volumeGroups == 1);
+                Program.Check(palettes == 6 &&
+                    !sections.Children.OfType<StackPanel>()
+                        .SelectMany(section => section.Children.OfType<Grid>())
+                        .SelectMany(row => row.Children.OfType<TextBlock>())
+                        .Any(label => label.Text == "播放音量"));
             }
             finally { dialog.Close(); }
         });
