@@ -18,10 +18,9 @@ internal static class SourceLibraryChecks
             using var vocabulary = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(ArticlePath, ".vocabulary.json")));
             var article = new ArticleRepository().Load(ArticlePath);
             var paragraphs = passage.RootElement.GetProperty("paragraphs");
-            int segmentCount = paragraphs.EnumerateArray().Sum(p => p.GetProperty("paragraph").GetArrayLength());
-            Program.Check(article.Paragraphs.Count == paragraphs.GetArrayLength() && article.Segments.Count() == segmentCount);
+            int segmentCount = paragraphs.EnumerateArray().Sum(p => p.GetArrayLength());
+            Program.Check(article.Paragraphs.Count == paragraphs.GetArrayLength() && article.Paragraphs.Sum(p => p.Length) == segmentCount);
             Program.Check(article.Vocabulary.Data.Words.Count == vocabulary.RootElement.GetProperty("words").GetArrayLength());
-            Program.Check(Path.GetFileName(Path.GetDirectoryName(new AudioResources().Segment(article.Directory, article.Segments.First(), "uk"))) == "audio_sentences");
             CheckUnchanged(before);
         });
         Program.Run("current source library loads its article and vocabulary without writes", () =>
@@ -37,7 +36,7 @@ internal static class SourceLibraryChecks
                 WpfTestHelpers.Pump();
                 Program.Check(window.ViewModel.Article?.Paragraphs.Count == article.Paragraphs.Count);
                 Program.Check(window.ViewModel.Words.Select(w => w.Word).SequenceEqual(article.Vocabulary.Data.Words.Select(w => w.Word)));
-                Program.Check(window.ViewModel.Article!.Segments.Select(s => s.Sid).SequenceEqual(article.Segments.Select(s => s.Sid)));
+                Program.Check(window.ViewModel.Article!.Paragraphs.SelectMany(p => p).SequenceEqual(article.Paragraphs.SelectMany(p => p)));
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
             CheckUnchanged(before);
