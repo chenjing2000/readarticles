@@ -49,7 +49,7 @@ internal sealed class SettingsDialog : Window
         draft = current.Copy();
 
         Title = "设置";
-        Width = 424;
+        Width = 440;
         Height = 690;
         ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.SingleBorderWindow;

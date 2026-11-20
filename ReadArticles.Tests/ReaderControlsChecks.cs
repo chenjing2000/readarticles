@@ -236,7 +236,47 @@ internal static class ReaderControlsChecks
                 Restore(path, old);
             }
         });
+        Program.Run("settings dialog has fixed Fluent layout and six five-color palettes", () =>
+        {
+            var type = typeof(ReadArticles.MainWindow).Assembly
+                .GetType("ReadArticles.SettingsDialog", throwOnError: true)!;
+            var ctor = type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null, types: [typeof(ReaderSettings), typeof(Func<ReaderSettings, bool>)],
+                modifiers: null)!;
+            var dialog = (Window)ctor.Invoke([new ReaderSettings(),
+                new Func<ReaderSettings, bool>(_ => true)]);
+            try
+            {
+                Program.Check(dialog.Title == "设置" && dialog.ResizeMode == ResizeMode.NoResize &&
+                    dialog.Width == 440 && dialog.Height == 690 && !dialog.ShowInTaskbar);
+                var sections = (StackPanel)type.GetField("sections",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                int palettes = 0;
+                foreach (var section in sections.Children.OfType<StackPanel>())
+                {
+                    foreach (var row in section.Children.OfType<Grid>())
+                    {
+                        Program.Check(row.ColumnDefinitions.Select(c => c.Width.Value)
+                            .SequenceEqual(new[] { 72d, 120d, 72d, 120d }));
+                        foreach (var fiveColors in row.Children.OfType<Grid>()
+                            .Where(grid => grid.ColumnDefinitions.Count == 5))
+                        {
+                            var buttons = fiveColors.Children.OfType<Button>().ToArray();
+                            Program.Check(buttons.Length == 5);
+                            int selected = buttons.Count(button =>
+                                ((Grid)button.Content).Children.OfType<TextBlock>()
+                                .Single().Visibility == Visibility.Visible);
+                            Program.Check(selected == 1);
+                            palettes++;
+                        }
+                    }
+                }
+                Program.Check(palettes == 6);
+            }
+            finally { dialog.Close(); }
+        });
     }
+
 
     private static void Restore(string path, byte[]? bytes)
     {

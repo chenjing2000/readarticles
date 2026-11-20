@@ -10,7 +10,7 @@ Pane widths are session-only (250/300 DIP default). Window size, active article 
 
 ## Native settings dialog
 
-The cog next to 选择图书馆 opens the modal window titled 设置. It uses the built-in WPF Fluent theme, fixed 424 x 690 DIP window size, four 72/120/72/120 DIP columns and close-only window chrome. Esc/Cancel discards the draft. Restore Defaults edits the draft; Save applies it once. Six color properties are each chosen from five uniformly distributed 20-DIP balls, without hexadecimal text entry. The first color of each row is the default:
+The cog next to 选择图书馆 opens the modal window titled 设置. It uses the built-in WPF Fluent theme, fixed 440 x 690 DIP window size, four 72/120/72/120 DIP columns and close-only window chrome. Esc/Cancel discards the draft. Restore Defaults edits the draft; Save applies it once. Six color properties are each chosen from five uniformly distributed 20-DIP balls, without hexadecimal text entry. The first color of each row is the default:
 
 - Title, body and meaning text: #283747, #344054, #3F4750, #315247, #513D4D
 - Word head: #B7394D, #9D3E68, #7D50A1, #1F6795, #8B593B
