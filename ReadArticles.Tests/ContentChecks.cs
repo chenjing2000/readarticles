@@ -52,11 +52,11 @@ internal static class ContentChecks
             Program.Check(model.TryDeleteWord(stale) == VocabularyEditResult.Unavailable);
             Program.Check(JsonFiles.Fingerprint(model.Article.VocabularyPath) == before);
         });
-        Program.Run("real magazine: 13 paragraphs, 62 stable SID and 120 complete words", () =>
+        Program.Run("real magazine: 13 paragraphs, 62 sentences and 120 complete words", () =>
         {
             var article = new ArticleRepository().Load(TestData.ArticlePath);
-            Program.Check(article.Title == "When America walks away" && article.Paragraphs.Count == 13 && article.Segments.Count() == 62);
-            Program.Check(article.Vocabulary.Data.Words.Count == 120 && article.Segments.Last().Sid == "s062");
+            Program.Check(article.Title == "When America walks away" && article.Paragraphs.Count == 13 && article.Paragraphs.Sum(p => p.Length) == 62);
+            Program.Check(article.Vocabulary.Data.Words.Count == 120 && article.Paragraphs.Last().Last().Length > 0);
             Program.Check(article.Vocabulary.Data.Words[0].Word == "be stuck in" && article.Vocabulary.Data.Words[0].Meanings[0].Text.Contains("困在"));
         });
         Program.Run("lazy root discovery and explicit one-level traversal", () =>
@@ -73,41 +73,10 @@ internal static class ContentChecks
             var article = repo.ScanDirectoryLevel(folder.DirectoryPath!, folder.BookRoot);
             Program.Check(article.Entries.Any(n => n.PassagePath == TestData.ArticlePath));
         });
-        Program.Run("segment audio uses audio_sentences with exact SID/accent", () =>
-        {
-            var article = new ArticleRepository().Load(TestData.ArticlePath);
-            var resources = new AudioResources();
-            var missing = new List<string>();
-            foreach (var segment in article.Segments)
-                foreach (var accent in new[] { "uk", "us" })
-                {
-                    var asset = resources.Segment(article.Directory, segment, accent);
-                    if (!AudioResources.IsAvailable(asset)) { missing.Add($"{segment.Sid}_{accent}"); continue; }
-                    Program.Check(Path.GetFileName(Path.GetDirectoryName(asset)) == "audio_sentences");
-                    Program.Check(Path.GetFileNameWithoutExtension(asset) == $"{segment.Sid}_{accent}");
-                }
-            Program.Check(missing.SequenceEqual(new[] { "s011_uk", "s011_us" }));
-            Program.Check(!article.Warnings.Any(w => w.Contains("正文音频") || w.Contains("缺失")));
-            foreach (var word in article.Vocabulary.Data.Words)
-                foreach (var accent in new[] { "uk", "us" })
-                    Program.Check(AudioResources.IsAvailable(resources.Vocabulary(article.Directory, word, accent)));
-        });
-
-        RunCopyTest("duplicate SID invalid and failed switch preserves workspace", (root, passage) =>
-        {
-            var workspace = new ReaderWorkspace();
-            workspace.OpenArticle(TestData.ArticlePath);
-            var previous = workspace.Article;
-            string invalid = Path.Combine(root, "Invalid.json");
-            File.WriteAllText(invalid, File.ReadAllText(passage).Replace("\"s002\"", "\"s001\""));
-            ExpectInvalid(() => workspace.OpenArticle(invalid));
-            Program.Check(ReferenceEquals(previous, workspace.Article));
-        });
-        RunCopyTest("SID with trailing newline is rejected before workspace commit", (root, passage) =>
+        RunCopyTest("missing title rejects passage without losing current article", (root, passage) =>
         {
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(passage))!;
-            var segment = json["paragraphs"]![0]!["paragraph"]![0]!;
-            segment["sid"] = "s001\n";
+            json.AsObject().Remove("title");
             File.WriteAllText(passage, json.ToJsonString());
             var workspace = new ReaderWorkspace();
             workspace.OpenArticle(TestData.ArticlePath);
@@ -115,11 +84,19 @@ internal static class ContentChecks
             ExpectInvalid(() => workspace.OpenArticle(passage));
             Program.Check(ReferenceEquals(previous, workspace.Article));
         });
+        RunCopyTest("empty title is valid and file name does not override it", (root, passage) =>
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(passage))!;
+            json["title"] = "";
+            File.WriteAllText(passage, json.ToJsonString());
+            var article = new ArticleRepository().Load(passage);
+            Program.Check(article.Title == "" && article.Paragraphs.Sum(p => p.Length) == 62);
+        });
         RunCopyTest("empty passage segments are rejected with a data error and preserve the current article", (root, passage) =>
         {
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(passage))!;
             foreach (var paragraph in json["paragraphs"]!.AsArray())
-                paragraph!["paragraph"] = new System.Text.Json.Nodes.JsonArray();
+                paragraph!.AsArray().Clear();
             File.WriteAllText(passage, json.ToJsonString());
             var workspace = new ReaderWorkspace();
             workspace.OpenArticle(TestData.ArticlePath);
@@ -157,7 +134,7 @@ internal static class ContentChecks
         {
             string invalid = Path.Combine(root, "Overflow.json");
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(passage))!;
-            json["paragraphs"]![0]!["paragraph"]![0]!["text"] = "Invalid [[2147483648]] placeholder";
+            json["paragraphs"]![0]![0] = "Invalid [[2147483648]] placeholder";
             File.WriteAllText(invalid, json.ToJsonString());
             var workspace = new ReaderWorkspace();
             workspace.OpenArticle(TestData.ArticlePath);
@@ -215,7 +192,7 @@ internal static class ContentChecks
             int notifications = 0;
             model.ArticleChanged += () => notifications++;
             Program.Check(model.OpenArticle(Path.Combine(book, "Reading.json")));
-            Program.Check(model.ArticleTitle == "Reading" && notifications == 1);
+            Program.Check(model.ArticleTitle == "When America walks away" && notifications == 1);
         });
         RunCopyTest("normal edits stay quiet and article switches clear previous notifications", (root, passage) =>
         {
@@ -224,7 +201,7 @@ internal static class ContentChecks
             var model = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
             Program.Check(model.Notifications.Messages.Count == 0);
             Program.Check(model.OpenLibrary(TestData.LibraryRoot) && model.Notifications.Messages.Count == 0);
-            File.WriteAllText(passage, "{\"filetype\":\"passage\",\"next_sid\":2,\"paragraphs\":[{\"paragraph\":[{\"sid\":\"s001\",\"text\":\"Character [[1]] matters.\"}]}]}");
+            File.WriteAllText(passage, """{"filetype":"passage","title":"","paragraphs":[["Character [[1]] matters."]]}""");
             Program.Check(model.OpenArticle(passage) && model.Notifications.Messages.Count == 0);
             Program.Check(model.TryAddWord("alpha") == VocabularyEditResult.Success);
             Program.Check(model.Words.Count == 1 && model.Notifications.Messages.Count == 0);
@@ -254,15 +231,6 @@ internal static class ContentChecks
             // notifications, including old errors.
             Program.Check(model.OpenArticle(TestData.ArticlePath) &&
                 model.Notifications.Messages.Count == 0);
-            model.PlaySegment("s011");
-            Program.Check(model.Notifications.Messages.Any(n =>
-                n.Key == "PlaybackFailure" && n.Message == "句子 s011 的英音录音文件缺失。" &&
-                n.Severity == NotificationSeverity.Warning));
-            model.Accent = "us";
-            model.PlaySegment("s011");
-            Program.Check(model.Notifications.Messages.Any(n =>
-                n.Key == "PlaybackFailure" && n.Message == "句子 s011 的美音录音文件缺失。" &&
-                n.Severity == NotificationSeverity.Warning));
             // Reopening a library also clears messages from the old reading
             // session. A subsequently failed article open reports one error.
             Program.Check(model.OpenLibrary(TestData.LibraryRoot) &&
