@@ -7,6 +7,33 @@
         Title="ReadArticles" Width="1500" Height="920" MinHeight="620"
         Background="#F3F3F3" FontFamily="Segoe UI" FontSize="11pt" Icon="{x:Static icons:UiIcons.AppIcon}">
   <Window.Resources>
+    <Style x:Key="CircularIconButton" TargetType="Button">
+      <Setter Property="Width" Value="32"/>
+      <Setter Property="Height" Value="32"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Circle" Background="{TemplateBinding Background}" CornerRadius="16">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Circle" Property="Background" Value="#EAF3FC"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Circle" Property="Background" Value="#DCECF8"/>
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Circle" Property="Background" Value="#EAF3FC"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <Style x:Key="TreeExpander" TargetType="ToggleButton">
       <Setter Property="Focusable" Value="False"/><Setter Property="Width" Value="20"/><Setter Property="Height" Value="20"/>
       <Setter Property="Template">
@@ -35,11 +62,9 @@
           <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <Button Grid.Column="0" Content="选择图书馆" Click="LibraryClicked" Margin="0,0,6,0"/>
-        <Button x:Name="SettingsButton" Grid.Column="1" Width="76" ToolTip="阅读设置" Click="SettingsClicked">
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Image Source="{x:Static icons:UiIcons.Settings}" Width="16" Height="16" Margin="0,0,5,0"/>
-            <TextBlock Text="设置" VerticalAlignment="Center"/>
-          </StackPanel>
+        <Button x:Name="SettingsButton" Grid.Column="1" Style="{StaticResource CircularIconButton}"
+                ToolTip="设置" Click="SettingsClicked">
+          <Image Source="{x:Static icons:UiIcons.Settings}" Width="28" Height="28"/>
         </Button>
       </Grid>
       <!-- Match the 48-DIP WebView2 toolbar height without exposing a user account. -->
