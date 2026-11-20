@@ -6,8 +6,8 @@
 
 - 仓库：[chenjing2000/readarticles](https://github.com/chenjing2000/readarticles)；本地项目通常为 `C:\Projects\ReadArticles`。
 - **正在开发的功能分支：** `feature/reading-settings-dialog-icons`。
-- **PR：** [#19](https://github.com/chenjing2000/readarticles/pull/19)，状态 **Open / Draft / 未合并**；本轮审查整改前远程 HEAD 为 `4fc5609183899f4d3ffaa404cceb250e59e0f6d9`，当前最新提交以 GitHub 实际 HEAD 为准。
-- **审查整改前 CI：** [Windows CI #44709962859](https://github.com/chenjing2000/readarticles/actions/runs/44709962859) 针对 `4fc5609` **Success**：Build application、Core regression、Publish actual portable release、Verify portable release layout 均通过。此次审查整改产生新提交，需检查对应的新 CI。
+- **PR：** [#19](https://github.com/chenjing2000/readarticles/pull/19)，状态 **Open / Draft / 未合并**；审查整改功能提交为 `25281f9127c0e0e21da8222b4534a24770c7667a`；当前最新 HEAD 以 GitHub 远程分支为准。
+- **审查整改 CI：** [Windows CI #44713901764](https://github.com/chenjing2000/readarticles/actions/runs/44713901764) 针对 `25281f9` **Success**：Build application、Core regression、Publish actual portable release、Verify portable release layout 均通过。此后若有新提交仍须检查其独立 CI。
 - **Windows 实机验收：** 用户已确认 540 DIP 弹窗、五种选词背景、选词加号、选区失效定位、保存/取消/恢复默认均符合预期；Nunito 字体选择保存和重启后保持正常；进度条焦点无外框、左右方向键、暂停/停止边界与鼠标跳转的四项实机验收全部通过。当前审查整改涉及的新边界场景尚待复验；未经用户批准不得合并。
 - `main` 仍是稳定分支，包含于 2026-11-19 合并的 PR #18（三栏布局）。PR #18 已经用户 Windows 实机验收；**不要重做**它的三栏求解器。保留与本项目无关的 `feature/exercise` 分支，不随意清理。
 - 这里只能确定 GitHub 远程状态，**不能推断本地工作区干净或本地分支已经同步**。先检查 `git status --short`、当前分支及远端最新提交。
