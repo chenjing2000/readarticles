@@ -108,6 +108,8 @@ public partial class MainWindow
             "/reader.html" => ("ReadArticles.web.reader.html", "text/html"),
             "/reader.css" => ("ReadArticles.web.reader.css", "text/css"),
             "/reader.js" => ("ReadArticles.web.reader.js", "text/javascript"),
+            _ when Regex.IsMatch(path, @"^/icons/[a-z-]+\.svg$") =>
+                ("ReadArticles.web.icons." + Path.GetFileName(path), "image/svg+xml"),
             _ => (null, "text/plain")
         };
         Stream? stream = resource is null ? null :
@@ -198,8 +200,7 @@ public partial class MainWindow
             if (type is not ("addWord" or "moveWord" or "deleteWord" or "importVocabulary" or
                 "playArticle" or "stopArticle" or "seekArticle" or "playWord" or
                 "playSegment" or "switchReadingMode" or "setHighlight" or
-                "setFontSize" or "setAccent" or "setPanelWidth" or "dragPanelWidth" or
-                "cancelPanelDrag" or "setForwardStep" or "setBackwardStep" or "notificationDismiss"))
+                "setPanelWidth" or "dragPanelWidth" or "cancelPanelDrag" or "notificationDismiss"))
                 return;
 
             if (!TryMessageString(root, "requestId", out string? requestId) ||
@@ -254,8 +255,7 @@ public partial class MainWindow
                 PostWebPilot("actionResult", new { status = "success" }, requestId);
                 return;
             }
-            if (type is ("setFontSize" or "setAccent" or "setPanelWidth" or
-                "setForwardStep" or "setBackwardStep"))
+            if (type == "setPanelWidth")
             {
                 WebPilotSettingIntent(type, root, requestId);
                 return;
@@ -384,72 +384,18 @@ public partial class MainWindow
     private void WebPilotSettingIntent(string type, JsonElement root, string requestId)
     {
         if (!root.TryGetProperty("payload", out var payload) ||
-            payload.ValueKind != JsonValueKind.Object)
+            payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("width", out var width) ||
+            width.ValueKind != JsonValueKind.Number ||
+            !width.TryGetDouble(out double value) || !double.IsFinite(value) ||
+            value < 200 || value > 400)
         {
             PostWebPilot("actionResult", new { status = "invalid" }, requestId);
             return;
         }
-
-        bool valid = false;
-        switch (type)
-        {
-            case "setFontSize":
-                if (payload.TryGetProperty("size", out var font) &&
-                    font.ValueKind == JsonValueKind.Number &&
-                    font.TryGetInt32(out int size) && size is 14 or 15 or 16)
-                {
-                    ApplyReadingFont(size);
-                    valid = true;
-                }
-                break;
-            case "setAccent":
-                if (TryMessageString(payload, "accent", out string? accent) &&
-                    accent is "uk" or "us")
-                {
-                    ViewModel.Accent = accent;
-                    RefreshSettingsChecks();
-                    valid = true;
-                }
-                break;
-            case "setPanelWidth":
-                if (payload.TryGetProperty("width", out var width) &&
-                    width.ValueKind == JsonValueKind.Number &&
-                    width.TryGetDouble(out double px) && double.IsFinite(px) &&
-                    px >= 200 && px <= 400)
-                {
-                    webPilotRightDragStart = null;
-                    ResizeVocabularyPane(px);
-                    valid = true;
-                }
-                break;
-            case "setForwardStep":
-            case "setBackwardStep":
-                if (payload.TryGetProperty("seconds", out var step) &&
-                    step.ValueKind == JsonValueKind.Number &&
-                    step.TryGetDouble(out double seconds) &&
-                    (type == "setForwardStep"
-                        ? seconds == 4 || seconds == 7 || seconds == 10
-                        : seconds == 5 || seconds == 8 || seconds == 15))
-                {
-                    if (type == "setForwardStep") settings.ForwardStep = seconds;
-                    else settings.BackwardStep = seconds;
-                    RefreshSettingsChecks();
-                    valid = true;
-                }
-                break;
-        }
-        if (!valid)
-        {
-            PostWebPilot("actionResult", new { status = "invalid" }, requestId);
-            return;
-        }
-        // Width changes are session-only; saving them would rotate a backup
-        // without changing any persisted setting. Other intents still save.
-        bool saved = type == "setPanelWidth" || SaveSettings(player.Volume);
-        // The width solver already sent the authoritative pane value.
-        // Replaying all settings here would create a second browser resize.
-        if (type != "setPanelWidth") SendWebPilotSettings();
-        PostWebPilot("actionResult", new { status = saved ? "success" : "failed" }, requestId);
+        webPilotRightDragStart = null;
+        ResizeVocabularyPane(value);
+        PostWebPilot("actionResult", new { status = "success" }, requestId);
     }
 
     private void WebPilotDismissNotification(JsonElement root, string requestId)
@@ -724,7 +670,24 @@ public partial class MainWindow
 
     private object WebPilotSettingsSnapshot() => new
     {
-        fontSize = settings.FontSize,
+        appearance = new
+        {
+            title = new { font = settings.Appearance.Title.Font, size = settings.Appearance.Title.Size,
+                lineHeight = settings.Appearance.Title.LineHeight,
+                paragraphAfter = settings.Appearance.Title.ParagraphAfter, color = settings.Appearance.Title.Color },
+            body = new { font = settings.Appearance.Body.Font, size = settings.Appearance.Body.Size,
+                lineHeight = settings.Appearance.Body.LineHeight,
+                paragraphAfter = settings.Appearance.Body.ParagraphAfter,
+                firstLineIndent = settings.Appearance.Body.FirstLineIndent,
+                color = settings.Appearance.Body.Color, background = settings.Appearance.Body.Background },
+            vocabulary = new { font = settings.Appearance.Vocabulary.Font,
+                size = settings.Appearance.Vocabulary.Size, color = settings.Appearance.Vocabulary.Color },
+            phonetics = new { size = settings.Appearance.Phonetics.Size,
+                color = settings.Appearance.Phonetics.Color },
+            meanings = new { font = settings.Appearance.Meanings.Font,
+                size = settings.Appearance.Meanings.Size, lineHeight = settings.Appearance.Meanings.LineHeight,
+                color = settings.Appearance.Meanings.Color }
+        },
         accent = ViewModel.Accent,
         highlightsVisible = ViewModel.HighlightsVisible,
         rightWidth = settings.RightWidth,

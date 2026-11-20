@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
     <None Remove="web/**/*" />
-    <EmbeddedResource Include="web/reader.html;web/reader.css;web/reader.js" />
+    <EmbeddedResource Include="web/reader.html;web/reader.css;web/reader.js;web/icons/*.svg" />
     <None Remove="ui/**/*.png;ui/**/*.svg"/>
     <Resource Include="ui/**/*.png;ui/**/*.svg"/>
   </ItemGroup>
