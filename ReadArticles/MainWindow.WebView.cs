@@ -619,8 +619,10 @@ public partial class MainWindow
         else
         {
             if (!payload.TryGetProperty("paragraphIndex", out var paragraph) ||
+                paragraph.ValueKind != JsonValueKind.Number ||
                 !paragraph.TryGetInt32(out int paragraphIndex) ||
                 !payload.TryGetProperty("sentenceIndex", out var sentence) ||
+                sentence.ValueKind != JsonValueKind.Number ||
                 !sentence.TryGetInt32(out int sentenceIndex) ||
                 paragraphIndex < 0 || sentenceIndex < 0 ||
                 ViewModel.Article is not { } current ||
