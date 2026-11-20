@@ -45,11 +45,11 @@ internal static class ContentChecks
             using var second = new WpfAudioPlayer();
             var model = new MainViewModel(new PlaybackController(first), new PlaybackController(second));
             var stale = VocabularyRepository.NewEntry("stale word");
-            model.DeleteWord(stale);
+            Program.Check(model.TryDeleteWord(stale) == VocabularyEditResult.Unavailable);
             Program.Check(model.Article == null && model.Notifications.Messages.Count == 0);
             Program.Check(model.OpenArticle(TestData.ArticlePath));
             string before = JsonFiles.Fingerprint(model.Article!.VocabularyPath)!;
-            model.DeleteWord(stale);
+            Program.Check(model.TryDeleteWord(stale) == VocabularyEditResult.Unavailable);
             Program.Check(JsonFiles.Fingerprint(model.Article.VocabularyPath) == before);
         });
         Program.Run("real magazine: 13 paragraphs, 62 stable SID and 120 complete words", () =>
@@ -226,27 +226,28 @@ internal static class ContentChecks
             Program.Check(model.OpenLibrary(TestData.LibraryRoot) && model.Notifications.Messages.Count == 0);
             File.WriteAllText(passage, "{\"filetype\":\"passage\",\"next_sid\":2,\"paragraphs\":[{\"paragraph\":[{\"sid\":\"s001\",\"text\":\"Character [[1]] matters.\"}]}]}");
             Program.Check(model.OpenArticle(passage) && model.Notifications.Messages.Count == 0);
-            model.AddSelection(new PassageSelection("s001", "alpha", 0, 5));
+            Program.Check(model.TryAddWord("alpha") == VocabularyEditResult.Success);
             Program.Check(model.Words.Count == 1 && model.Notifications.Messages.Count == 0);
-            model.AddSelection(new PassageSelection("s001", "beta", 0, 4));
+            Program.Check(model.TryAddWord("beta") == VocabularyEditResult.Success);
             Program.Check(model.Words.Count == 2 && model.Notifications.Messages.Count == 0);
-            model.MoveWord(model.Words[1].Entry, -1);
+            Program.Check(model.TryMoveWord(model.Words[1].Entry, -1) == VocabularyEditResult.Success);
             Program.Check(model.Words[0].Word == "beta" && model.Notifications.Messages.Count == 0);
-            model.DeleteWord(model.Words[0].Entry);
+            Program.Check(model.TryDeleteWord(model.Words[0].Entry) == VocabularyEditResult.Success);
             Program.Check(model.Words.Count == 1 && model.Notifications.Messages.Count == 0);
-            model.AddSelection(new PassageSelection("s001", "alpha", 0, 5));
+            Program.Check(model.TryAddWord("alpha") == VocabularyEditResult.Duplicate);
             Program.Check(model.Words.Count == 1 && model.Notifications.Messages.Any(n =>
                 n.Key == "DuplicateVocabulary" && n.Message.Contains("已存在") &&
                 n.Severity == NotificationSeverity.Warning));
             var duplicateWarning = model.Notifications.Messages.Single(n => n.Key == "DuplicateVocabulary");
-            model.ImportVocabulary(Path.ChangeExtension(TestData.ArticlePath, ".vocabulary.json"));
+            Program.Check(model.TryImportVocabulary(Path.ChangeExtension(TestData.ArticlePath, ".vocabulary.json")) ==
+                VocabularyEditResult.Success);
             Program.Check(model.Words.Count == 120 &&
                 model.Notifications.Messages.Any(n => n.Id == duplicateWarning.Id));
-            model.AddSelection(new PassageSelection("s001", "gamma", 0, 5));
+            Program.Check(model.TryAddWord("gamma") == VocabularyEditResult.Success);
             Program.Check(model.Words.Count == 121 &&
                 model.Notifications.Messages.Any(n => n.Id == duplicateWarning.Id));
             File.AppendAllText(Path.ChangeExtension(passage, ".vocabulary.json"), " ");
-            model.DeleteWord(model.Words[0].Entry);
+            Program.Check(model.TryDeleteWord(model.Words[0].Entry) == VocabularyEditResult.Failed);
             Program.Check(model.Words.Count == 121 && model.Notifications.Messages.Any(n =>
                 n.Key == "UserOperationFailed" && n.Severity == NotificationSeverity.Error));
             // A successful article switch clears both displayed and queued
@@ -282,9 +283,9 @@ internal static class ContentChecks
             Program.Check(model.OpenArticle(passage));
             int notifications = 0;
             model.VocabularyChanged += () => notifications++;
-            model.ImportVocabulary(incoming);
+            Program.Check(model.TryImportVocabulary(incoming) == VocabularyEditResult.Success);
             Program.Check(notifications == 1 && model.Words.Count == 120);
-            model.AddSelection(new PassageSelection("s001", "fresh phrase", 0, 12));
+            Program.Check(model.TryAddWord("fresh phrase") == VocabularyEditResult.Success);
             Program.Check(notifications == 2 && model.Words.Count == 121);
             var saved = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.ChangeExtension(passage, ".vocabulary.json")))!;
             Program.Check((string?)saved["provider"] == "imported metadata");

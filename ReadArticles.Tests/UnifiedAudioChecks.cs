@@ -94,10 +94,10 @@ internal static class UnifiedAudioChecks
                 var formerFirst = entries[0]; var formerSecond = entries[1];
                 model.PlayWord(formerFirst, "uk");
                 Program.Check(model.PlaybackState == PlaybackState.Playing);
-                model.MoveWord(formerSecond, -1);
+                Program.Check(model.TryMoveWord(formerSecond, -1) == VocabularyEditResult.Success);
                 Program.Check(AudioResources.OwnsWordAudio(model.Article!, formerSecond) && !AudioResources.OwnsWordAudio(model.Article!, formerFirst));
                 Program.Check(model.PlaybackState == PlaybackState.Stopped && model.Words[0].CanPlayUk && !model.Words[1].CanPlayUk);
-                model.DeleteWord(formerSecond);
+                Program.Check(model.TryDeleteWord(formerSecond) == VocabularyEditResult.Success);
                 Program.Check(AudioResources.OwnsWordAudio(model.Article!, formerFirst));
             });
         }

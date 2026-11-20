@@ -142,7 +142,7 @@ internal static class ReaderControlsChecks
                 JsonFiles.WriteAtomic(path, invalid);
                 var loaded = ReaderSettings.Load(out var warning);
                 Program.Check(warning == null && loaded.LeftWidth == 250 && loaded.RightWidth == 300);
-                Program.Check(loaded.FontSize == 15 && loaded.Accent == "uk");
+                Program.Check(loaded.Appearance.Body.Size == 15 && loaded.Accent == "uk");
                 Program.Check(loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
                 Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
                     loaded.Appearance.Title.LineHeight == 1.7 &&
@@ -169,10 +169,10 @@ internal static class ReaderControlsChecks
                     loaded.Appearance.Body.Font == "Nunito" &&
                     loaded.Appearance.Vocabulary.Font == "Nunito" &&
                     loaded.Appearance.Body.SelectionBackground == "#EBE5F2");
-                loaded.FontSize = double.NaN;
+                loaded.Appearance.Body.Size = double.NaN;
                 loaded.Save();
                 loaded = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && loaded.FontSize == 15);
+                Program.Check(warning == null && loaded.Appearance.Body.Size == 15);
                 byte[] persisted = File.ReadAllBytes(path);
                 byte[] backupBytes = File.ReadAllBytes(backup);
                 loaded.LeftWidth = 517;
@@ -198,7 +198,7 @@ internal static class ReaderControlsChecks
                 });
                 var fresh = ReaderSettings.Load(out var warning);
                 Program.Check(warning != null &&
-                    fresh.FontSize == 15 &&
+                    fresh.Appearance.Body.Size == 15 &&
                     fresh.Accent == "uk" && fresh.Library == null &&
                     fresh.Appearance.Vocabulary.Size == 16);
                 var reopened = ReaderSettings.Load(out warning);
@@ -226,7 +226,7 @@ internal static class ReaderControlsChecks
                 Program.Check(warning == null &&
                     typeof(ReaderSettings).GetProperty("Volume") == null &&
                     typeof(ReaderAudioPreferences).GetProperty("Volume") == null &&
-                    defaults.FontSize == 15 &&
+                    defaults.Appearance.Body.Size == 15 &&
                     defaults.Appearance.Title.Size == 18 &&
                     defaults.Appearance.Title.LineHeight == 1.7 &&
                     defaults.Appearance.Body.LineHeight == 1.7 &&
@@ -255,7 +255,7 @@ internal static class ReaderControlsChecks
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
                 Program.Check((bool)apply.Invoke(window, [draft])!);
                 var saved = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && saved.FontSize == 17 &&
+                Program.Check(warning == null && saved.Appearance.Body.Size == 17 &&
                     saved.ForwardStep == 7 && saved.Accent == "us" &&
                     saved.Library == TestData.LibraryRoot &&
                     saved.Appearance.Body.Background == "#F7F1E6");
@@ -269,7 +269,7 @@ internal static class ReaderControlsChecks
                     raw.Contains("\"Audio\"", StringComparison.Ordinal));
                 var closed = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && closed.LeftWidth == 250 &&
-                    closed.RightWidth == 300 && closed.FontSize == 17);
+                    closed.RightWidth == 300 && closed.Appearance.Body.Size == 17);
             }
             finally
             {

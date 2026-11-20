@@ -331,9 +331,6 @@ function clearHighlights() {
   if (highlightFrame) cancelAnimationFrame(highlightFrame);
   highlightFrame = 0;
   byId("word-highlight-layer")?.remove();
-  // No CSS Custom Highlight backgrounds: ::highlight cannot have round corners.
-  CSS.highlights?.delete("reader-vocabulary");
-  CSS.highlights?.delete("reader-focused");
 }
 
 function scheduleHighlightGeometry() {
