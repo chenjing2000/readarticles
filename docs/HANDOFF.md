@@ -6,9 +6,9 @@
 
 - 仓库：[chenjing2000/readarticles](https://github.com/chenjing2000/readarticles)；本地项目通常为 `C:\Projects\ReadArticles`。
 - **正在开发的功能分支：** `feature/reading-settings-dialog-icons`。
-- **PR：** [#19](https://github.com/chenjing2000/readarticles/pull/19)，状态 **Open / Draft / 未合并**；审查整改功能提交为 `25281f9127c0e0e21da8222b4534a24770c7667a`；当前最新 HEAD 以 GitHub 远程分支为准。
-- **审查整改 CI：** [Windows CI #44713901764](https://github.com/chenjing2000/readarticles/actions/runs/44713901764) 针对 `25281f9` **Success**：Build application、Core regression、Publish actual portable release、Verify portable release layout 均通过。此后若有新提交仍须检查其独立 CI。
-- **Windows 实机验收：** 用户已确认 540 DIP 弹窗、五种选词背景、选词加号、选区失效定位、保存/取消/恢复默认均符合预期；Nunito 字体选择保存和重启后保持正常；进度条焦点无外框、左右方向键、暂停/停止边界与鼠标跳转的四项实机验收全部通过。当前审查整改涉及的新边界场景尚待复验；未经用户批准不得合并。
+- **PR：** [#19](https://github.com/chenjing2000/readarticles/pull/19)，状态 **Open / Draft / 未合并**；审查整改功能提交为 `25281f9127c0e0e21da8222b4534a24770c7667a`，上次交接文档提交为 `f32361822980054aef265fa85027565d1f6de807`；本次验收收尾再次更新文档后，以 GitHub 远程 HEAD 为准。
+- **审查整改 CI：** [Windows CI #44713901764](https://github.com/chenjing2000/readarticles/actions/runs/44713901764) 针对 `25281f9` **Success**；[Windows CI #44714360403](https://github.com/chenjing2000/readarticles/actions/runs/44714360403) 针对 `f323618` **Success**。Build application、Core regression、Publish actual portable release、Verify portable release layout 均通过。此后若有新提交仍须检查独立 CI。
+- **Windows 实机验收：** 用户已确认 540 DIP 弹窗、五种选词背景、选词加号、选区失效定位、保存/取消/恢复默认符合预期；Nunito 字体选择、保存及重启保持正常；进度条焦点无外框、左右方向键、暂停/停止边界与鼠标跳转通过。**2026-11-20 用户再次逐项确认 Code Review 整改四项实机验收均通过：**无变化点击/拖动释放与取消或失焦后进度持续刷新、快速连续方向键累计跳转、长音频 `hh:mm:ss`、恢复默认时缺失字体回退。**用户已同意本轮收尾，但没有明确授权合并 PR #19；必须保持 Draft、未合并。**
 - `main` 仍是稳定分支，包含于 2026-11-19 合并的 PR #18（三栏布局）。PR #18 已经用户 Windows 实机验收；**不要重做**它的三栏求解器。保留与本项目无关的 `feature/exercise` 分支，不随意清理。
 - 这里只能确定 GitHub 远程状态，**不能推断本地工作区干净或本地分支已经同步**。先检查 `git status --short`、当前分支及远端最新提交。
 
@@ -31,7 +31,7 @@
 - **不要重新定义音频时间轴。** 用户明确撤销“停止后仍可拖动”提议：停止后进度条**不可拖动**、进度着色清除，暂停/播放期间可以 seek；切换文章成功后清零旧进度与通知，打开失败保留原文章状态。
 - **音频进度条方向键：** 用户报告单击进度条后出现外部焦点框，且左右方向键只触发原生 `0.05` 秒滑块步长。保留滑块键盘焦点，但通过仅针对 `#progress:focus` 的 CSS 隐藏外部焦点轮廓；`#progress` 与阅读区共用 `seekArticle` 消息。审查整改后，方向键携带 forward/backward 意图，由 C# 按播放器实时位置和已配置步长计算相对跳转，连续快速按键可累加；鼠标滑块继续传入绝对位置。阻止浏览器原生方向键步进。鼠标点击、拖动、暂停和停止边界不改变；上述四项已通过用户 Windows 实机验证。
 
-- **本轮代码审查整改：** 修复进度条无 `change` 事件导致的 `seekDragging` 滞留；时间标签在超过 3600 秒时切换 `hh:mm:ss`（恰好 3600 秒仍为 `60:00`）；恢复默认时重新检查字体、重建字体下拉框引用；修复连续快速方向键因浏览器播放快照滞后而重复使用同一跳转目标的问题。测试覆盖各边界，待新 CI 和 Windows 实机复验。
+- **本轮代码审查整改：** 修复进度条无 `change` 事件导致的 `seekDragging` 滞留；时间标签在超过 3600 秒时切换 `hh:mm:ss`（恰好 3600 秒仍为 `60:00`）；恢复默认时重新检查字体、重建字体下拉框引用；修复连续快速方向键因浏览器播放快照滞后而重复使用同一跳转目标的问题。测试覆盖各边界，CI #191、#192 均通过，用户已完成本轮 Windows 实机复验并确认符合预期。
 
 ## 3. 技术架构与不可破坏的边界
 
@@ -42,8 +42,8 @@
 
 ## 4. 下一会话最重要的工作
 
-1. **先读取此文档，再核对 PR #19、`feature/reading-settings-dialog-icons` HEAD、最新 CI、源码与本地状态**；不要把此前的 `6feefda` 功能提交误认成文档提交后的 HEAD。入口文件：`ReadArticles/SettingsDialog.cs`、`Infrastructure/ReaderSettings.cs`、`MainWindow.Settings.cs`、`MainWindow.WebView.cs`、`web/reader.js`、`reader.css`，相关测试位于 `ReadArticles.Tests/`。
-2. **优先复验本轮审查整改**：核对进度条不产生 `change` 的点击、拖动取消/失焦/停止时恢复刷新，连续快速方向键累积跳转，以及超过一小时显示 `hh:mm:ss`；默认 Georgia 缺失时“恢复默认”应回退可用字体。此前设置、字体、选区背景、音频进度条的实机验收已通过。
+1. **先读取此文档，再核对 PR #19、`feature/reading-settings-dialog-icons` HEAD、最新 CI、源码与本地状态**；功能审查整改提交为 `25281f9`，之后有文档提交，不能用旧提交代替实际 HEAD。入口文件：`ReadArticles/SettingsDialog.cs`、`Infrastructure/ReaderSettings.cs`、`MainWindow.Settings.cs`、`MainWindow.WebView.cs`、`web/reader.js`、`reader.css`，相关测试位于 `ReadArticles.Tests/`。
+2. **本轮 Code Review 整改与 Windows 实机验收已经结束。** 用户已逐项确认进度条状态恢复、连续快速方向键、长音频时间显示及恢复默认字体回退均符合预期；不要在没有新缺陷的情况下重复修改或要求重复验收。下一步如需合并 PR #19，须先取得用户明确的合并授权。
 3. 本机可执行（先确认本地未提交修改）：
 
    ```powershell
@@ -60,7 +60,7 @@
    .\tools\Test-PublishedApp.ps1
    ```
 
-4. 有新修改时先列出影响与风险，保持单一小功能分支、配套测试和 CI，提交到 PR #19；**用户实际 Windows 验收通过并明确授权后**才能合并 `main`。合并后另行验证 `main` CI 和决定是否删除功能分支。
+4. 本轮代码与实机验收已收尾。如有新需求，先讨论范围、风险与最小修改，配套测试和 CI；**用户明确授权合并 PR #19 前绝不修改 `main`、合并 PR 或清理其他分支**。合并后另行验证 `main` CI 和决定是否删除功能分支。
 
 ## 参考文档与历史
 
