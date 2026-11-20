@@ -199,7 +199,7 @@ public partial class MainWindow
             // persistence and playback services have validated request handlers.
             if (type is not ("addWord" or "moveWord" or "deleteWord" or "importVocabulary" or
                 "playArticle" or "stopArticle" or "seekArticle" or "playWord" or
-                "playSegment" or "switchReadingMode" or "setHighlight" or
+                "switchReadingMode" or "setHighlight" or
                 "setPanelWidth" or "dragPanelWidth" or "cancelPanelDrag" or "notificationDismiss"))
                 return;
 
@@ -271,7 +271,7 @@ public partial class MainWindow
                 return;
             }
             if (type is "playArticle" or "stopArticle" or "seekArticle" or
-                "playWord" or "playSegment")
+                "playWord")
             {
                 WebPilotAudioIntent(type, root, requestId);
                 return;
@@ -418,10 +418,7 @@ public partial class MainWindow
         return article is null ? null : new
         {
             title = article.Title,
-            paragraphs = article.Paragraphs.Select(p => p.Select(s => new
-            {
-                sid = s.Sid, text = s.Text, hasAudio = s.HasAudio
-            }).ToArray()).ToArray()
+            paragraphs = article.Paragraphs
         };
     }
 
@@ -633,11 +630,16 @@ public partial class MainWindow
         }
         else
         {
-            if (!TryMessageString(payload, "sid", out string? sid)) return false;
-            var segment = ViewModel.Article?.Segments.FirstOrDefault(s => s.Sid == sid);
-            if (segment is null) return false;
-            // Passage blank markers alter the *visible* UTF-16 offsets.
-            original = Regex.Replace(segment.Text, @"\[\[(\d+)\]\]",
+            if (!payload.TryGetProperty("paragraphIndex", out var paragraph) ||
+                !paragraph.TryGetInt32(out int paragraphIndex) ||
+                !payload.TryGetProperty("sentenceIndex", out var sentence) ||
+                !sentence.TryGetInt32(out int sentenceIndex) ||
+                paragraphIndex < 0 || sentenceIndex < 0 ||
+                ViewModel.Article is not { } current ||
+                paragraphIndex >= current.Paragraphs.Count ||
+                sentenceIndex >= current.Paragraphs[paragraphIndex].Length)
+                return false;
+            original = Regex.Replace(current.Paragraphs[paragraphIndex][sentenceIndex], @"\[\[(\d+)\]\]",
                 match => "____" + match.Groups[1].Value + "____");
         }
         if (offset > original.Length || length > original.Length - offset) return false;
@@ -726,7 +728,7 @@ public partial class MainWindow
             canSeek = playback.CanSeekArticle,
             canPlay = ViewModel.Article is not null,
             isArticleActive = playback.IsArticleActive,
-            playingSid = ViewModel.PlayingSid
+            
         };
     }
 
