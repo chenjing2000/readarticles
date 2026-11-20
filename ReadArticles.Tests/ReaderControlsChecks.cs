@@ -117,7 +117,7 @@ internal static class ReaderControlsChecks
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
-        Program.Run("structured reader settings normalize invalid choices and preserve session-only pane widths", () =>
+        Program.Run("current structured settings normalize values and keep pane widths session-only", () =>
         {
             string path = ReaderSettings.PathName;
             string backup = AppPaths.SettingsBackupFile;
@@ -128,18 +128,21 @@ internal static class ReaderControlsChecks
                 var invalid = new ReaderSettings
                 {
                     LeftWidth = 221.4, RightWidth = 281.8,
-                    Volume = 3, Accent = "invalid",
-                    ForwardStep = 1, BackwardStep = 1
+                    Volume = 3, Accent = "invalid", ForwardStep = 1, BackwardStep = 1
                 };
                 invalid.Appearance.Body.Size = 99;
                 invalid.Appearance.Body.ParagraphAfter = -5;
+                invalid.Appearance.Title.LineHeight = 1.3;
                 invalid.Appearance.Vocabulary.Color = "#BAD";
                 JsonFiles.WriteAtomic(path, invalid);
                 var loaded = ReaderSettings.Load(out var warning);
                 Program.Check(warning == null && loaded.LeftWidth == 250 && loaded.RightWidth == 300);
                 Program.Check(loaded.FontSize == 15 && loaded.Volume == 1 && loaded.Accent == "uk");
                 Program.Check(loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
-                Program.Check(loaded.Appearance.Body.ParagraphAfter == 12 &&
+                Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
+                    loaded.Appearance.Title.LineHeight == 1.6 &&
+                    loaded.Appearance.Vocabulary.Size == 16 &&
+                    loaded.Appearance.Phonetics.Size == 14 &&
                     loaded.Appearance.Vocabulary.Color == "#B7394D");
                 loaded.FontSize = double.NaN;
                 loaded.Volume = double.NaN;
@@ -158,82 +161,64 @@ internal static class ReaderControlsChecks
             finally { Restore(path, old); Restore(backup, oldBackup); }
         });
 
-        Program.Run("existing userdata config migrates beside the executable without deleting the original", () =>
-        {
-            string current = ReaderSettings.PathName;
-            string previous = AppPaths.PreviousSettingsFile;
-            string legacy = AppPaths.LegacySettingsFile;
-            byte[]? currentBefore = File.Exists(current) ? File.ReadAllBytes(current) : null;
-            byte[]? previousBefore = File.Exists(previous) ? File.ReadAllBytes(previous) : null;
-            byte[]? legacyBefore = File.Exists(legacy) ? File.ReadAllBytes(legacy) : null;
-            try
-            {
-                if (File.Exists(current)) File.Delete(current);
-                if (File.Exists(legacy)) File.Delete(legacy);
-                JsonFiles.WriteAtomic(previous, new
-                {
-                    LeftWidth = 244, RightWidth = 355, FontSize = 16,
-                    Volume = 0.4, Accent = "us", ForwardStep = 7,
-                    Library = TestData.LibraryRoot
-                });
-                var migrated = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && migrated.LeftWidth == 250 && migrated.RightWidth == 300);
-                Program.Check(migrated.Accent == "us" && migrated.FontSize == 16 &&
-                    migrated.Volume == 0.4 && migrated.ForwardStep == 7 &&
-                    migrated.Library == TestData.LibraryRoot);
-                Program.Check(File.Exists(current) && File.Exists(previous));
-                string oldFingerprint = JsonFiles.Fingerprint(previous);
-                migrated.Appearance.Body.Background = "#FFF8E7";
-                migrated.Save();
-                var reopened = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && reopened.Appearance.Body.Background == "#FFF8E7" &&
-                    reopened.Accent == "us" && JsonFiles.Fingerprint(previous) == oldFingerprint);
-            }
-            finally
-            {
-                Restore(current, currentBefore);
-                Restore(previous, previousBefore);
-                Restore(legacy, legacyBefore);
-            }
-        });
-
-        Program.Run("native settings save JSON beside exe without storing splitters", () =>
+        Program.Run("breaking change replaces old flat configuration without importing values", () =>
         {
             string path = ReaderSettings.PathName;
-            string previous = AppPaths.PreviousSettingsFile;
-            string legacy = AppPaths.LegacySettingsFile;
             byte[]? old = File.Exists(path) ? File.ReadAllBytes(path) : null;
-            byte[]? previousBefore = File.Exists(previous) ? File.ReadAllBytes(previous) : null;
-            byte[]? legacyBefore = File.Exists(legacy) ? File.ReadAllBytes(legacy) : null;
+            try
+            {
+                JsonFiles.WriteAtomic(path, new
+                {
+                    FontSize = 17, Volume = 0.1, Accent = "us",
+                    ForwardStep = 15, Library = TestData.LibraryRoot
+                });
+                var fresh = ReaderSettings.Load(out var warning);
+                Program.Check(warning != null &&
+                    fresh.FontSize == 15 && fresh.Volume == 0.65 &&
+                    fresh.Accent == "uk" && fresh.Library == null &&
+                    fresh.Appearance.Vocabulary.Size == 16);
+                var reopened = ReaderSettings.Load(out warning);
+                Program.Check(warning == null && reopened.Appearance.Title.LineHeight == 1.6 &&
+                    reopened.Appearance.Meanings.LineHeight == 1.4);
+            }
+            finally { Restore(path, old); }
+        });
+
+        Program.Run("native settings persist only in exe-adjacent userdata config", () =>
+        {
+            string path = ReaderSettings.PathName;
+            byte[]? old = File.Exists(path) ? File.ReadAllBytes(path) : null;
             ReadArticles.MainWindow? window = null;
             try
             {
                 if (File.Exists(path)) File.Delete(path);
-                if (File.Exists(previous)) File.Delete(previous);
-                if (File.Exists(legacy)) File.Delete(legacy);
-                window = new ReadArticles.MainWindow { ShowActivated = false, Left = -10000, Top = -10000 };
+                window = new ReadArticles.MainWindow
+                    { ShowActivated = false, Left = -10000, Top = -10000 };
                 window.Show();
                 Program.Check(File.Exists(path) &&
-                    Path.GetRelativePath(AppPaths.ApplicationDirectory, path) == "ReadArticles.config.json");
+                    Path.GetRelativePath(AppPaths.ApplicationDirectory, path) ==
+                        Path.Combine("userdata", "config", "settings.json"));
                 var defaults = ReaderSettings.Load(out var warning);
                 Program.Check(warning == null && defaults.FontSize == 15 &&
                     defaults.Appearance.Title.Size == 18 &&
-                    defaults.Appearance.Body.ParagraphAfter == 12 &&
-                    defaults.Appearance.Phonetics.Color == "#0A7785");
+                    defaults.Appearance.Title.LineHeight == 1.6 &&
+                    defaults.Appearance.Body.ParagraphAfter == 16 &&
+                    defaults.Appearance.Phonetics.Size == 14);
                 Program.Check(((Button)window.FindName("SettingsButton")).ContextMenu is null);
                 Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
                 var draft = defaults.Copy();
                 draft.ForwardStep = 7;
                 draft.Accent = "us";
                 draft.Appearance.Body.Size = 17;
+                draft.Appearance.Body.Background = "#F7F1E6";
                 var apply = typeof(ReadArticles.MainWindow).GetMethod("ApplyDialogSettings",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
                 Program.Check((bool)apply.Invoke(window, [draft])!);
                 var saved = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && saved.FontSize == 17 && saved.ForwardStep == 7 &&
-                    saved.Accent == "us" && saved.Library == TestData.LibraryRoot);
-                ((ColumnDefinition)window.FindName("LeftColumn")).Width = new GridLength(275);
-                window.UpdateLayout();
+                Program.Check(warning == null && saved.FontSize == 17 &&
+                    saved.ForwardStep == 7 && saved.Accent == "us" &&
+                    saved.Library == TestData.LibraryRoot &&
+                    saved.Appearance.Body.Background == "#F7F1E6");
                 window.Close();
                 window = null;
                 string raw = File.ReadAllText(path);
@@ -249,8 +234,6 @@ internal static class ReaderControlsChecks
             {
                 window?.Close();
                 Restore(path, old);
-                Restore(previous, previousBefore);
-                Restore(legacy, legacyBefore);
             }
         });
     }

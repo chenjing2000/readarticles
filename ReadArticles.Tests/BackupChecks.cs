@@ -13,18 +13,12 @@ internal static class BackupChecks
         {
             string settingsPath = ReaderSettings.PathName;
             string backupPath = AppPaths.SettingsBackupFile;
-            string markerPath = AppPaths.LegacySettingsMigrationMarker;
-            string legacyPath = AppPaths.LegacySettingsFile;
             byte[]? settingsBefore = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : null;
             byte[]? backupBefore = File.Exists(backupPath) ? File.ReadAllBytes(backupPath) : null;
-            byte[]? markerBefore = File.Exists(markerPath) ? File.ReadAllBytes(markerPath) : null;
-            byte[]? legacyBefore = File.Exists(legacyPath) ? File.ReadAllBytes(legacyPath) : null;
             try
             {
                 if (File.Exists(settingsPath)) File.Delete(settingsPath);
                 if (File.Exists(backupPath)) File.Delete(backupPath);
-                if (File.Exists(legacyPath)) File.Delete(legacyPath);
-                if (File.Exists(markerPath)) File.Delete(markerPath);
                 var first = new ReaderSettings { Volume = 0.2, Accent = "uk" };
                 first.Save();
                 Program.Check(!File.Exists(backupPath));
@@ -61,21 +55,19 @@ internal static class BackupChecks
                 }
                 finally { File.WriteAllBytes(settingsPath, savedSettings); }
 
-                var corruptFilesBefore = Directory.GetFiles(AppPaths.ApplicationDirectory, "ReadArticles.config.json.*.corrupt");
+                var corruptFilesBefore = Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt");
                 File.WriteAllText(settingsPath, "{ invalid json");
                 var recovered = ReaderSettings.Load(out warning);
                 Program.Check(recovered.Volume == 0.8 && recovered.Accent == "uk");
                 Program.Check(warning != null && warning.Contains("已从最近一次有效备份恢复", StringComparison.Ordinal));
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
-                foreach (string corrupt in Directory.GetFiles(AppPaths.ApplicationDirectory, "ReadArticles.config.json.*.corrupt"))
+                foreach (string corrupt in Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt"))
                     if (!corruptFilesBefore.Contains(corrupt, StringComparer.OrdinalIgnoreCase)) File.Delete(corrupt);
             }
             finally
             {
                 RestoreFile(settingsPath, settingsBefore);
                 RestoreFile(backupPath, backupBefore);
-                RestoreFile(markerPath, markerBefore);
-                RestoreFile(legacyPath, legacyBefore);
             }
         });
 

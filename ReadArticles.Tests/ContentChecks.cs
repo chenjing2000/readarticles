@@ -207,10 +207,6 @@ internal static class ContentChecks
             var direct = new LibraryRepository().ScanDirectoryLevel(book, book);
             Program.Check(direct.Entries.Count(n => n.IsPassage) == 1);
             Program.Check(File.ReadAllText(Path.Combine(book, "book.json")) == "not-json");
-            File.WriteAllText(Path.Combine(book, "userdata", "xiaoxin.json"), "null");
-            string user = Path.Combine(book, "userdata", "xiaoxin");
-            Directory.CreateDirectory(user);
-            File.WriteAllText(Path.Combine(user, "answer_sheet.json"), "null");
             using var player = new ReadArticles.Infrastructure.WpfAudioPlayer();
             using var pronunciationPlayer = new WpfAudioPlayer();
             var model = new ReadArticles.ViewModels.MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
@@ -219,7 +215,7 @@ internal static class ContentChecks
             int notifications = 0;
             model.ArticleChanged += () => notifications++;
             Program.Check(model.OpenArticle(Path.Combine(book, "Reading.json")));
-            Program.Check(model.ArticleTitle == "Reading" && notifications == 1 && model.CurrentUser.Contains("无法读取"));
+            Program.Check(model.ArticleTitle == "Reading" && notifications == 1);
         });
         RunCopyTest("normal edits stay quiet and article switches clear previous notifications", (root, passage) =>
         {
