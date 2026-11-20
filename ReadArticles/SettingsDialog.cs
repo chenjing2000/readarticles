@@ -56,7 +56,7 @@ internal sealed class SettingsDialog : Window
     private static readonly (string Value, string Label)[] EnglishFonts =
     [
         ("Georgia", "Georgia"), ("Microsoft YaHei UI", "微软雅黑 UI"),
-        ("Nunito Sans", "Nunito Sans"), ("Segoe UI", "Segoe UI")
+        ("Nunito", "Nunito"), ("Segoe UI", "Segoe UI"), ("Noto Sans", "Noto Sans")
     ];
     private static readonly (string Value, string Label)[] ChineseFonts =
     [
@@ -170,7 +170,7 @@ internal sealed class SettingsDialog : Window
     }
 
     private static bool RequiresEnglishFontCheck(string name) =>
-        name is "Georgia" or "Nunito Sans" or "Segoe UI";
+        name is "Georgia" or "Nunito" or "Segoe UI" or "Noto Sans";
 
     private bool IsAvailableEnglishFont(string name) =>
         !RequiresEnglishFontCheck(name) || installedFontNames.Contains(name);
@@ -445,7 +445,7 @@ internal sealed class SettingsDialog : Window
             "台词颜色", ColorPalette(ScriptColors, a.Body.ScriptColor,
                 v => a.Body.ScriptColor = v));
         Row(body, "选词加号", WithUnit(
-            Dropdown(new[] { 0.65, 0.70, 0.75 }, a.Body.SelectionAddSize,
+            Dropdown(new[] { 0.65, 0.70, 0.75, 0.80 }, a.Body.SelectionAddSize,
                 v => a.Body.SelectionAddSize = v), "em"),
             "选词背景", ColorPalette(SelectionBackgroundColors, a.Body.SelectionBackground,
                 v => a.Body.SelectionBackground = v));

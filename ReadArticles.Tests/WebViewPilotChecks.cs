@@ -434,7 +434,10 @@ internal static class WebViewPilotChecks
                 var draft = readSettings.Copy();
                 draft.Appearance.Body.Size = 16;
                 draft.Appearance.Body.Background = "#F7F1E6";
-                draft.Appearance.Body.SelectionAddSize = 0.70;
+                draft.Appearance.Title.Font = "Noto Sans";
+                draft.Appearance.Body.Font = "Nunito";
+                draft.Appearance.Vocabulary.Font = "Noto Sans";
+                draft.Appearance.Body.SelectionAddSize = 0.80;
                 draft.Appearance.Body.SelectionBackground = "#E5EDE0";
                 draft.Appearance.Body.ScriptColor = "#856300";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
@@ -448,7 +451,16 @@ internal static class WebViewPilotChecks
                     .GetString() == "#F7F1E6");
                 Program.Check(Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--selection-add-size')")
-                    .GetString() == "0.7em" &&
+                    .GetString() == "0.8em" &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--title-font')")
+                        .GetString()!.StartsWith("\"Noto Sans\"", StringComparison.Ordinal) &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--body-font')")
+                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--word-font')")
+                        .GetString()!.StartsWith("\"Noto Sans\"", StringComparison.Ordinal) &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--script-color')")
                         .GetString() == "#856300" &&
