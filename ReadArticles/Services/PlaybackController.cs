@@ -97,7 +97,8 @@ public sealed class PlaybackController
                 awaitingOpen = true;
                 State = PlaybackState.Playing;
                 player.Play(path, token);
-                Changed?.Invoke();
+                if (token == request && State != PlaybackState.Stopped)
+                    Changed?.Invoke();
                 return;
             }
             catch (Exception error) when (error is IOException or InvalidOperationException or UnauthorizedAccessException or ArgumentException)
