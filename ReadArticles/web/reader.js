@@ -11,8 +11,10 @@ let selectedIndex = -1;
 let canWriteVocabulary = false;
 let matches = [];
 let selectedPassage = null;
-const selectionAddIntervalMs = 50;
-let selectionAddPositionTimer = null;
+// Follow painted frames rather than scheduling a separate millisecond timer.
+const selectionAddRefreshHz = 60;
+let selectionAddPositionFrame = 0;
+let selectionAddLastFrameAt = -Infinity;
 let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
@@ -468,9 +470,29 @@ function sentenceFor(node) {
 }
 
 function stopSelectionAddPositionTimer() {
-  if (selectionAddPositionTimer !== null) {
-    clearInterval(selectionAddPositionTimer);
-    selectionAddPositionTimer = null;
+  if (selectionAddPositionFrame) cancelAnimationFrame(selectionAddPositionFrame);
+  selectionAddPositionFrame = 0;
+  selectionAddLastFrameAt = -Infinity;
+}
+
+function scheduleSelectionAddFrame() {
+  if (selectedPassage && !document.hidden && !selectionAddPositionFrame)
+    selectionAddPositionFrame = requestAnimationFrame(selectionAddFrame);
+}
+
+// RequestAnimationFrame tracks the browser repaint; at faster refresh rates
+// the geometry check is capped at approximately 60 Hz. There is no timer.
+function selectionAddFrame(timestamp) {
+  selectionAddPositionFrame = 0;
+  if (!selectedPassage || document.hidden) {
+    stopSelectionAddPositionTimer();
+    return;
+  }
+  if (timestamp - selectionAddLastFrameAt >= 1000 / selectionAddRefreshHz - 1) {
+    selectionAddLastFrameAt = timestamp;
+    refreshSelectionAddPosition();
+  } else {
+    scheduleSelectionAddFrame();
   }
 }
 
@@ -481,12 +503,13 @@ function hideSelectionAdd() {
 }
 
 // A fixed-position browser button uses CSS px, matching Range client rects.
-// Anchor after the final selected text fragment, with a 2px right and 1px
-// below gap. Flip left/above near viewport edges.
+// Anchor after the final selected text fragment, 1px right and 0px below.
+// Flip left/above near viewport edges; the visible em-sized glyph occupies
+// the click target's upper-left corner.
 function positionSelectionAddButton(range, button) {
   const size = 24;
-  const horizontalGap = 2;
-  const verticalGap = 1;
+  const horizontalGap = 1;
+  const verticalGap = 0;
   const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
   const anchor = fragments.at(-1) ?? range.getBoundingClientRect();
   const toRight = anchor.right + horizontalGap;
@@ -503,7 +526,7 @@ function positionSelectionAddButton(range, button) {
   if (button.style.top !== y) button.style.top = y;
 }
 
-// The 50ms timer does geometry only, never word extraction or saving.
+// The repaint loop does geometry only, never word extraction or saving.
 // Keep it only while the selected text is visible; scrolling can reactivate it.
 function refreshSelectionAddPosition() {
   if (!selectedPassage || document.hidden) {
@@ -534,8 +557,7 @@ function refreshSelectionAddPosition() {
   }
   positionSelectionAddButton(range, button);
   button.hidden = false;
-  if (selectionAddPositionTimer === null)
-    selectionAddPositionTimer = setInterval(refreshSelectionAddPosition, selectionAddIntervalMs);
+  scheduleSelectionAddFrame();
 }
 
 function updateSelectionAdd() {
@@ -1006,7 +1028,7 @@ byId("script-toggle").addEventListener("click", () => {
 });
 byId("article-scroll").addEventListener("scroll", () => {
   readingScroll[currentMode] = byId("article-scroll").scrollTop;
-  if (selectedPassage && selectionAddPositionTimer === null)
+  if (selectedPassage && !selectionAddPositionFrame)
     refreshSelectionAddPosition();
 });
 window.addEventListener("resize", () => {
