@@ -11,6 +11,8 @@ let selectedIndex = -1;
 let canWriteVocabulary = false;
 let matches = [];
 let selectedPassage = null;
+const selectionAddIntervalMs = 50;
+let selectionAddPositionTimer = null;
 let pendingMutation = null;
 let currentSettings = {};
 const toastEntries = new Map();
@@ -465,16 +467,24 @@ function sentenceFor(node) {
   return sentence?.closest(".script-paint") ? null : sentence;
 }
 
+function stopSelectionAddPositionTimer() {
+  if (selectionAddPositionTimer !== null) {
+    clearInterval(selectionAddPositionTimer);
+    selectionAddPositionTimer = null;
+  }
+}
+
 function hideSelectionAdd() {
+  stopSelectionAddPositionTimer();
   selectedPassage = null;
   byId("selection-add").hidden = true;
 }
 
 // A fixed-position browser button uses CSS px, matching Range client rects.
-// Anchor after the last selected text fragment, not the bounding box of all
-// lines. Flip to the left/above near viewport edges to keep it fully visible.
+// Anchor after the final selected text fragment, with a 2px right and 1px
+// below gap. Flip left/above near viewport edges.
 function positionSelectionAddButton(range, button) {
-  const size = 36;
+  const size = 24;
   const horizontalGap = 2;
   const verticalGap = 1;
   const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
@@ -485,10 +495,47 @@ function positionSelectionAddButton(range, button) {
   const above = anchor.top - verticalGap - size;
   const left = toRight + size <= window.innerWidth - horizontalGap ? toRight : toLeft;
   const top = below + size <= window.innerHeight - verticalGap ? below : above;
-  button.style.left = Math.round(Math.max(horizontalGap,
+  const x = Math.round(Math.max(horizontalGap,
     Math.min(window.innerWidth - horizontalGap - size, left))) + "px";
-  button.style.top = Math.round(Math.max(verticalGap,
+  const y = Math.round(Math.max(verticalGap,
     Math.min(window.innerHeight - verticalGap - size, top))) + "px";
+  if (button.style.left !== x) button.style.left = x;
+  if (button.style.top !== y) button.style.top = y;
+}
+
+// The 50ms timer does geometry only, never word extraction or saving.
+// Keep it only while the selected text is visible; scrolling can reactivate it.
+function refreshSelectionAddPosition() {
+  if (!selectedPassage || document.hidden) {
+    stopSelectionAddPositionTimer();
+    byId("selection-add").hidden = true;
+    return;
+  }
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount !== 1) {
+    hideSelectionAdd();
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  const body = byId("article-body");
+  if (!body.contains(range.startContainer) || !body.contains(range.endContainer)) {
+    hideSelectionAdd();
+    return;
+  }
+  const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+  const anchor = fragments.at(-1);
+  const viewport = byId("article-scroll").getBoundingClientRect();
+  const button = byId("selection-add");
+  if (!anchor || anchor.right <= viewport.left || anchor.left >= viewport.right ||
+      anchor.bottom <= viewport.top || anchor.top >= viewport.bottom) {
+    button.hidden = true;
+    stopSelectionAddPositionTimer();
+    return;
+  }
+  positionSelectionAddButton(range, button);
+  button.hidden = false;
+  if (selectionAddPositionTimer === null)
+    selectionAddPositionTimer = setInterval(refreshSelectionAddPosition, selectionAddIntervalMs);
 }
 
 function updateSelectionAdd() {
@@ -525,9 +572,8 @@ function updateSelectionAdd() {
       }
     : { mode: "passage", sid: sentence.dataset.sid, text, offset, length: raw.length };
   const button = byId("selection-add");
-  positionSelectionAddButton(range, button);
-  button.hidden = false;
   button.disabled = !canWriteVocabulary || !!pendingMutation;
+  refreshSelectionAddPosition();
 }
 
 function formatSeconds(seconds) {
@@ -957,6 +1003,19 @@ byId("script-toggle").addEventListener("click", () => {
 });
 byId("article-scroll").addEventListener("scroll", () => {
   readingScroll[currentMode] = byId("article-scroll").scrollTop;
+  if (selectedPassage && selectionAddPositionTimer === null)
+    refreshSelectionAddPosition();
+});
+window.addEventListener("resize", () => {
+  if (selectedPassage) refreshSelectionAddPosition();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopSelectionAddPositionTimer();
+    byId("selection-add").hidden = true;
+  } else if (selectedPassage) {
+    updateSelectionAdd();
+  }
 });
 window.addEventListener("resize", scheduleScriptGeometry);
 const scriptSizeObserver = new ResizeObserver(scheduleScriptGeometry);
