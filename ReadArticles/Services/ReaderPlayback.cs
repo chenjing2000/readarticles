@@ -39,7 +39,6 @@ public sealed class ReaderPlayback
     private PlaybackController ActivePlayer => pronunciationPlayer.State != PlaybackState.Stopped ? pronunciationPlayer : articlePlayer;
     public PlaybackState State => ActivePlayer.State;
     public string Owner => ActivePlayer.Owner;
-    public string? CurrentSid => pronunciationPlayer.CurrentSid;
     public bool IsArticleActive => articlePlayer.State != PlaybackState.Stopped;
     public bool IsArticlePlaying => articlePlayer.State == PlaybackState.Playing;
     public bool IsArticlePaused => articlePlayer.State == PlaybackState.Paused;
@@ -52,8 +51,8 @@ public sealed class ReaderPlayback
         Handle(() =>
         {
             if (articlePlayer.ToggleCurrent(ArticleOwner)) return;
-            string path = resources.ArticleFile(RequireArticle(article).Directory);
-            articlePlayer.Play(new AudioItem(path), ArticleOwner);
+            var files = resources.ArticleFiles(RequireArticle(article).Directory);
+            articlePlayer.PlayCandidates(files, ArticleOwner);
         }, false);
     }
 
