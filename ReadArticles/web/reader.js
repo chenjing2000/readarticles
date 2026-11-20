@@ -1092,8 +1092,7 @@ if (window.chrome?.webview) {
       try {
         renderInitialize(message.payload ?? {});
         send("rendered", { sessionId, requestId: message.requestId });
-      } catch (error) {
-        window.__readerInitDiagnostic = String(error?.name ?? "Error") + ": " + String(error?.message ?? "unknown");
+      } catch {
         send("renderFailed", { sessionId, requestId: message.requestId });
       }
       return;
