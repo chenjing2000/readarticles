@@ -67,7 +67,7 @@ internal static class WebViewSettingsChecks
                 {
                     using var data = JsonDocument.Parse("{\"payload\":{\"width\":" +
                         width.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}");
-                    handler.Invoke(window, ["setPanelWidth", data.RootElement,
+                    handler.Invoke(window, [data.RootElement,
                         "00000000-0000-4000-8000-000000000001"]);
                 }
             }
@@ -118,7 +118,7 @@ internal static class WebViewSettingsChecks
                 !serialized.Contains("\"FontSize\"", StringComparison.Ordinal));
             var loaded = JsonSerializer.Deserialize<ReaderSettings>(serialized)!;
             Program.Check(loaded.LeftWidth == 250 && loaded.RightWidth == 300 &&
-                loaded.FontSize == 17 && loaded.Accent == "us" &&
+                loaded.Appearance.Body.Size == 17 && loaded.Accent == "us" &&
                 loaded.ForwardStep == 7 && loaded.Appearance.Body.Background == "#F7F1E6");
         });
 

@@ -83,7 +83,7 @@ public sealed class ReaderPlayback
         });
     }
 
-    public bool CanPlaySegment(LoadedArticle? article, string sid, string accent)
+    public bool CanPlaySegment(LoadedArticle? article, string sid)
     {
         var segment = article?.Segments.FirstOrDefault(s => s.Sid == sid);
         // Check only whether the SID belongs to this article. Do not touch the file system

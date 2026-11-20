@@ -257,7 +257,7 @@ public partial class MainWindow
             }
             if (type == "setPanelWidth")
             {
-                WebPilotSettingIntent(type, root, requestId);
+                WebPilotSettingIntent(root, requestId);
                 return;
             }
             if (type == "notificationDismiss")
@@ -351,8 +351,6 @@ public partial class MainWindow
                 WebPilotEditResult(requestId, WebPilotResultName(result));
                 return;
             }
-            // Audio, Script and remaining settings commands are stage 5/6.
-            PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or FormatException)
         {
@@ -381,7 +379,7 @@ public partial class MainWindow
         PostWebPilot("actionResult", new { status, index }, requestId);
     }
 
-    private void WebPilotSettingIntent(string type, JsonElement root, string requestId)
+    private void WebPilotSettingIntent(JsonElement root, string requestId)
     {
         if (!root.TryGetProperty("payload", out var payload) ||
             payload.ValueKind != JsonValueKind.Object ||

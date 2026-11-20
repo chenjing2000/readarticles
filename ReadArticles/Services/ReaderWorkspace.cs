@@ -4,11 +4,6 @@ public sealed class ReaderWorkspace
 {
     public LibrarySnapshot? Library { get; private set; }
     public LoadedArticle? Article { get; private set; }
-    public void OpenLibrary(string root)
-    {
-        var prepared = new LibraryRepository().Load(root);
-        CommitLibrary(prepared);
-    }
     public void CommitLibrary(LibrarySnapshot prepared)
     {
         Library = prepared;

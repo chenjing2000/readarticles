@@ -17,8 +17,7 @@ public sealed class ReaderSettings
     public ReaderAudioPreferences Audio { get; set; } = new();
     public string? Library { get; set; }
 
-    // Compatibility aliases for existing native business and playback paths.
-    [JsonIgnore] public double FontSize { get => Appearance.Body.Size; set => Appearance.Body.Size = value; }
+    // Convenience accessors for native playback and setting updates.
     [JsonIgnore] public string Accent { get => Audio.Accent; set => Audio.Accent = value; }
     [JsonIgnore] public double ForwardStep { get => Audio.ForwardStep; set => Audio.ForwardStep = value; }
     [JsonIgnore] public double BackwardStep { get => Audio.BackwardStep; set => Audio.BackwardStep = value; }

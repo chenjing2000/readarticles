@@ -40,7 +40,7 @@
 
 [项目说明](../README.md) · [专属检查](../docs/skills/project-code-review/SKILL.md)
 
-## Phase 5 navigation and notification invariants
+## 导航与通知行为约束
 
 - The bottom status row is removed. Middle-pane floating Toasts classify Info, Warning and Error; only the first two auto-expire, while all unacknowledged errors remain accessible.
 - Library discovery is strictly one level at a time and directory enumeration occurs away from the WPF Dispatcher. Directory collapse invalidates pending work but must not interrupt reading or audio.

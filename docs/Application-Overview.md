@@ -94,7 +94,7 @@ On close, normal application windows save final settings during `Closing`, befor
 ## Display and settings
 
 - The window starts centered. Height is 70% of the rounded work-area height; width is the larger of 70% of the rounded work-area width or 796 DIP, capped at the work-area width. Previous window dimensions are not restored.
-- The native tree uses 11 pt. The fixed Fluent settings dialog edits a detached Appearance/Audio draft. Title 18px/1.7 line height/16px paragraph gap, Georgia body 15px/1.7/16px gap, word head 16px semibold, phonetics 14px, meanings 15px/1.5, background #F8F8F6. Seven fields each have five circular color swatches; Script progress defaults to #B64550, with selection-add glyph size 0.65em and 60Hz repaint-paced geometry tracking.
+- The native tree uses 11 pt. The fixed Fluent settings dialog edits a detached Appearance/Audio draft. Title 18px/1.7 line height/16px paragraph gap, Georgia body 15px/1.7/16px gap, word head 16px semibold, phonetics 14px, meanings 15px/1.5, background #F8F8F6. Eight configurable color areas each have five circular swatches; Script progress defaults to #B64550, with selection-add glyph size 0.65em and 60Hz repaint-paced geometry tracking.
 - Each paragraph has a two-em first-line indent. All panes scroll independently. Library width defaults to 250 DIP (200–400), vocabulary width to 300 DIP (200–400), the article width has a 200-DIP minimum, and both splitters are 3 DIP. The native WebView2 host has a fixed 403-DIP minimum. One WPF width solver coordinates both splitters: moving either edge changes article width first (minimum 200 DIP), then shrinks the opposite outer pane (minimum 200 DIP), and stops when all three reach their minima. WebView2 sends live right-divider requests with screen-anchored pointer coordinates and renders only C#-confirmed width values. CSS has minimum article/host safeguards but no competing dynamic vocabulary-width clamp.
 - The two reading-workspace toolbars live in WebView2. Playback controls remain present when disabled.
 - Highlighting starts off. Rounded word backgrounds are painted from Range rectangles in a non-interactive layer, without changing article or Script text nodes. The selection-add control follows valid text selection.
@@ -125,7 +125,7 @@ Audio filenames are inferred without JSON paths: word files are `audio/<stem>_uk
 
 For each pronunciation target prefer MP3 by existence, otherwise WAV. Whole-article playback sorts sibling filenames as before, selecting the first MP3 or, only if none exists, the first WAV. Decoding failure never retries WAV or the next file. Old audio directories, naming rules, indexes, and JSON paths are not fallback sources; resources are not migrated. See [Library Layout](Library-Layout.md) for the full contract.
 
-## Phase 5 service boundaries
+## Service boundaries
 
 `NotificationService` owns the FIFO queue, severity and error persistence. WebView2 displays at most three floating notification cards and owns their animation, hover and dismissal intents. Browser startup failure is shown on the native terminal screen.
 

@@ -27,9 +27,6 @@ public sealed partial class MainViewModel
         return words;
     }
 
-    // Keep the existing WPF Action-based event contract intact.
-    public void AddSelection(PassageSelection selection) => _ = TryAddWord(selection.Text);
-
     public VocabularyEditResult TryAddWord(string text)
     {
         if (!CanWriteVocabulary) return VocabularyEditResult.Unavailable;
@@ -61,8 +58,6 @@ public sealed partial class MainViewModel
         return index >= 0 && index + direction >= 0 && index + direction < entries.Count;
     }
 
-    public void MoveWord(VocabularyEntry entry, int direction) => _ = TryMoveWord(entry, direction);
-
     public VocabularyEditResult TryMoveWord(VocabularyEntry entry, int direction)
     {
         if (!CanMoveWord(entry, direction)) return VocabularyEditResult.Unavailable;
@@ -78,8 +73,6 @@ public sealed partial class MainViewModel
         return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
     }
 
-    public void DeleteWord(VocabularyEntry entry) => _ = TryDeleteWord(entry);
-
     public VocabularyEditResult TryDeleteWord(VocabularyEntry entry)
     {
         var article = Article;
@@ -94,8 +87,6 @@ public sealed partial class MainViewModel
         });
         return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
     }
-
-    public void ImportVocabulary(string path) => _ = TryImportVocabulary(path);
 
     public VocabularyEditResult TryImportVocabulary(string path)
     {

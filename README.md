@@ -27,8 +27,10 @@ Start with the [documentation index](docs/README.md):
 - [Vocabulary preparation from structured or plain input](docs/Vocabulary-Preparation.md)
 - [Running, publishing, and troubleshooting](docs/Getting-Started.md)
 - [Regression categories and manual acceptance](docs/Testing.md)
+- [Runtime logging and retention](docs/Logging.md)
+- [Project contract and review rules](docs/project-contract.md)
 
-All maintained documentation is in English. The conversion skills prepare content externally; they are not built-in OCR, enrichment, or speech-generation features.
+Usage and technical references are maintained here; the project contract and code-review skill are also available in Chinese. Conversion skills prepare content externally; they are not built-in OCR, enrichment, or speech-generation features.
 
 ## Repository structure
 
@@ -54,7 +56,7 @@ See the testing guide for the unified test-data layout and Core/UI/Full suites. 
 
 ## Unified publishing
 
-Run `.\tools\Publish.ps1` from this repository root. The application uses Portable.pubxml and staged validation. The single EXE and its `userdata/` directory are under `dist/ReadArticles/`. Publication preserves existing userdata without importing obsolete `dist/userdata/` or sibling settings. See [Publishing](docs/Publishing.md), [health check](docs/Health-Check-2026-10-13.md), and [Release notes](docs/Release-Notes.md).
+Run `.\tools\Publish.ps1` from this repository root. The application uses Portable.pubxml and staged validation. The single EXE and its `userdata/` directory are under `dist/ReadArticles/`. Publication preserves existing userdata without importing obsolete `dist/userdata/` or sibling settings. See [Publishing](docs/Publishing.md) for the current release process and [Testing](docs/Testing.md) for current verification requirements.
 
 
 ## Unified testing and acceptance
@@ -62,9 +64,7 @@ Run `.\tools\Publish.ps1` from this repository root. The application uses Portab
 Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. All fixed test inputs come from `tests/TestData/`; temporary copies are isolated under the OS temporary directory. After publishing, run `.\tools\Test-PublishedApp.ps1`. See the [documentation index](docs/README.md) and [test guide](docs/Testing.md). PowerShell source is English-only.
 
 
-- [Runtime logging](docs/Logging.md)
-
-## Phase 5 reader navigation and notifications
+## Reader navigation and notifications
 
 - Reader messages appear as floating notifications at the bottom of the middle reading pane instead of a bottom status row. Errors remain until dismissed, and old errors can be opened through the overflow indicator.
 - The left book tree is lazy: opening a library discovers only its immediate book folders; expanding a folder reads only its direct children. Empty intermediary folders remain navigable.

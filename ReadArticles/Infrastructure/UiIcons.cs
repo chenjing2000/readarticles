@@ -22,7 +22,7 @@ public static class UiIcons
         return image;
     }
     // Render the circle, rounded rectangle and path primitives used by these assets.
-    private static ImageSource Svg(string path, bool grayscale = false, string? tint = null)
+    private static ImageSource Svg(string path)
     {
         using var stream = Application.GetResourceStream(Resource(path))!.Stream;
         var svg = XDocument.Load(stream).Root!;
@@ -39,12 +39,12 @@ public static class UiIcons
         }
         var drawing = new DrawingGroup();
         drawing.Children.Add(new GeometryDrawing(Brushes.Transparent, null, new RectangleGeometry(new Rect(bounds[0], bounds[1], bounds[2], bounds[3]))));
-        foreach (var element in svg.Elements()) drawing.Children.Add(ReadElement(element, grayscale, tint));
+        foreach (var element in svg.Elements()) drawing.Children.Add(ReadElement(element));
         var image = new DrawingImage(drawing);
         image.Freeze();
         return image;
     }
-    private static Drawing ReadElement(XElement element, bool grayscale, string? tint)
+    private static Drawing ReadElement(XElement element)
     {
         if (element.Name.LocalName == "g")
         {
@@ -72,7 +72,7 @@ public static class UiIcons
                     throw new NotSupportedException($"Unsupported SVG transform: {value}");
                 group.Transform = groupTransform;
             }
-            foreach (var child in element.Elements()) group.Children.Add(ReadElement(child, grayscale, tint));
+            foreach (var child in element.Elements()) group.Children.Add(ReadElement(child));
             return group;
         }
         Geometry geometry;
@@ -96,7 +96,7 @@ public static class UiIcons
                 throw new NotSupportedException($"Unsupported SVG element: {element.Name.LocalName}");
         }
 
-        var stroke = ReadBrush(element.Attribute("stroke")?.Value, grayscale, tint);
+        var stroke = ReadBrush(element.Attribute("stroke")?.Value);
         Pen? pen = null;
         if (stroke != null)
         {
@@ -106,7 +106,7 @@ public static class UiIcons
             if (element.Attribute("stroke-linejoin")?.Value == "round")
                 pen.LineJoin = PenLineJoin.Round;
         }
-        return new GeometryDrawing(ReadBrush(element.Attribute("fill")?.Value ?? "black", grayscale, tint), pen, geometry);
+        return new GeometryDrawing(ReadBrush(element.Attribute("fill")?.Value ?? "black"), pen, geometry);
     }
 
     private static double Number(XElement element, string attribute)
@@ -120,16 +120,10 @@ public static class UiIcons
         return Number(element, attribute);
     }
 
-    private static Brush? ReadBrush(string? color, bool grayscale, string? tint)
+    private static Brush? ReadBrush(string? color)
     {
         if (color == null || color == "none") return null;
-        Color value = (Color)ColorConverter.ConvertFromString(tint ?? color);
-        if (grayscale)
-        {
-            byte gray = (byte)((299 * value.R + 587 * value.G + 114 * value.B) / 1000);
-            value = Color.FromArgb(value.A, gray, gray, gray);
-        }
-        return new SolidColorBrush(value);
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
     }
 }
 
