@@ -242,7 +242,7 @@ internal static class WebViewPilotChecks
                       const started = !button.hidden && selectionAddPositionTimer !== null &&
                         selectionAddIntervalMs === 50;
                       const previousX = Number.parseInt(button.style.left);
-                      sentence.style.transform = 'translateX(12px)';
+                      sentence.parentElement.style.transform = 'translateX(12px)';
                       return { started, previousX };
                     })()
                     """);
@@ -253,7 +253,7 @@ internal static class WebViewPilotChecks
                     .GetInt32() >= originalX + 10, "50ms selection-add tracking after layout shift");
                 Program.Check(Evaluate(browser, """
                     (() => {
-                      document.querySelector('#article-body .sentence[data-sid]').style.transform = '';
+                      document.querySelector('#article-body .sentence[data-sid]').parentElement.style.transform = '';
                       window.getSelection().removeAllRanges();
                       updateSelectionAdd();
                       return selectionAddPositionTimer === null &&
