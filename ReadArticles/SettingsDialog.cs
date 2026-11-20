@@ -86,7 +86,7 @@ internal sealed class SettingsDialog : Window
 
         var reset = new Button
         {
-            Width = 104, Height = 34, Padding = new Thickness(4, 2, 4, 2)
+            Width = 104, Height = 34, FontSize = 13, Padding = new Thickness(4, 2, 4, 2)
         };
         var resetContents = new StackPanel
         {
@@ -111,14 +111,14 @@ internal sealed class SettingsDialog : Window
         Grid.SetColumn(reset, 0);
         footer.Children.Add(reset);
 
-        var cancel = new Button { Content = "取消", Width = 80, Height = 34, IsCancel = true };
+        var cancel = new Button { Content = "取消", Width = 80, Height = 34, FontSize = 13, IsCancel = true };
         cancel.Click += (_, _) => DialogResult = false;
         Grid.SetColumn(cancel, 2);
         footer.Children.Add(cancel);
 
         var save = new Button
         {
-            Content = "保存", Width = 80, Height = 34,
+            Content = "保存", Width = 80, Height = 34, FontSize = 13,
             Margin = new Thickness(8, 0, 0, 0), IsDefault = true
         };
         save.Click += (_, _) =>
@@ -179,7 +179,8 @@ internal sealed class SettingsDialog : Window
     {
         var combo = new ComboBox
         {
-            Width = 100, Height = 30, VerticalAlignment = VerticalAlignment.Center,
+            Width = 100, Height = 30, FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center
@@ -207,7 +208,8 @@ internal sealed class SettingsDialog : Window
     {
         var combo = new ComboBox
         {
-            Width = 100, Height = 30, VerticalAlignment = VerticalAlignment.Center,
+            Width = 100, Height = 30, FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center
