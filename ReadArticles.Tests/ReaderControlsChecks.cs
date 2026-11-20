@@ -333,8 +333,11 @@ internal static class ReaderControlsChecks
                     .SelectMany(section => section.Children.OfType<Grid>())
                     .SelectMany(row => row.Children.OfType<ComboBox>())
                     .ToArray();
-                Program.Check(fontDropdowns.Count(combo => combo.Items.Count == 4) == 3);
-                foreach (var selector in fontDropdowns.Where(combo => combo.Items.Count == 4))
+                var englishSelectors = fontDropdowns.Where(combo =>
+                    combo.Items.Count == 4 &&
+                    combo.Items.OfType<ComboBoxItem>().All(item => item.Tag is string)).ToArray();
+                Program.Check(englishSelectors.Length == 3);
+                foreach (var selector in englishSelectors)
                     Program.Check(selector.Items.OfType<ComboBoxItem>()
                         .Select(item => item.Tag?.ToString())
                         .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",

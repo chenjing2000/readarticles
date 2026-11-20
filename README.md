@@ -14,7 +14,7 @@ The bottom play/pause, stop, and progress controls own only the first sorted MP3
 
 A passage `<name>.json` can optionally have a read-only `<name>.script.json` in the same directory. The music button to the left of the vocabulary-highlighting button loads that companion only when clicked, then toggles between Passage and Script views. Script files do not appear separately in the library tree. Missing or invalid Script companions leave Passage and article audio untouched.
 
-Script JSON requires `"filetype": "script"`, a string `"title"` (empty is allowed), and `"paragraphs"` of sentences containing `"text"` and `"timed_units"`. Each timed unit is `[text, startSeconds, endSeconds]`; a pair of null times means no coloring. No cross-file text matching is required. The script view has no sentence pronunciation, but retains word selection, vocabulary highlights, and whole-article audio. Its `#2475A8` foreground follows the absolute article playback position; Seek/rewind updates it, and stop/end clears it. Source Script and Passage JSON are never rewritten.
+Script JSON requires `"filetype": "script"`, a string `"title"` (empty is allowed), and `"paragraphs"` of sentences containing `"text"` and `"timed_units"`. Each timed unit is `[text, startSeconds, endSeconds]`; a pair of null times means no coloring. No cross-file text matching is required. The script view has no sentence pronunciation, but retains word selection, vocabulary highlights, and whole-article audio. Its configurable foreground (default `#B64550`) follows the absolute article playback position; Seek/rewind updates it, and stop/end clears it. Source Script and Passage JSON are never rewritten.
 
 ## Documentation
 

@@ -24,7 +24,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `MainWindow.Settings.cs`, `SettingsDialog.cs` | Shared pane-width solver, native modal settings and preference persistence |
 
 | `ViewModels/MainViewModel.cs` | Shared state, notifications, and operation errors |
-| `ViewModels/MainViewModel.Library.cs` | Prepare and commit library/article changes; resolve account-display context |
+| `ViewModels/MainViewModel.Library.cs` | Prepare and commit library/article changes |
 | `ViewModels/MainViewModel.Vocabulary.cs` | Prepare word commands and coordinate vocabulary edits and commits |
 | `ViewModels/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |
 | `ViewModels/VocabularyEntryViewModel.cs` | A word's display fields, available pronunciation actions, and move/delete commands |
@@ -94,7 +94,7 @@ On close, normal application windows save final settings during `Closing`, befor
 ## Display and settings
 
 - The window starts centered. Height is 70% of the rounded work-area height; width is the larger of 70% of the rounded work-area width or 796 DIP, capped at the work-area width. Previous window dimensions are not restored.
-- The native tree uses 11 pt. The fixed Fluent settings dialog edits a detached Appearance/Audio draft. Title 18px/1.6 line height/16px paragraph gap, body 15px/1.5/16px gap, word head 16px semibold, phonetics 14px, meanings 15px/1.4, background #F8F8F6. Six fields each have five circular color swatches.
+- The native tree uses 11 pt. The fixed Fluent settings dialog edits a detached Appearance/Audio draft. Title 18px/1.7 line height/16px paragraph gap, Georgia body 15px/1.7/16px gap, word head 16px semibold, phonetics 14px, meanings 15px/1.5, background #F8F8F6. Seven fields each have five circular color swatches; Script progress defaults to #B64550, with selection-add glyph size 0.65em and 60Hz repaint-paced geometry tracking.
 - Each paragraph has a two-em first-line indent. All panes scroll independently. Library width defaults to 250 DIP (200–400), vocabulary width to 300 DIP (200–400), the article width has a 200-DIP minimum, and both splitters are 3 DIP. The native WebView2 host has a fixed 403-DIP minimum. One WPF width solver coordinates both splitters: moving either edge changes article width first (minimum 200 DIP), then shrinks the opposite outer pane (minimum 200 DIP), and stops when all three reach their minima. WebView2 sends live right-divider requests with screen-anchored pointer coordinates and renders only C#-confirmed width values. CSS has minimum article/host safeguards but no competing dynamic vocabulary-width clamp.
 - The two reading-workspace toolbars live in WebView2. Playback controls remain present when disabled.
 - Highlighting starts off. Rounded word backgrounds are painted from Range rectangles in a non-interactive layer, without changing article or Script text nodes. The selection-add control follows valid text selection.
