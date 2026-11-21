@@ -38,7 +38,7 @@ Opening a library discovers only immediate book directories and checks for `book
 | `audio/` and its MP3/WAV files | Optional physical files | Passage directory | Names derived from word stem; missing or empty files disable pronunciation buttons; later stem collisions have no audio eligibility |
 | One whole-article `.m4a`, `.mp3` or `.wav` | Optional | Directly beside the passage JSON | Used only by the central bottom play/pause button |
 | `userdata/xiaoxin/answer_sheet.json` | Optional | Relative to the book directory | Only `username` is read for the account label; authentication and exercise answering are not implemented |
-| `<title>.exercise.json` | Optional authoring companion | Beside the passage | Excluded from navigation and not read or displayed by the main-branch reader |
+| `<title>.exercise.json` | Optional authoring companion | Beside the passage | Excluded from navigation and not read or displayed by the current reader |
 | Images, PDFs, text, and other non-JSON source files | Optional stored material | Any convenient location | Not opened by the reader and not shown as passage leaves |
 
 A minimal marker can contain:
