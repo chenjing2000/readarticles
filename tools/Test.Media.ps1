@@ -10,22 +10,9 @@ function Copy-TestAudioFolder([string]$SourceRoot, [string]$TargetRoot, [string]
 }
 
 function Assert-TestAudio([string]$AudioRoot, [string]$ArticlePath) {
-    $article = Get-Content -LiteralPath $ArticlePath -Raw -Encoding UTF8 | ConvertFrom-Json
     $vocabularyPath = [IO.Path]::ChangeExtension($ArticlePath, '.vocabulary.json')
     $vocabulary = Get-Content -LiteralPath $vocabularyPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $missing = [Collections.Generic.List[string]]::new()
-    foreach ($paragraph in $article.paragraphs) {
-        foreach ($segment in $paragraph.paragraph) {
-            if ($segment.sid -eq 's011') { continue }
-            foreach ($accent in @('uk', 'us')) {
-                $stem = "audio_sentences/$($segment.sid)_$accent"
-                if (-not ((Test-Path -LiteralPath (Join-Path $AudioRoot ($stem + '.mp3')) -PathType Leaf) -or
-                    (Test-Path -LiteralPath (Join-Path $AudioRoot ($stem + '.wav')) -PathType Leaf))) {
-                    $missing.Add($stem)
-                }
-            }
-        }
-    }
     $stems = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($word in $vocabulary.words) {
         $stem = [regex]::Replace($word.word.Trim().ToLowerInvariant(), '[^a-z0-9]+', '_').Trim('_')
@@ -40,14 +27,6 @@ function Assert-TestAudio([string]$AudioRoot, [string]$ArticlePath) {
     }
     if ($missing.Count) {
         throw "Test audio resource pool is incomplete. Missing $($missing.Count) file(s): $($missing -join ', ')"
-    }
-    foreach ($accent in @('uk', 'us')) {
-        foreach ($extension in @('.mp3', '.wav')) {
-            $unexpected = Join-Path $AudioRoot ("audio_sentences/s011_$accent" + $extension)
-            if (Test-Path -LiteralPath $unexpected -PathType Leaf) {
-                throw "The s011 $accent recording must remain absent in the source audio pool: $unexpected"
-            }
-        }
     }
 }
 
@@ -64,20 +43,13 @@ function Prepare-TestWorkspace([string]$Workspace, [string]$TemporaryDirectory) 
     if (-not (Test-Path -LiteralPath $articlePath -PathType Leaf)) {
         throw "Main test article is missing: $articlePath"
     }
-    foreach ($folder in @('audio', 'audio_sentences')) {
-        Copy-TestAudioFolder $audioSource $target $folder
-    }
+    Copy-TestAudioFolder $audioSource $target 'audio'
     Assert-TestAudio $target $articlePath
 
-    # Remove obsolete audio declarations only from the isolated working copy.
-    $article = Get-Content -LiteralPath $articlePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    # Remove legacy vocabulary audio declarations only from the isolated working copy.
     $vocabularyPath = Join-Path $target $vocabularyName
     $vocabulary = Get-Content -LiteralPath $vocabularyPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($paragraph in $article.paragraphs) {
-        foreach ($segment in $paragraph.paragraph) { $segment.PSObject.Properties.Remove('audio') }
-    }
     foreach ($word in $vocabulary.words) { $word.PSObject.Properties.Remove('audio') }
-    [IO.File]::WriteAllText($articlePath, ($article | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
     [IO.File]::WriteAllText($vocabularyPath, ($vocabulary | ConvertTo-Json -Depth 100), [Text.UTF8Encoding]::new($false))
 
     $sourceBook = Join-Path $TemporaryDirectory 'Source/Book'
@@ -85,9 +57,7 @@ function Prepare-TestWorkspace([string]$Workspace, [string]$TemporaryDirectory) 
     [IO.File]::WriteAllText((Join-Path $sourceBook 'book.json'), '{}')
     Copy-Item -LiteralPath $articlePath -Destination (Join-Path $sourceBook $articleName)
     Copy-Item -LiteralPath $vocabularyPath -Destination (Join-Path $sourceBook $vocabularyName)
-    foreach ($folder in @('audio', 'audio_sentences')) {
-        Copy-TestAudioFolder $audioSource $sourceBook $folder
-    }
+    Copy-TestAudioFolder $audioSource $sourceBook 'audio'
 
     $env:READARTICLES_TEST_LIBRARY = $library
     $env:READARTICLES_TEST_ARTICLE = Join-Path $sourceBook $articleName

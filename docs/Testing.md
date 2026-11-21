@@ -28,12 +28,11 @@ The summary distinguishes Passed, Failed, and Skipped groups. A skipped group is
 tests/TestData/
 ├── Library/                 # Fixed article and vocabulary JSON
 ├── Audio/
-│   ├── audio/               # Shared vocabulary UK/US recordings
-│   └── audio_sentences/     # Legacy unused source recordings
+│   └── audio/               # Shared vocabulary UK/US recordings
 └── README.md                # Inventory and fixture rules
 ```
 
-The main Passage contains 13 paragraphs, 62 sentence strings, a JSON title, and 120 vocabulary entries. Only whole-article and vocabulary audio playback are supported; the legacy sentence recording pool is unused. Test-specific WAV/M4A candidates, corrupt media, filename ordering and asynchronous fallback are created under isolated temporary directories. Do not maintain duplicate permanent media fixtures.
+The main Passage contains 13 paragraphs, 62 sentence strings, a JSON title, and 120 vocabulary entries. Only whole-article and vocabulary audio playback are supported; no sentence-recording fixtures are needed. Test-specific WAV/M4A candidates, corrupt media, filename ordering and asynchronous fallback are created under isolated temporary directories. Do not maintain duplicate permanent media fixtures.
 
 ## Outputs
 
