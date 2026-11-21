@@ -92,7 +92,7 @@ Derived audio paths stay within the passage directory. Paths escaping that direc
 
 ## 6. Files outside the library
 
-Application settings live in `dist/ReadArticles/userdata/config/settings.json`, beside the published `dist/ReadArticles/ReadArticles.exe` in its `userdata/` directory. The legacy executable-sibling settings file is retained during migration rather than deleted. The portable release uses a framework-dependent single EXE and requires the compatible .NET 10 Windows Desktop Runtime x64 on the target machine. Keep `userdata/` and the rest of the application directory together during updates.
+Application settings live in `dist/ReadArticles/userdata/config/settings.json`, beside the published `dist/ReadArticles/ReadArticles.exe` in its `userdata/` directory. The legacy executable-sibling settings file is ignored by the current format but is not automatically deleted. The portable release uses a framework-dependent single EXE and requires the compatible .NET 10 Windows Desktop Runtime x64 on the target machine. Keep `userdata/` and the rest of the application directory together during updates.
 
 Source images and the original Python ZIP are preparation/reference material. ReadArticles does not convert them when a library is opened.
 

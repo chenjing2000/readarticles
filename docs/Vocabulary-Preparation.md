@@ -112,7 +112,7 @@ Word recordings use `audio/<stem>_uk.mp3` or `.wav` and `audio/<stem>_us.mp3` or
 
 Distinct words with the same stem remain in the final list. Reserve each nonempty stem immediately for its first entry in the final `words` array, irrespective of file existence or generation success. All later collisions retain their text but lose all audio eligibility; no suffixes or fallback ownership. Empty stems retain their entries with audio disabled. Spelling-duplicate validation is unchanged. Establish ownership after ordering, because moving entries changes the first owner.
 
-Do not create dummy audio, claim pronunciation is playable, delete old files, or rename existing recordings. Old directories (`audio_vocabulary/`, `audio_segments/`), old names, and audio indexes are not fallback sources and are not migrated. Sentence recordings use SID under `audio_sentences/`; see [Library Layout](Library-Layout.md).
+Do not create dummy audio, claim pronunciation is playable, delete old files, or rename existing recordings. Old directories (`audio_vocabulary/`, `audio_segments/`, `audio_sentences/`), old names, SIDs and audio indexes are not fallback sources and are not migrated. The reader does not support sentence recordings; see [Library Layout](Library-Layout.md).
 
 ## Ordering and literal matching
 

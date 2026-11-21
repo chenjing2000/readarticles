@@ -1,30 +1,35 @@
 # ReadArticles — Development handoff (2026-11-21)
 
-## Repository and verified baseline
+## Verified baseline and repository
 
 - GitHub: https://github.com/chenjing2000/readarticles; Windows workspace: `C:\Projects\ReadArticles`.
-- **Current production baseline:** `main` incorporates [PR #21](https://github.com/chenjing2000/readarticles/pull/21) via Squash Merge `6e45aed52d2aa9844fb6742cfa6a1ef378f7c5e9` (2026-11-21). PR #21 is closed/merged, not a pending Draft.
-- Before merge, the final feature head `f029f28` passed [Windows CI #222](https://github.com/chenjing2000/readarticles/actions/runs/44847542023): build, Core regression, portable publish and release layout. The user separately confirmed local `Test.ps1 -Suite Full` **97 passed, 0 failed, 0 skipped** at `f029f28`, and earlier local UI (13 groups passed), publish and published-EXE checks. The user approved all six real-machine functional acceptance categories, then authorized the merge.
-- The final merged PR contains the breaking Passage schema, Script-synchronized coloring, vocabulary selection, M4A/MP3/WAV whole-article audio fallback, coordinated word/audio playback and removal of sentence audio. Final audit addressed unsafe candidate paths and pause intent across asynchronous media opening.
-- Branch cleanup was requested after PR #21. The user reported remote tracking branches `origin/main` and `origin/feature/exercise`; three historical local branches were still present at that moment. **Do not assume they have since been deleted**. Inspect current local/remote Git status in the new session.
+- **Last verified application baseline:** `main` at `388f57c7aaaf1e0fbdbe8a25c2d7f3c1e30135b4`, the Squash Merge of [PR #24](https://github.com/chenjing2000/readarticles/pull/24). The [post-merge Windows CI](https://github.com/chenjing2000/readarticles/actions/runs/44877177907) passed (build, Core regression, portable publish and release layout). Check the actual `main` HEAD on resumption; a subsequent documentation-only merge may move it.
+- Recent merged work: [PR #21](https://github.com/chenjing2000/readarticles/pull/21) established the Passage/Script, vocabulary and whole-article audio contracts; [PR #22](https://github.com/chenjing2000/readarticles/pull/22) fixed failed TreeView passage selection rollback; [PR #23](https://github.com/chenjing2000/readarticles/pull/23) made the vocabulary-highlight toggle gray when off and magenta when on; [PR #24](https://github.com/chenjing2000/readarticles/pull/24) removed unused C# Script progress and aggregate playback-state forwarding.
+- PR #24: [feature CI](https://github.com/chenjing2000/readarticles/actions/runs/44874841134) succeeded; local Release build and UI **13 groups passed**, and a rerun of local Full **97 checks passed, 0 failed, 0 skipped** (plus two unchanged-source checks). An earlier Full run had one WebView2 notification-dismiss timeout while the user reported accidentally closing test windows; the rerun passed. The user confirmed Script timing and switching, coordinated audio playback, vocabulary reorder/delete and the settings **Restore Defaults** button on a Windows desktop.
+- At this handoff the remote branches were `main`, `refactor/remove-unused-reader-code` (merged PR #24; branch not yet deleted), and `feature/exercise` (two historical commits not merged). Do not assume a local branch, working-tree state or subsequent remote cleanup without checking Git.
 
-## Current contracts and exclusions
+## Current behavior and non-negotiable boundaries
 
-- Passage uses precisely `filetype: "passage"`, string `title` (required, empty permitted; no filename fallback) and `paragraphs: string[][]`. The application **does not** read or convert the old SID/segment format; the user will standardize article sources independently. Some older secondary test/source article material may still have the old format and is intentionally not converted or used as a new-format loading fixture.
-- Script JSON and Vocabulary JSON retain their separate formats. Passage and Script are read-only; writing vocabulary must protect external changes, atomically save, and maintain verified backups.
-- Whole-article audio searches files directly beside the selected Passage JSON, ordered M4A then MP3 then WAV, and filename within each type. Individual unsafe or unplayable files do not prevent trying later valid candidates. A successful open ends candidate search. Stop/switch invalidates old events; a pause request while opening persists through retries. Word pronunciation uses separate MP3/WAV lookup under `audio/`, MP3 preferred by existence, with no WAV retry after MP3 decode failure.
-- No legacy reader, sentence-audio paths, migrations, unnecessary new layers or old-format compatibility. For a new request, follow first principles and the minimum necessary code/doc changes.
+- Passage JSON: `filetype: "passage"`, required string `title` (empty allowed) and `paragraphs: string[][]`. No SID/old Passage migration. The matching Script and Passage files are read-only; vocabulary saves preserve metadata and protect against concurrent/external edits with atomic replacement and verified backups.
+- Whole-article playback tries safe direct sibling audio candidates in M4A, MP3, WAV priority and filename order until one **opens**. Word pronunciation resolves `audio/<stem>_uk/us.mp3` or WAV, with MP3 preferred by existence and no fallback after an MP3 decoding failure. There is no sentence playback. Separate article/pronunciation controllers coordinate pause/stop; stale media callbacks do not overwrite new state.
+- WebView2 is the sole Passage/Script reader; WPF owns the native window, left navigation and settings dialog. Script foreground progress is painted by `web/reader.js`; the old C# `ScriptTimedUnit.Progress()` and aggregate `ReaderPlayback.State/Owner` APIs have been deleted. **Keep `UiIcons.Refresh`**: the settings dialog uses it for the Restore Defaults button.
+- Protect selected source libraries, `userdata/`, backups, recovery copies, media files, failure rollback and browser session/request guards. Prefer deleting demonstrably unused code to adding abstractions; allow small local duplication when clearer.
 
-## Starting the next development round
+## Next round — proposed, not authorized
 
-1. Read [project contract](project-contract.md), [architecture](Application-Overview.md), [library format](Library-Layout.md), [test and acceptance](Testing.md), and [review skill](skills/project-code-review/SKILL.md). Refer to [documentation index](README.md) for other focused guides.
-2. Verify GitHub `main` HEAD and current PRs; check local branch and working tree before editing. Do not assume this handoff's historical commit remains the latest after subsequent documentation-only changes.
-3. For new changes, discuss requirements and minimal implementation plan first. Work on a new feature branch/PR, preserve the `main` baseline, and keep merging subject to the user's separate approval.
-4. When necessary, run these existing commands from an interactive Windows desktop:
+- **Best next candidate:** review `tools/Test.ps1` and `ReadArticles.Tests/Program.cs` for duplicate execution of the same test methods across Core/UI category combinations. Preserve every unique assertion, the individual targeted-test entry points and Windows Core/UI/Full coverage; quantify coverage before editing.
+- **Optional follow-up reviews:** `ReaderWorkspace.OpenArticle()` (test-only convenience), `AudioItem` (single-field wrapper), duplicated settings option definitions, and the small native SVG loader. Each needs its own impact/benefit check; do not refactor merely to reduce line counts.
+- No implementation, branch deletion or merge is authorized by this handoff. Confirm the next change with the user before altering application behavior or creating a large refactor.
+
+## Resume checklist
+
+1. Read [project contract](project-contract.md), [architecture](Application-Overview.md), [library/JSON layout](Library-Layout.md), [testing](Testing.md) and [review skill](skills/project-code-review/SKILL.md).
+2. Check remote `main`, current PRs and local status; start any new code change from the actual latest `main` in a separate branch.
+3. Discuss a minimal per-file proposal first. Keep PRs Draft until checks and user acceptance; merge only after separate authorization.
 
 ```powershell
 cd C:\Projects\ReadArticles
-git status --short
+git status -sb
 git fetch --prune origin
 git switch main
 git pull --ff-only origin main
@@ -32,9 +37,9 @@ git pull --ff-only origin main
 .\tools\Test.ps1 -Suite Core
 .\tools\Test.ps1 -Suite UI
 .\tools\Test.ps1 -Suite Full
-# Close the app before publishing.
+# Close any running EXE before publishing.
 .\tools\Publish.ps1
 .\tools\Test-PublishedApp.ps1
 ```
 
-Do not claim local GUI/audio or new-head validation was performed unless corresponding logs are provided. Preserve the selected real article library, `userdata/`, recovery files, and backups. No new feature is authorized by this handoff alone.
+Use an isolated copy of the article library for destructive tests. The GitHub Core check does not substitute for local UI, Full or published-EXE acceptance. Do not claim tests were run unless supported by logs.
