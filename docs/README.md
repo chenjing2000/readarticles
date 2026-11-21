@@ -8,7 +8,6 @@ This index links to the **current** application contracts, developer guides, and
 | --- | --- |
 | [Project contract](project-contract.md) | Authoritative technical, data-protection and behavior invariants |
 | [Development handoff](HANDOFF.md) | Current GitHub baseline, review/acceptance evidence and next steps |
-| [Getting started](Getting-Started.md) | Runtime requirements and first launch |
 | [User guide](User-Guide.md) | Reading, vocabulary and audio operation |
 | [Application overview](Application-Overview.md) | Architecture, modules and responsibilities |
 | [Library layout](Library-Layout.md) | JSON formats, directory rules, Script and audio naming |
