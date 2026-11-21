@@ -143,6 +143,69 @@ internal static class TreeNavigationChecks
             }
         });
 
+        Program.Run("failed nested passage click makes one attempt and permits explicit retry", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(),
+                "ReadArticles-nested-selection-" + Guid.NewGuid().ToString("N"));
+            string book = Path.Combine(root, "Book");
+            string goodFolder = Path.Combine(book, "Good");
+            string badFolder = Path.Combine(book, "Bad");
+            Directory.CreateDirectory(goodFolder);
+            Directory.CreateDirectory(badFolder);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                string goodPath = Path.Combine(goodFolder, "Good.json");
+                string badPath = Path.Combine(badFolder, "Bad.json");
+                File.Copy(TestData.ArticlePath, goodPath);
+                File.WriteAllText(badPath, """{"filetype":"passage","title":"Bad","paragraphs":123}""");
+                window.Show();
+                Program.Check(window.ViewModel.OpenLibrary(root));
+                WpfTestHelpers.Pump();
+                var tree = (TreeView)window.FindName("LibraryTree");
+                WpfTestHelpers.ExpandAllDirectories(tree);
+                var bookNode = window.ViewModel.Books.Single();
+                var bookItem = (TreeViewItem)tree.ItemContainerGenerator.ContainerFromItem(bookNode);
+                TreeViewItem Leaf(string name)
+                {
+                    var folderNode = bookNode.Children.Single(n => n.Name == name);
+                    var folderItem = (TreeViewItem)bookItem.ItemContainerGenerator.ContainerFromItem(folderNode);
+                    var leafNode = folderNode.Children.Single(n => n.IsPassage);
+                    return (TreeViewItem)folderItem.ItemContainerGenerator.ContainerFromItem(leafNode);
+                }
+                var goodItem = Leaf("Good");
+                var badItem = Leaf("Bad");
+                goodItem.IsSelected = true;
+                WpfTestHelpers.Pump();
+                Program.Check(window.ViewModel.Article?.FilePath == goodPath);
+
+                // Exercise TreeViewItem's mouse event path, not only direct IsSelected changes.
+                var click = new MouseButtonEventArgs(Mouse.PrimaryDevice,
+                    Environment.TickCount, MouseButton.Left)
+                { RoutedEvent = UIElement.MouseLeftButtonDownEvent };
+                badItem.RaiseEvent(click);
+                WpfTestHelpers.Pump(150);
+                var failures = window.ViewModel.Notifications.Messages
+                    .Count(n => n.Key == "UserOperationFailed");
+                Program.Check(failures == 1 &&
+                    window.ViewModel.Article?.FilePath == goodPath &&
+                    goodItem.IsSelected && !badItem.IsSelected);
+
+                // A later explicit attempt is not blocked after the file has been fixed.
+                File.Copy(TestData.ArticlePath, badPath, true);
+                badItem.IsSelected = true;
+                WpfTestHelpers.Pump();
+                Program.Check(window.ViewModel.Article?.FilePath == badPath);
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                Directory.Delete(root, true);
+            }
+        });
+
         Program.Run("tree labels stay next to expanders when left pane changes width", () =>
         {
             var window = new ReadArticles.MainWindow(false);
