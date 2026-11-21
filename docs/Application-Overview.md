@@ -115,7 +115,7 @@ Keyboard focus is available in both native tree controls and browser controls; f
 
 Native button focus and browser `:focus-visible` are styled independently. Local MP3s and personal resource directories are excluded from Git; required icons remain embedded.
 
-The Portable publish profile creates one framework-dependent Windows x64 executable in `dist/ReadArticles/`. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses `userdata/config/settings.json` under the executable directory. Old schemas reset without migration; corrupted current settings may recover from a verified backup. The window has no explicit maximum size. See Getting-Started.md for publishing commands and verification limits.
+The Portable publish profile creates one framework-dependent Windows x64 executable in `dist/ReadArticles/`. Its native host asks users to install the matching Windows Desktop Runtime when missing. Configuration uses `userdata/config/settings.json` under the executable directory. Old schemas reset without migration; corrupted current settings may recover from a verified backup. The window has no explicit maximum size. See [Publishing](Publishing.md) for publishing commands and [Testing](Testing.md) for verification limits.
 
 ReaderSettings owns structured defaults, recovery and validation for typography, palette colors, accent and progress choices. The native left width and browser vocabulary width have separate layout controls; persisted legacy widths are ignored on restart.
 
