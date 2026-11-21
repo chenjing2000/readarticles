@@ -261,6 +261,49 @@ internal static class AudioChecks
                 articlePlayer.Open(articlePlayer.Played[1].Request);
                 Program.Check(wordController.State == PlaybackState.Stopped && articleController.State == PlaybackState.Playing);
             });
+            Program.Run("pause during media opening survives failure and retry", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                controller.PlayCandidates([first, second], "passage");
+                Program.Check(controller.ToggleCurrent("passage"));
+                Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 1);
+                player.Fail(player.Played[0].Request);
+                Program.Check(player.Played.Count == 2 && controller.State == PlaybackState.Paused);
+                player.Open(player.Played[1].Request);
+                Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 2);
+                Program.Check(controller.ToggleCurrent("passage"));
+                Program.Check(controller.State == PlaybackState.Playing && player.Resumes == 1);
+            });
+            Program.Run("pause before first media-open stays paused", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                controller.PlayCandidates([first], "passage");
+                controller.Pause();
+                player.Open(player.Played[0].Request);
+                Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 2);
+            });
+            Program.Run("rejected audio symlink does not hide healthy next candidate", () =>
+            {
+                string folder = Path.Combine(root, "safe-candidates");
+                Directory.CreateDirectory(folder);
+                File.Copy(first, Path.Combine(folder, "b.mp3"));
+                string link = Path.Combine(folder, "a.m4a");
+                bool linked = false;
+                try
+                {
+                    File.CreateSymbolicLink(link, first);
+                    linked = true;
+                }
+                catch (Exception error) when (error is UnauthorizedAccessException or IOException or PlatformNotSupportedException)
+                {
+                    // Creating symbolic links may require privileges on some Windows machines.
+                }
+                var choices = new AudioResources().ArticleFiles(folder);
+                Program.Check(choices.Count == 1 &&
+                    Path.GetFileName(choices[0]) == "b.mp3" && (!linked || !choices.Contains(link)));
+            });
             Program.Run("stopping while opening cancels remaining candidates", () =>
             {
                 var player = new FakePlayer { AutoOpen = false };
