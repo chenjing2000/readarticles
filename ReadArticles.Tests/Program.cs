@@ -33,6 +33,26 @@ internal static class Program
                 NotificationChecks.Run();
                 LazyTreeChecks.Run();
                 break;
+            case "--core-suite":
+            case "--ui-suite":
+                UnifiedAudioChecks.Run();
+                ContentChecks.Run();
+                ScriptChecks.Run();
+                WebViewPilotChecks.Run();
+                WebViewScriptBridgeChecks.Run();
+                WebViewSettingsChecks.Run();
+                WebViewPilotChecks.RunBrowser();
+                TreeNavigationChecks.Run();
+                WebViewVocabularyEditChecks.Run();
+                NotificationChecks.Run();
+                LazyTreeChecks.Run();
+                if (category == "--ui-suite")
+                {
+                    IconChecks.Run();
+                    ReaderControlsChecks.Run();
+                    BackupChecks.Run();
+                }
+                break;
             case "--rendering-only": WebViewPilotChecks.RunBrowser(); WebViewScriptBridgeChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
             case "--content-only": UnifiedAudioChecks.Run(); ContentChecks.Run(); ScriptChecks.Run(); WebViewPilotChecks.Run(); WebViewScriptBridgeChecks.Run(); WebViewSettingsChecks.Run(); break;
