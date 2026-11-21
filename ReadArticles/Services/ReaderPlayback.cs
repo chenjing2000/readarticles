@@ -43,9 +43,6 @@ public sealed class ReaderPlayback
 
     public event Action? Changed;
     public event Action<string, NotificationSeverity>? Message;
-    private PlaybackController ActivePlayer => pronunciationPlayer.State != PlaybackState.Stopped ? pronunciationPlayer : articlePlayer;
-    public PlaybackState State => ActivePlayer.State;
-    public string Owner => ActivePlayer.Owner;
     public bool IsArticleActive => articlePlayer.State != PlaybackState.Stopped;
     public bool IsArticlePlaying => articlePlayer.State == PlaybackState.Playing;
     public bool IsArticlePaused => articlePlayer.State == PlaybackState.Paused;

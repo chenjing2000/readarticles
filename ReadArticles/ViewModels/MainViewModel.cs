@@ -28,8 +28,6 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public string? LibraryRoot => workspace.Library?.Root;
     public string ArticleTitle => Article?.Title ?? "";
     public ReaderPlayback Playback => playback;
-    public string Owner => playback.Owner;
-    public PlaybackState PlaybackState => playback.State;
     public bool CanWriteVocabulary => Article?.Vocabulary.CanWrite == true;
     public string Accent
     {

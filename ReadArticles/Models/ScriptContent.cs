@@ -11,11 +11,4 @@ public sealed record ScriptTimedUnit(string Text, double? Start, double? End, in
 {
     public int Length => Text.Length;
     public bool CanColor => Offset >= 0 && Start.HasValue && End.HasValue;
-
-    public double Progress(double seconds)
-    {
-        if (!CanColor || !double.IsFinite(seconds)) return 0;
-        double start = Start.GetValueOrDefault(), end = End.GetValueOrDefault();
-        return Math.Clamp((seconds - start) / (end - start), 0, 1);
-    }
 }
