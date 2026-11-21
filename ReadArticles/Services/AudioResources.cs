@@ -13,7 +13,16 @@ public sealed class AudioResources
                 string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase)))
             .ThenBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
             .ThenBy(path => Path.GetFileName(path), StringComparer.Ordinal)
-            .Select(path => ResourcePaths.Resolve(root, Path.GetFileName(path)))
+            .Select(path =>
+            {
+                try { return ResourcePaths.Resolve(root, Path.GetFileName(path)); }
+                catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
+                {
+                    AppLogger.Default.Warning("AudioCandidatePathRejected", error);
+                    return null;
+                }
+            })
+            .OfType<string>()
             .ToArray();
     }
     public string Vocabulary(string root, VocabularyEntry entry, string accent)
