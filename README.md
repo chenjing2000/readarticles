@@ -25,7 +25,7 @@ Start with the [documentation index](docs/README.md):
 - [Image-to-passage conversion skill](docs/skills/image_to_passage/SKILL.md)
 - [Passage organization and segmentation skill](docs/skills/passage_segment/SKILL.md)
 - [Vocabulary preparation from structured or plain input](docs/Vocabulary-Preparation.md)
-- [Running, publishing, and troubleshooting](docs/Getting-Started.md)
+- [Running and troubleshooting](docs/User-Guide.md) and [publishing](docs/Publishing.md)
 - [Regression categories and manual acceptance](docs/Testing.md)
 - [Runtime logging and retention](docs/Logging.md)
 - [Project contract and review rules](docs/project-contract.md)
