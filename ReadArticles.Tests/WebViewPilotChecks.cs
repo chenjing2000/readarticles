@@ -598,7 +598,9 @@ internal static class WebViewPilotChecks
                 WaitFor(() => Evaluate(browser,
                     "document.querySelectorAll('#notification-cards .notice.error').length")
                     .GetInt32() == 1, "browser error notification");
-                window.ViewModel.Notifications.Dismiss(notice!.Id);
+                Evaluate(browser, "document.querySelector('#notification-cards .notice-close').click(); true");
+                WaitFor(() => window.ViewModel.Notifications.Messages.All(n => n.Id != notice!.Id),
+                    "browser close button acknowledges notification");
                 WaitFor(() => Evaluate(browser,
                     "document.querySelectorAll('#notification-cards .notice.error').length")
                     .GetInt32() == 0, "browser notification dismissal");
