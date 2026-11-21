@@ -95,7 +95,7 @@ public sealed class PlaybackController
                 player.Stop();
                 long token = ++request;
                 awaitingOpen = true;
-                State = PlaybackState.Playing;
+                State = State == PlaybackState.Paused ? PlaybackState.Paused : PlaybackState.Playing;
                 player.Play(path, token);
                 if (token == request && State != PlaybackState.Stopped)
                     Changed?.Invoke();
@@ -115,6 +115,7 @@ public sealed class PlaybackController
         if (token != request || State == PlaybackState.Stopped) return;
         awaitingOpen = false;
         candidates = null;
+        if (State == PlaybackState.Paused) player.Pause();
         Changed?.Invoke();
     }
 
