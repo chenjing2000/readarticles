@@ -12,9 +12,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite 
 
 ## Suites
 
-- **Core** runs publishing safeguards and data/audio/Script contracts, WebView2 snapshot checks, real browser DOM rendering, tree navigation, vocabulary commit and notification tests.
-- **UI** runs Core plus native window/tree checks, WebView2 browser rendering, settings and control checks. Run it on an interactive Windows desktop.
-- **Full** runs the complete application regression suite, real M4A/MP3/WAV playback checks, and read-only checks against the unified test article. Run this locally before merging; it does not require a developer-specific article directory.
+- **Core** runs publishing safeguards, isolated logger checks and one `--core-suite` process for data/audio/Script contracts, WebView2 snapshots and real DOM rendering, tree navigation, vocabulary commits and notifications. Each test method runs once.
+- **UI** uses one `--ui-suite` process for the same Core cases plus native window/tree, settings, controls, icons and backups, with no duplicate test methods. The isolated logger check still runs once. Run UI on an interactive Windows desktop.
+- **Full** runs the complete application regression suite (including logger checks), real M4A/MP3/WAV playback checks, and separate read-only checks against the unified test article. It does not re-run logger checks in a separate process. Run this locally before merging; it does not require a developer-specific article directory.
+
+The existing targeted `--*-only` entry points remain unchanged for focused development tests. Core and UI consolidate previously overlapping categories without removing any unique assertions.
 
 The single Windows CI workflow runs on pushes and pull requests to `main` (and manual dispatch). Its Core suite already includes real WebView2 DOM tests; the retired feature-branch pilot workflow has been removed. Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
 
@@ -26,12 +28,11 @@ The summary distinguishes Passed, Failed, and Skipped groups. A skipped group is
 tests/TestData/
 ├── Library/                 # Fixed article and vocabulary JSON
 ├── Audio/
-│   ├── audio/               # Shared vocabulary UK/US recordings
-│   └── audio_sentences/     # Legacy unused source recordings
+│   └── audio/               # Shared vocabulary UK/US recordings
 └── README.md                # Inventory and fixture rules
 ```
 
-The main Passage contains 13 paragraphs, 62 sentence strings, a JSON title, and 120 vocabulary entries. Only whole-article and vocabulary audio playback are supported; the legacy sentence recording pool is unused. Test-specific WAV/M4A candidates, corrupt media, filename ordering and asynchronous fallback are created under isolated temporary directories. Do not maintain duplicate permanent media fixtures.
+The main Passage contains 13 paragraphs, 62 sentence strings, a JSON title, and 120 vocabulary entries. Only whole-article and vocabulary audio playback are supported; no sentence-recording fixtures are needed. Test-specific WAV/M4A candidates, corrupt media, filename ordering and asynchronous fallback are created under isolated temporary directories. Do not maintain duplicate permanent media fixtures.
 
 ## Outputs
 
@@ -45,7 +46,7 @@ Scratch directories and copied audio are not test outputs; they belong in the OS
 
 ## Runtime logging checks
 
-Every suite runs the isolated logger checks through `--logging-only`. They verify that exception messages and learning content are omitted, daily files rotate within their size bound, expired files and excess total storage are pruned, and log-directory failures never escape into application code. The tests use temporary directories and do not write into the real `userdata/logs/` folder.
+Core and UI run the isolated logger checks through `--logging-only`; Full runs the same `AppLoggerChecks` within its complete application regression suite, without a duplicate invocation. These checks verify that exception messages and learning content are omitted, daily files rotate within their size bound, expired files and excess total storage are pruned, and log-directory failures never escape into application code. The tests use temporary directories and do not write into the real `userdata/logs/` folder.
 
 After launching the actual portable application, inspect `dist/ReadArticles/userdata/logs/` to confirm that a daily log is created. The application does not log article or vocabulary content.
 

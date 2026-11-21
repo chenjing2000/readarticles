@@ -79,9 +79,9 @@ internal static class ContentChecks
             json.AsObject().Remove("title");
             File.WriteAllText(passage, json.ToJsonString());
             var workspace = new ReaderWorkspace();
-            workspace.OpenArticle(TestData.ArticlePath);
+            workspace.CommitArticle(new ArticleRepository().Load(TestData.ArticlePath));
             var previous = workspace.Article;
-            ExpectInvalid(() => workspace.OpenArticle(passage));
+            ExpectInvalid(() => workspace.CommitArticle(new ArticleRepository().Load(passage)));
             Program.Check(ReferenceEquals(previous, workspace.Article));
         });
         RunCopyTest("empty title is valid and file name does not override it", (root, passage) =>
@@ -99,11 +99,11 @@ internal static class ContentChecks
                 paragraph!.AsArray().Clear();
             File.WriteAllText(passage, json.ToJsonString());
             var workspace = new ReaderWorkspace();
-            workspace.OpenArticle(TestData.ArticlePath);
+            workspace.CommitArticle(new ArticleRepository().Load(TestData.ArticlePath));
             var previous = workspace.Article;
             try
             {
-                workspace.OpenArticle(passage);
+                workspace.CommitArticle(new ArticleRepository().Load(passage));
                 throw new Exception("Empty passage was accepted.");
             }
             catch (InvalidDataException error)
@@ -137,9 +137,9 @@ internal static class ContentChecks
             json["paragraphs"]![0]![0] = "Invalid [[2147483648]] placeholder";
             File.WriteAllText(invalid, json.ToJsonString());
             var workspace = new ReaderWorkspace();
-            workspace.OpenArticle(TestData.ArticlePath);
+            workspace.CommitArticle(new ArticleRepository().Load(TestData.ArticlePath));
             var previous = workspace.Article;
-            ExpectInvalid(() => workspace.OpenArticle(invalid));
+            ExpectInvalid(() => workspace.CommitArticle(new ArticleRepository().Load(invalid)));
             Program.Check(ReferenceEquals(previous, workspace.Article));
         });
         RunCopyTest("nested vocabulary metadata survives atomic roundtrip", (root, passage) =>

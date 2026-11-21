@@ -39,10 +39,6 @@ try {
         Invoke-TestCommand 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/Test-Publish.ps1')
     }
 
-    Invoke-TestCheck 'Runtime logging safeguards' {
-        Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', '--logging-only')
-    }
-
     if ($Suite -eq 'Full') {
         Invoke-TestCheck 'Complete application regression suite' {
             Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release')
@@ -52,13 +48,12 @@ try {
         }
     }
     else {
-        foreach ($category in @('--content-only', '--rendering-only', '--tree-only', '--editing-only', '--notifications-only', '--lazy-tree-only')) {
-            Invoke-TestCheck $category { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', $category) }
+        Invoke-TestCheck 'Runtime logging safeguards' {
+            Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', '--logging-only')
         }
-        if ($Suite -eq 'UI') {
-            foreach ($category in @('--icons-only', '--window-only', '--controls-only')) {
-                Invoke-TestCheck $category { Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', $category) }
-            }
+        $category = if ($Suite -eq 'UI') { '--ui-suite' } else { '--core-suite' }
+        Invoke-TestCheck $category {
+            Invoke-TestCommand 'dotnet' @('run', '--project', 'ReadArticles.Tests', '-c', 'Release', '--', $category)
         }
     }
 

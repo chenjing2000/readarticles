@@ -9,11 +9,6 @@ public sealed class ReaderWorkspace
         Library = prepared;
         Article = null;
     }
-    public void OpenArticle(string path)
-    {
-        var prepared = new ArticleRepository().Load(path);
-        CommitArticle(prepared);
-    }
     public void CommitArticle(LoadedArticle prepared) => Article = prepared;
     public void ReplaceVocabulary(VocabularyData vocabulary)
     {
