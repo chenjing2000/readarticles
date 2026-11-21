@@ -119,14 +119,13 @@ internal static class WebViewPilotChecks
                     (() => ({
                       title: document.getElementById('article-title').textContent,
                       paragraphs: document.querySelectorAll('#article-body .article-paragraph').length,
-                      sentences: document.querySelectorAll('#article-body .sentence[data-sid]').length,
+                      sentences: document.querySelectorAll('#article-body .sentence[data-sentence-index]').length,
                       words: document.querySelectorAll('#vocabulary-list .word-row').length,
                       playable: !document.getElementById('article-play').disabled
                     }))()
                     """);
-                // ArticleRepository derives Passage titles from the opened filename.
-                // The isolated test copy is WebViewFixture.json, not the source name.
-                string expectedTitle = Path.GetFileNameWithoutExtension(article);
+                // Passage titles come exclusively from JSON, never from the test copy's filename.
+                string expectedTitle = "When America walks away";
                 bool validPassage = passage.GetProperty("title").GetString() == expectedTitle &&
                     passage.GetProperty("paragraphs").GetInt32() == 13 &&
                     passage.GetProperty("sentences").GetInt32() == 62 &&
@@ -349,7 +348,7 @@ internal static class WebViewPilotChecks
                 // without another selectionchange, and clears when selection ends.
                 JsonElement selectionTracking = Evaluate(browser, """
                     (() => {
-                      const sentence = document.querySelector('#article-body .sentence[data-sid]');
+                      const sentence = document.querySelector('#article-body .sentence[data-sentence-index]');
                       sentence.scrollIntoView({ block: 'center' });
                       const walker = document.createTreeWalker(sentence, NodeFilter.SHOW_TEXT);
                       let text;
@@ -377,7 +376,7 @@ internal static class WebViewPilotChecks
                     .GetInt32() >= originalX + 10, "repaint-paced selection tracking after layout shift");
                 Program.Check(Evaluate(browser, """
                     (() => {
-                      document.querySelector('#article-body .sentence[data-sid]').parentElement.style.transform = '';
+                      document.querySelector('#article-body .sentence[data-sentence-index]').parentElement.style.transform = '';
                       window.getSelection().removeAllRanges();
                       return true;
                     })()

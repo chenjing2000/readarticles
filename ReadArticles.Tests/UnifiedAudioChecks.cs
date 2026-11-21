@@ -28,22 +28,6 @@ internal static class UnifiedAudioChecks
                 var word = JsonNode.Parse(File.ReadAllText(path))!["words"]![0]!;
                 Program.Check(word["audio"] == null && (string?)word["source"] == "kept");
             });
-            Program.Run("sentence audio derives SID without paths and blank detection uses placeholders", () =>
-            {
-                string path = Path.Combine(root, "Article.json");
-                File.WriteAllText(path, """{"filetype":"passage","next_sid":2,"paragraphs":[{"paragraph":[{"sid":"s001","text":"Test.","audio":42}]}]}""");
-                var article = new ArticleRepository().Load(path);
-                Program.Check(!article.IsBlank);
-                Directory.CreateDirectory(Path.Combine(root, "audio_sentences"));
-                string wav = Path.Combine(root, "audio_sentences", "s001_uk.wav");
-                File.WriteAllBytes(wav, [1]);
-                Program.Check(new AudioResources().Segment(root, article.Segments.First(), "uk") == wav);
-                string mp3 = Path.ChangeExtension(wav, ".mp3"); File.WriteAllBytes(mp3, [1]);
-                Program.Check(new AudioResources().Segment(root, article.Segments.First(), "uk") == mp3);
-                File.WriteAllText(path, File.ReadAllText(path).Replace("Test.", "Test [[1]]."));
-                var blank = new ArticleRepository().Load(path);
-                Program.Check(blank.IsBlank && !blank.Segments.First().HasAudio);
-            });
             Program.Run("word lookup uses audio MP3 before WAV and ignores old directory", () =>
             {
                 var resources = new AudioResources();
@@ -61,19 +45,19 @@ internal static class UnifiedAudioChecks
                 File.WriteAllBytes(mp3, []);
                 Program.Check(resources.Vocabulary(root, entry, "uk") == mp3 && !AudioResources.IsAvailable(mp3));
             });
-            Program.Run("whole article chooses MP3 first and falls back to sorted WAV", () =>
+            Program.Run("whole article candidates sort M4A MP3 WAV then filenames", () =>
             {
                 string folder = Path.Combine(root, "whole"); Directory.CreateDirectory(folder);
-                string wav = Path.Combine(folder, "a.wav"); File.WriteAllBytes(wav, [1]);
-                var resources = new AudioResources();
-                Program.Check(resources.ArticleFile(folder) == wav);
-                string mp3 = Path.Combine(folder, "z.mp3"); File.WriteAllBytes(mp3, [1]);
-                Program.Check(resources.ArticleFile(folder) == mp3);
+                foreach (string name in new[] { "z.m4a", "a.wav", "b.mp3", "a.M4A", "a.mp3", "b.m4a" })
+                    File.WriteAllBytes(Path.Combine(folder, name), [1]);
+                string[] expected = ["a.M4A", "b.m4a", "z.m4a", "a.mp3", "b.mp3", "a.wav"];
+                var found = new AudioResources().ArticleFiles(folder).Select(Path.GetFileName).ToArray();
+                Program.Check(found.SequenceEqual(expected));
             });
             Program.Run("collision words remain editable and only first owns audio after reorder", () =>
             {
                 string path = Path.Combine(root, "Collision.json");
-                File.WriteAllText(path, """{"filetype":"passage","next_sid":2,"paragraphs":[{"paragraph":[{"sid":"s001","text":"Test."}]}]}""");
+                File.WriteAllText(path, """{"filetype":"passage","title":"Test","paragraphs":[["Test."]]}""");
                 File.WriteAllText(Path.ChangeExtension(path, ".vocabulary.json"), """{"filetype":"vocabulary","words":[{"word":"well-being","meanings":[]},{"word":"well being","meanings":[]},{"word":"!!!","meanings":[]}]}""");
                 using var first = new AudioChecks.FakePlayer(); using var second = new AudioChecks.FakePlayer();
                 var model = new MainViewModel(new PlaybackController(first), new PlaybackController(second));

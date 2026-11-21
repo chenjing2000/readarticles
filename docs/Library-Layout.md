@@ -14,10 +14,7 @@ Library/                              <- select this directory
       When America walks away/        <- optional article directory
         When America walks away.json
         When America walks away.vocabulary.json
-        article.mp3
-        audio_sentences/
-          s001_uk.mp3
-          s001_us.mp3
+        article.m4a
         audio/
           be_stuck_in_uk.mp3
           be_stuck_in_us.mp3
@@ -38,9 +35,8 @@ Opening a library discovers only immediate book directories and checks for `book
 | `book.json` | Required marker for each book | Book directory itself | Only its existence is checked; its contents are not parsed |
 | `<title>.json` | Required to read a passage | Anywhere inside a recognized book, outside excluded branches | Parsed only when selected; must have `filetype: "passage"` |
 | `<title>.vocabulary.json` | Optional | Same directory and same filename stem as the passage | Automatically loaded with the passage; missing file gives an empty, writable word list |
-| `audio_sentences/` and its MP3/WAV files | Optional physical files | Passage directory | SID-derived names; no JSON paths; missing files warn without blocking reading; blank passages disable sentence audio |
 | `audio/` and its MP3/WAV files | Optional physical files | Passage directory | Names derived from word stem; missing or empty files disable pronunciation buttons; later stem collisions have no audio eligibility |
-| One whole-article `.mp3` or `.wav` | Optional | Directly beside the passage JSON | Used only by the central bottom play/pause button |
+| One whole-article `.m4a`, `.mp3` or `.wav` | Optional | Directly beside the passage JSON | Used only by the central bottom play/pause button |
 | `userdata/xiaoxin/answer_sheet.json` | Optional | Relative to the book directory | Only `username` is read for the account label; authentication and exercise answering are not implemented |
 | `<title>.exercise.json` | Optional authoring companion | Beside the passage | Excluded from navigation and not read or displayed by the main-branch reader |
 | Images, PDFs, text, and other non-JSON source files | Optional stored material | Any convenient location | Not opened by the reader and not shown as passage leaves |
@@ -55,7 +51,7 @@ A book is listed whenever its immediate directory contains `book.json`, even if 
 
 ## 3. Passage and vocabulary naming
 
-The passage filename supplies the title displayed in the center pane. A JSON `title` field is not used.
+The Passage JSON `title` field supplies the center-pane title, including an empty string to hide it. The filename only identifies the passage and its matching companion files; it does not supply a title fallback.
 
 For a passage named `Example.json`, the automatically loaded companion is exactly `Example.vocabulary.json`. The application does not search for an arbitrary vocabulary file in the same folder.
 
@@ -65,39 +61,26 @@ Import replaces the active article's word list and saves the result to its match
 
 See the [passage skill](skills/passage_segment/SKILL.md) and [vocabulary skill](Vocabulary-Preparation.md) for the exact JSON structures.
 
-## 4. Three independent audio lookups
+## 4. Whole-article and vocabulary audio
 
 ### Whole-article playback
 
-The central bottom play/pause button searches only the passage JSON's own directory. Select the first MP3 by ordinal case-insensitive filename sorting with ordinal comparison as a tie-breaker; only if no MP3 exists, select the first WAV using the same sorting. Extensions are compared case-insensitively. A matching title is not required.
+The bottom play/pause button searches only the directory containing the Passage JSON. The filename need not match the Passage filename or JSON title. Extensions are compared case-insensitively. Candidate files are sorted by **extension priority** (`.m4a`, then `.mp3`, then `.wav`), then by filename using ordinal case-insensitive ordering with ordinal comparison as a tie-breaker. Each candidate is attempted in this single order. If opening/decoding fails, continue with the next file, including other files of the same extension. Stop searching once one file opens successfully. Report one failure only after all candidates fail.
 
-MP3 priority applies across the directory: `z-reading.mp3` wins over `a-reading.wav`. Nested recordings are ignored. There is no sentence-directory fallback, concatenation, or automatic next-file playback. Accent selection does not change this file. If no sibling recording exists, show an error while leaving pronunciation running. If the selected file is empty or cannot decode, report failure without selecting another file or falling back from MP3 to WAV.
-
-### Sentence playback
-
-Right-clicking passage text requests the sentence identified by its SID:
-
-```text
-audio_sentences/<sid>_uk.mp3 or .wav
-audio_sentences/<sid>_us.mp3 or .wav
-```
-
-The selected accent determines the suffix. Check MP3 existence first, WAV only if MP3 is absent; decoding failure does not retry WAV. No JSON path declaration is required. Valid body `[[n]]` placeholders identify blank passages, whose sentence playback remains disabled; absence of `audio` fields does not identify blanks.
+Only direct sibling files qualify; nested files are ignored. Do not concatenate audio or start another file after normal playback completes. A playback failure *after successful opening* is reported rather than restarting another recording. User stop, article switch and window shutdown cancel pending candidate attempts. Selecting UK/US pronunciation does not change the whole-article recording.
 
 ### Vocabulary playback
 
-Word pronunciation uses derived filenames:
+Word pronunciation uses names derived from the word stem:
 
 ```text
 audio/<stem>_uk.mp3 or .wav
 audio/<stem>_us.mp3 or .wav
 ```
 
-The exact ASCII-only stem algorithm is defined in [Vocabulary Preparation](Vocabulary-Preparation.md). Reserve each nonempty stem for the first entry in `words` order before checking files. Later collisions and empty stems retain their entries but disable all audio; missing first-owner recordings never pass ownership to a later entry. Existing spelling-duplicate validation remains unchanged. Reordering may change the owner. For each accent MP3 wins by existence, WAV only when MP3 is absent; decoding failure does not retry WAV.
+The exact ASCII-only stem algorithm is defined in [Vocabulary Preparation](Vocabulary-Preparation.md). Reserve each nonempty stem for the first entry in `words` order before checking files. Later collisions and empty stems keep their entries but have no audio eligibility. For each accent, an existing MP3 wins; WAV is considered only if MP3 is absent. Decoding failure does not retry WAV. No M4A vocabulary support is added.
 
-Neither vocabulary nor passage segments store `audio` path fields. Old `audio` fields are ignored during reading. Saving vocabulary removes its old fields; ReadArticles does not save or rewrite passage JSON, so passage fields are removed only by the external preparation skill when regenerating content. The upgrade does not read old `audio_vocabulary/`, `audio_segments/`, index files, or arbitrary paths; it does not migrate resources or try previous naming rules.
-
-Whole-article audio has its own player; sentence and vocabulary audio share a second player. Starting pronunciation pauses the article while preserving its position. Starting or resuming the article stops pronunciation. The bottom stop button stops only the article audio; closing the window or opening another article stops both players.
+Passage and Vocabulary JSON never declare media paths. Passage sentences have no SID and no sentence recordings: the old `audio_sentences/` convention and segment player are removed. Whole-article audio has its own player; vocabulary pronunciation uses a second player. Pronunciation pauses article playback at the current position. Resuming article playback stops pronunciation; the bottom stop control affects only article audio. Closing the window or opening another article stops both.
 
 ## 5. Excluded branches and safe paths
 
@@ -115,7 +98,7 @@ Source images and the original Python ZIP are preparation/reference material. Re
 
 ## 7. Lazy navigation and refresh
 
-The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's direct JSON passage candidates and immediate subdirectories. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Passage JSON is parsed only when opened, and sentence audio is checked only when requested for playback.
+The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's direct JSON passage candidates and immediate subdirectories. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Passage JSON is parsed only when opened, and whole-article audio candidates are checked only when playback is requested.
 
 Collapsing invalidates pending scans; reopening refreshes that directory. When a refresh fails, the last successful snapshot is retained where available and a warning is shown. Navigation excludes the files and folders described in [Excluded branches and safe paths](#5-excluded-branches-and-safe-paths); there is no recursive pre-scan.
 
@@ -125,6 +108,6 @@ For an existing `<name>.json` Passage, place `<name>.script.json` in the **same 
 
 The Script JSON root must have `"filetype": "script"`, `"title": ""` (or another string), and nonempty `"paragraphs"`. Every paragraph is a nonempty array of sentences; each sentence has nonempty `"text"` and `"timed_units"` array. Timed units are exactly `[displayText, startSeconds, endSeconds]`: displayText is a nonempty string; both time fields must be null or valid finite nonnegative numbers with end greater than start. Empty timed_units arrays are valid.
 
-The application uses `text` as the displayed source; timed-unit text is located in original sentence order when rendering, but its alignment is not an admission check. Unlocatable units are not colored. Script and Passage text need not match. A nonempty Script title uses the regular Passage title styling; an empty title hides the title. Script has no SID-linked sentence pronunciation or blank placeholders. The original Passage file determines the directory used for whole-article audio and the companion vocabulary file; Script never changes those lookup rules.
+The application uses `text` as the displayed source; timed-unit text is located in original sentence order when rendering, but its alignment is not an admission check. Unlocatable units are not colored. Script and Passage text need not match. A nonempty Script title uses the regular Passage title styling; an empty title hides the title. Script has timed sentence units and no fill-in-the-blank placeholders; Passage also has no sentence pronunciation. The original Passage file determines the directory used for whole-article audio and the companion vocabulary file; Script never changes those lookup rules.
 
 The music icon is dark grey for Passage and colored for Script. Vocabulary highlighting independently controls the background in both views. The audio clock controls Script foreground progress, which is cleared when article playback stops or naturally ends. Neither source JSON is modified.

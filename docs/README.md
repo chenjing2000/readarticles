@@ -17,7 +17,7 @@ This index links to the **current** application contracts, developer guides, and
 | [Runtime logging](Logging.md) | Diagnostic events, retention and privacy |
 | [Testing and acceptance](Testing.md) | Core/UI/Full, fixtures and manual/published checks |
 | [Publishing](Publishing.md) | Portable release and protected replacement |
-| [Test fixtures](../tests/TestData/README.md) | Fixed test data and deliberately missing recordings |
+| [Test fixtures](../tests/TestData/README.md) | Fixed article and vocabulary fixtures |
 
 ## Skills
 

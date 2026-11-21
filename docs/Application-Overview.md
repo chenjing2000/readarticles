@@ -2,13 +2,13 @@
 
 ## Design goals
 
-ReadArticles is a local Windows reading and vocabulary application. WPF hosts the left library tree and one WebView2 hosts the passage and vocabulary panes. Content remains in ordinary JSON and MP3/WAV files so it can be prepared outside the application and inspected without a database.
+ReadArticles is a local Windows reading and vocabulary application. WPF hosts the left library tree and one WebView2 hosts the passage and vocabulary panes. Content remains in ordinary JSON and M4A/MP3/WAV files so it can be prepared outside the application and inspected without a database.
 
 The design favors explicit responsibilities, concrete services, and small functions. It avoids a dependency-injection container, generic repository framework, event bus, and plugin architecture. A single audio-player interface is retained because it separates native media playback from deterministic playback tests.
 
 ## Framework and execution
 
-The application uses C# and WPF, targeting `net10.0-windows` with runtime version `10.0.11` or a later compatible patch. The build SDK is selected by `global.json`, currently `10.0.400`. WPF XAML defines the native window and directory tree. A single embedded WebView2 renders Passage/Script content, vocabulary, controls, text selection, highlighting and notifications using static HTML/CSS/JavaScript. WPF media playback supplies MP3/WAV decoding and progress through the C# playback service. WebView2 Evergreen Runtime is a separate system requirement.
+The application uses C# and WPF, targeting `net10.0-windows` with runtime version `10.0.11` or a later compatible patch. The build SDK is selected by `global.json`, currently `10.0.400`. WPF XAML defines the native window and directory tree. A single embedded WebView2 renders Passage/Script content, vocabulary, controls, text selection, highlighting and notifications using static HTML/CSS/JavaScript. WPF media playback supplies system-supported M4A/MP3/WAV decoding and progress through the C# playback service. WebView2 Evergreen Runtime is a separate system requirement.
 
 JSON handling uses `System.Text.Json`; files remain the storage layer. The original Python application is a migration reference, not a runtime dependency or required repository file. The former WPF passage renderer was removed after WebView2 migration.
 
@@ -28,7 +28,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. The origi
 | `ViewModels/MainViewModel.Vocabulary.cs` | Prepare word commands and coordinate vocabulary edits and commits |
 | `ViewModels/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |
 | `ViewModels/VocabularyEntryViewModel.cs` | A word's display fields, available pronunciation actions, and move/delete commands |
-| `Models/` | Passage segments, SIDs, selection ranges, vocabulary entries, navigation nodes, and loaded snapshots |
+| `Models/` | Passage sentence arrays, selection ranges, vocabulary entries, navigation nodes, and loaded snapshots |
 | `Services/LibraryRepository.cs` | Discover immediate book directories and scan each expanded folder one level at a time without parsing passage content |
 | `Services/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` coordinates the matching vocabulary, missing-audio warnings, and the loaded snapshot |
 | `Services/VocabularyRepository.cs` | Validate vocabulary, derive audio stems, and save with external-change detection |
@@ -107,7 +107,7 @@ The application reads passages and vocabulary and plays existing audio. OCR, voc
 
 Matching is literal and case-insensitive, not morphological: `convict` does not automatically match `convicted`, and straight/curly apostrophes are not normalized. ASCII letters, apostrophes, and hyphens participate in word boundaries; digits deliberately do not. Among matches starting at the same position, the longest wins. These details matter when authoring canonical vocabulary entries.
 
-Each playback controller owns one audio file at a time. It has no paragraph queue or multi-file playlist. Playback state belongs to the controller, coordination between the two players belongs to ReaderPlayback, and timers and controls belong to MainWindow.Playback. The existing concrete repositories and window partial classes remain together; small repeated UI operations do not require another abstraction layer.
+Each playback controller owns one active audio file at a time. Whole-article opening may advance across a fixed sorted list of candidate files; it is not a playback playlist. Playback state belongs to the controller, coordination between the two players belongs to ReaderPlayback, and timers and controls belong to MainWindow.Playback. The existing concrete repositories and window partial classes remain together; small repeated UI operations do not require another abstraction layer.
 
 Tests exercise these production modules directly; the obsolete prototype application has been removed. See [Testing](Testing.md) for categories and their data ownership. Exercise authoring remains in the supplied skills, but there is no exercise runtime module on main.
 
@@ -121,9 +121,7 @@ ReaderSettings owns structured defaults, recovery and validation for typography,
 
 Native window/column dimensions use WPF layout; browser scrollbars, text wrapping, SVG clip geometry and selection positions use Chromium layout. Saved legacy pane widths do not restore on restart.
 
-Audio filenames are inferred without JSON paths: word files are `audio/<stem>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`; sentence files are `audio_sentences/<sid>_uk.mp3` or `.wav` and `_us.mp3` or `.wav`. Derive stems by trimming, invariant lowercasing, replacing non-ASCII `a-z`/`0-9` characters with `_`, collapsing underscores, and trimming underscores. First entries reserve nonempty stems in `words` order regardless of recordings; later collisions and empty stems retain text with all audio disabled. Spelling uniqueness is unchanged. Blank articles are identified by valid body `[[n]]` placeholders and disable sentence audio.
-
-For each pronunciation target prefer MP3 by existence, otherwise WAV. Whole-article playback sorts sibling filenames as before, selecting the first MP3 or, only if none exists, the first WAV. Decoding failure never retries WAV or the next file. Old audio directories, naming rules, indexes, and JSON paths are not fallback sources; resources are not migrated. See [Library Layout](Library-Layout.md) for the full contract.
+Whole-article audio is selected from an ordered list of sibling M4A, MP3 and WAV files (extension priority, then ordinal filename ordering). The playback controller tries the next candidate only if opening fails; successful open ends selection. Sentence audio and SID-based paths are removed. Vocabulary pronunciation is still derived from `audio/<stem>_uk.mp3` or `.wav` and corresponding `_us` files; the existing MP3-before-WAV rule remains unchanged.
 
 ## Service boundaries
 

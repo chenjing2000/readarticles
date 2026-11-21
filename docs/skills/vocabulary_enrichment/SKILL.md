@@ -23,6 +23,8 @@ Optional context:
 
 The Passage, when provided, is authoritative context and must never be modified.
 
+A source Passage uses the current three-key format: `filetype: "passage"`, independent string `title`, and `paragraphs` as arrays of sentence strings (`string[][]`). Read its sentences in paragraph order and join adjacent sentences with spaces only when establishing natural reading order or locating phrases. Do not expect sentence objects, `sid`, `text`, `next_sid`, or audio metadata. Use the Passage text, not its filename or display title, to identify contextual meanings and first occurrences.
+
 Return the **complete final `<title>.vocabulary.json`** as raw JSON only. Do not return Markdown fences, commentary, diffs, reasoning, confidence, or temporary analysis fields. This skill does not generate audio files.
 
 ## 2. Schema and Editing Permissions

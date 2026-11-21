@@ -1,6 +1,6 @@
 # ReadArticles
 
-ReadArticles is a local C# / WPF application for English reading, vocabulary editing, and playback of existing MP3 and WAV files. It uses a directory tree, passage pane, and vocabulary pane backed by ordinary JSON files.
+ReadArticles is a local C# / WPF application for English reading, vocabulary editing, and playback of existing M4A, MP3 and WAV files. It uses a directory tree, passage pane, and vocabulary pane backed by ordinary JSON files.
 
 ## Run
 
@@ -8,7 +8,7 @@ On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatib
 
 Startup loads only a collapsed library tree. It does not restore a passage or vocabulary. Routine successful actions are quiet; informational and warning notifications expire automatically, while unacknowledged errors remain accessible until dismissed. The former bottom status row is removed.
 
-The bottom play/pause, stop, and progress controls own only the first sorted MP3 directly beside the passage JSON, or the first sorted WAV if no MP3 exists. Sentence audio uses `audio_sentences/`; word audio uses `audio/`. Both use derived filenames, with MP3 preferred by existence and WAV used only when MP3 is absent; decoding failure does not retry WAV. JSON audio path fields are ignored on load. Vocabulary saves remove its old fields; passage JSON is not saved by the application, so external preparation tools remove its fields when regenerating content. No old-directory, naming, or index fallback or resource migration is provided. These pronunciations share a second player: starting pronunciation pauses the article, and starting or resuming the article stops pronunciation. Vocabulary editing writes the active companion JSON, so use working copies for experiments.
+The whole-article player tries sibling M4A, MP3, then WAV recordings in filename order within each format until one opens successfully. There is no sentence-level audio. Word pronunciation uses derived MP3/WAV filenames under `audio/`, with MP3 preferred by existence and WAV used only when MP3 is absent; decoding failure does not retry WAV. JSON audio path fields are ignored on load. Vocabulary saves remove its old fields; passage JSON is not saved by the application, so external preparation tools remove its fields when regenerating content. No old-directory, naming, or index fallback or resource migration is provided. These pronunciations share a second player: starting pronunciation pauses the article, and starting or resuming the article stops pronunciation. Vocabulary editing writes the active companion JSON, so use working copies for experiments.
 
 ## Script reading mode
 

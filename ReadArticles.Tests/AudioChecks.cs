@@ -11,10 +11,10 @@ internal static class AudioChecks
         Program.Run("resource paths reject traversal and absolute references", () =>
         {
             string resourceRoot = Directory.GetCurrentDirectory();
-            Program.Check(ResourcePaths.Resolve(resourceRoot, "audio_sentences/s001_uk.mp3").StartsWith(resourceRoot));
+            Program.Check(ResourcePaths.Resolve(resourceRoot, "audio/life_uk.mp3").StartsWith(resourceRoot));
             Reject("../escape.mp3");
             Reject("C:/outside.mp3");
-            Reject("audio_sentences/file.mp3:stream");
+            Reject("audio/file.mp3:stream");
             void Reject(string relative)
             {
                 try { ResourcePaths.Resolve(resourceRoot, relative); }
@@ -30,7 +30,7 @@ internal static class AudioChecks
         File.WriteAllBytes(second, [1]);
         try
         {
-            Program.Run("independent players retain article position and coordinate word/segment playback", () =>
+            Program.Run("independent players retain article position and coordinate word playback", () =>
             {
                 string dualRoot = Path.Combine(root, "dual-player");
                 Directory.CreateDirectory(dualRoot);
@@ -48,21 +48,15 @@ internal static class AudioChecks
                 var entry = model.Article!.Vocabulary.Data.Words[0];
                 Directory.CreateDirectory(Path.Combine(dualRoot, "audio"));
                 File.Copy(second, Path.Combine(dualRoot, "audio", VocabularyRepository.AudioStem(entry.Word) + "_uk.mp3"));
-                string segmentPath = new AudioResources().Segment(dualRoot, model.Article!.Segments.First(), "uk");
-                Directory.CreateDirectory(Path.GetDirectoryName(segmentPath)!);
-                File.WriteAllBytes(segmentPath, new byte[] { 1 });
                 model.ToggleArticleAudio();
                 articlePlayer.Position = TimeSpan.FromSeconds(4);
                 model.PlayWord(entry, "uk");
                 Program.Check(model.Playback.IsArticlePaused && model.Playback.ArticlePosition == 4);
                 Program.Check(pronunciationController.State == PlaybackState.Playing && pronunciationPlayer.Played.Count == 1);
-                model.PlaySegment(model.Article.Segments.First().Sid);
-                Program.Check(articlePlayer.Position.TotalSeconds == 4 && articlePlayer.Pauses == 1);
-                Program.Check(pronunciationPlayer.Played.Count == 2 && model.PlayingSid == model.Article.Segments.First().Sid);
                 long stale = pronunciationPlayer.Played.Last().Request;
                 model.ToggleArticleAudio();
                 Program.Check(model.Playback.IsArticlePlaying && model.Playback.ArticlePosition == 4);
-                Program.Check(pronunciationController.State == PlaybackState.Stopped && !pronunciationPlayer.IsOpen && model.PlayingSid == null);
+                Program.Check(pronunciationController.State == PlaybackState.Stopped && !pronunciationPlayer.IsOpen);
                 Program.Check(articlePlayer.Played.Count == 1 && articlePlayer.Resumes == 1);
                 pronunciationPlayer.Complete(stale);
                 pronunciationPlayer.Fail(stale);
@@ -100,7 +94,7 @@ internal static class AudioChecks
                 playback.SeekArticle(4);
                 Program.Check(playback.IsArticlePaused && playback.ArticlePosition == 4);
                 controller.Stop();
-                foreach (string owner in new[] { "word:uk:life", "segment:s001" })
+                foreach (string owner in new[] { "word:uk:life", "word:us:life" })
                 {
                     pronunciation.Play(new AudioItem(second), owner);
                     pronunciationPlayer.Position = TimeSpan.FromSeconds(2);
@@ -139,7 +133,7 @@ internal static class AudioChecks
                 var pronunciation = new PlaybackController(new FakePlayer());
                 var playback = new ReaderPlayback(controller, pronunciation);
                 var entry = VocabularyRepository.NewEntry("life");
-                foreach (string owner in new[] { "passage", "segment:s001", "word:uk:afterlife" })
+                foreach (string owner in new[] { "passage", "word:us:other", "word:uk:afterlife" })
                 {
                     var target = owner == "passage" ? controller : pronunciation;
                     target.Play(new AudioItem(first), owner);
@@ -176,29 +170,11 @@ internal static class AudioChecks
                 Program.Check(controller.State == PlaybackState.Playing && player.Resumes == 1);
                 model.StopArticleAudio();
                 Program.Check(controller.State == PlaybackState.Stopped);
-                pronunciation.Play(new AudioItem(second, "s001"), "segment:s001");
+                pronunciation.Play(new AudioItem(second), "word:uk:life");
                 model.StopArticleAudio();
                 Program.Check(pronunciation.State == PlaybackState.Playing);
                 model.Accent = "uk";
                 Program.Check(pronunciation.State == PlaybackState.Stopped);
-            });
-            Program.Run("missing sibling MP3 preserves pronunciation but missing segment cancels it", () =>
-            {
-                string directory = Path.Combine(root, "no-sibling");
-                Directory.CreateDirectory(directory);
-                string passage = Path.Combine(directory, "Reading.json");
-                File.Copy(TestData.ArticlePath, passage);
-                var player = new FakePlayer();
-                var controller = new PlaybackController(player);
-                var pronunciationPlayer = new FakePlayer();
-                var pronunciation = new PlaybackController(pronunciationPlayer);
-                var model = new MainViewModel(controller, pronunciation);
-                Program.Check(model.OpenArticle(passage));
-                pronunciation.Play(new AudioItem(first), "word:uk:life");
-                model.ToggleArticleAudio();
-                Program.Check(pronunciation.Owner == "word:uk:life" && pronunciation.State == PlaybackState.Playing && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("MP3")));
-                model.PlaySegment("s001");
-                Program.Check(pronunciation.State == PlaybackState.Stopped && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message == "句子 s001 的英音录音文件缺失。"));
             });
             Program.Run("missing MP3 leaves the player stopped and reports a warning", () =>
             {
@@ -213,14 +189,14 @@ internal static class AudioChecks
             {
                 var player = new FakePlayer();
                 var controller = new PlaybackController(player);
-                controller.Play(new AudioItem(first, "s001"), "segment:s001");
-                Program.Check(controller.CurrentSid == "s001");
-                Program.Check(controller.ToggleCurrent("segment:s001"));
+                controller.Play(new AudioItem(first), "word:uk:life");
+                Program.Check(controller.Owner == "word:uk:life");
+                Program.Check(controller.ToggleCurrent("word:uk:life"));
                 Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 1);
-                Program.Check(controller.ToggleCurrent("segment:s001"));
+                Program.Check(controller.ToggleCurrent("word:uk:life"));
                 Program.Check(controller.State == PlaybackState.Playing && player.Resumes == 1);
                 player.Complete(player.Played.Last().Request);
-                Program.Check(controller.State == PlaybackState.Stopped && controller.Owner == "" && controller.CurrentSid == null);
+                Program.Check(controller.State == PlaybackState.Stopped && controller.Owner == "");
             });
             Program.Run("P19 switching targets ignores old media callbacks", () =>
             {
@@ -231,7 +207,7 @@ internal static class AudioChecks
                 controller.Play(new AudioItem(second), "word:uk:life");
                 player.Complete(stale);
                 player.Fail(stale);
-                Program.Check(controller.Owner == "word:uk:life" && player.Played.Count == 2 && controller.CurrentSid is null);
+                Program.Check(controller.Owner == "word:uk:life" && player.Played.Count == 2);
                 controller.Stop();
                 player.Complete(player.Played[^1].Request);
                 Program.Check(player.Played.Count == 2 && controller.State == PlaybackState.Stopped);
@@ -242,9 +218,113 @@ internal static class AudioChecks
                 var controller = new PlaybackController(player);
                 string? warning = null;
                 controller.Message += message => warning = message;
-                controller.Play(new AudioItem(first, "s001"), "segment:s001");
+                controller.Play(new AudioItem(first), "word:uk:life");
                 player.Fail(player.Played[^1].Request);
-                Program.Check(controller.State == PlaybackState.Stopped && controller.CurrentSid is null && warning is not null);
+                Program.Check(controller.State == PlaybackState.Stopped && warning is not null);
+            });
+            Program.Run("ordered candidates retry failures and stop at first opened file", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                string? warning = null;
+                controller.Message += message => warning = message;
+                controller.PlayCandidates([first, second], "passage");
+                Program.Check(player.Played.Count == 1 && player.Played[0].Path == first);
+                long failed = player.Played[0].Request;
+                player.Fail(failed);
+                Program.Check(player.Played.Count == 2 && player.Played[1].Path == second);
+                player.Open(failed);
+                Program.Check(player.Played.Count == 2 && controller.State == PlaybackState.Playing);
+                player.Open(player.Played[1].Request);
+                Program.Check(controller.IsOpen && warning is null);
+                player.Fail(player.Played[1].Request);
+                Program.Check(controller.State == PlaybackState.Stopped && warning is not null);
+            });
+            Program.Run("failed article candidates preserve active word pronunciation", () =>
+            {
+                string folder = Path.Combine(root, "broken-article");
+                Directory.CreateDirectory(folder);
+                string articlePath = Path.Combine(folder, "Article.json");
+                File.WriteAllText(articlePath, """{"filetype":"passage","title":"","paragraphs":[["Test."]]}""");
+                File.Copy(first, Path.Combine(folder, "a.m4a"));
+                var articlePlayer = new FakePlayer { AutoOpen = false };
+                var wordPlayer = new FakePlayer();
+                var articleController = new PlaybackController(articlePlayer);
+                var wordController = new PlaybackController(wordPlayer);
+                var reader = new ReaderPlayback(articleController, wordController);
+                wordController.Play(new AudioItem(first), "word:uk:test");
+                reader.ToggleArticle(new ArticleRepository().Load(articlePath));
+                Program.Check(wordController.State == PlaybackState.Playing && articlePlayer.Played.Count == 1);
+                articlePlayer.Fail(articlePlayer.Played[0].Request);
+                Program.Check(wordController.State == PlaybackState.Playing && articleController.State == PlaybackState.Stopped);
+                reader.ToggleArticle(new ArticleRepository().Load(articlePath));
+                articlePlayer.Open(articlePlayer.Played[1].Request);
+                Program.Check(wordController.State == PlaybackState.Stopped && articleController.State == PlaybackState.Playing);
+            });
+            Program.Run("pause during media opening survives failure and retry", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                controller.PlayCandidates([first, second], "passage");
+                Program.Check(controller.ToggleCurrent("passage"));
+                Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 1);
+                player.Fail(player.Played[0].Request);
+                Program.Check(player.Played.Count == 2 && controller.State == PlaybackState.Paused);
+                player.Open(player.Played[1].Request);
+                Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 2);
+                Program.Check(controller.ToggleCurrent("passage"));
+                Program.Check(controller.State == PlaybackState.Playing && player.Resumes == 1);
+            });
+            Program.Run("pause before first media-open stays paused", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                controller.PlayCandidates([first], "passage");
+                controller.Pause();
+                player.Open(player.Played[0].Request);
+                Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 2);
+            });
+            Program.Run("rejected audio symlink does not hide healthy next candidate", () =>
+            {
+                string folder = Path.Combine(root, "safe-candidates");
+                Directory.CreateDirectory(folder);
+                File.Copy(first, Path.Combine(folder, "b.mp3"));
+                string link = Path.Combine(folder, "a.m4a");
+                bool linked = false;
+                try
+                {
+                    File.CreateSymbolicLink(link, first);
+                    linked = true;
+                }
+                catch (Exception error) when (error is UnauthorizedAccessException or IOException or PlatformNotSupportedException)
+                {
+                    // Creating symbolic links may require privileges on some Windows machines.
+                }
+                var choices = new AudioResources().ArticleFiles(folder);
+                Program.Check(choices.Count == 1 &&
+                    Path.GetFileName(choices[0]) == "b.mp3" && (!linked || !choices.Contains(link)));
+            });
+            Program.Run("stopping while opening cancels remaining candidates", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                controller.PlayCandidates([first, second], "passage");
+                long stale = player.Played[0].Request;
+                controller.Stop();
+                player.Fail(stale);
+                Program.Check(player.Played.Count == 1 && controller.State == PlaybackState.Stopped);
+            });
+            Program.Run("all failed candidates report only one final failure", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                int warnings = 0;
+                controller.Message += _ => warnings++;
+                controller.PlayCandidates([first, second], "passage");
+                player.Fail(player.Played[0].Request);
+                Program.Check(warnings == 0);
+                player.Fail(player.Played[1].Request);
+                Program.Check(warnings == 1 && controller.State == PlaybackState.Stopped);
             });
             Program.Run("reader stale vocabulary entry cancels previous playback target", () =>
             {
@@ -254,7 +334,7 @@ internal static class AudioChecks
                 var pronunciation = new PlaybackController(pronunciationPlayer);
                 var model = new MainViewModel(controller, pronunciation);
                 Program.Check(model.OpenArticle(TestData.ArticlePath));
-                pronunciation.Play(new AudioItem(first, "s001"), "segment:s001");
+                pronunciation.Play(new AudioItem(first), "word:uk:life");
                 Program.Check(pronunciation.State == PlaybackState.Playing);
                 long stale = pronunciationPlayer.Played[^1].Request;
                 var invalid = new VocabularyEntry
@@ -262,26 +342,13 @@ internal static class AudioChecks
                     Word = "unsafe"
                 };
                 model.PlayWord(invalid, "uk");
-                Program.Check(pronunciation.State == PlaybackState.Stopped && pronunciation.Owner == "" && pronunciation.CurrentSid is null);
+                Program.Check(pronunciation.State == PlaybackState.Stopped && pronunciation.Owner == "");
                 Program.Check(pronunciationPlayer.Played.Count == 1 && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("音频资格")));
                 pronunciationPlayer.Complete(stale);
                 pronunciationPlayer.Fail(stale);
                 Program.Check(pronunciation.State == PlaybackState.Stopped && pronunciationPlayer.Played.Count == 1);
             });
-            Program.Run("missing audio_sentences never falls back to old audio directory", () =>
-            {
-                string directory = Path.Combine(root, "no-fallback");
-                string old = Path.Combine(directory, "audio");
-                Directory.CreateDirectory(old);
-                File.WriteAllBytes(Path.Combine(old, "s001_uk.mp3"), [1]);
-                var resources = new AudioResources();
-                var segment = new Segment("s001", "test", true);
-                string asset = resources.Segment(directory, segment, "uk");
-                Program.Check(!AudioResources.IsAvailable(asset));
-                Directory.CreateDirectory(Path.Combine(directory, "audio_sentences"));
-                File.WriteAllBytes(asset, [1]);
-                Program.Check(AudioResources.IsAvailable(resources.Segment(directory, segment, "uk")));
-            });
+
         }
         finally { Directory.Delete(root, true); }
     }
@@ -294,6 +361,7 @@ internal static class AudioChecks
         public List<(string Path, long Request)> Played { get; } = [];
         public int Pauses { get; private set; }
         public int Resumes { get; private set; }
+        public bool AutoOpen { get; set; } = true;
         public double Volume { get; set; }
         public bool IsOpen { get; private set; }
         public TimeSpan Position { get; set; }
@@ -301,15 +369,14 @@ internal static class AudioChecks
         public void Play(string absolutePath, long request)
         {
             Played.Add((absolutePath, request));
-            IsOpen = true;
-            Opened?.Invoke(request);
+            if (AutoOpen) Open(request);
         }
         public void Pause() => Pauses++;
         public void Resume() => Resumes++;
         public void Stop() { IsOpen = false; Position = TimeSpan.Zero; }
         public void Dispose() { }
         public void Complete(long request) => Ended?.Invoke(request);
-        public void Open(long request) => Opened?.Invoke(request);
+        public void Open(long request) { IsOpen = true; Opened?.Invoke(request); }
         public void Fail(long request) => Failed?.Invoke(request, "decode failed");
     }
 }

@@ -23,14 +23,21 @@ public sealed class ReaderPlayback
 
     private void ArticleChanged()
     {
-        if (articlePlayer.State == PlaybackState.Playing && pronunciationPlayer.State != PlaybackState.Stopped)
+        if (articlePlayer.State == PlaybackState.Playing && articlePlayer.IsOpen &&
+            pronunciationPlayer.State != PlaybackState.Stopped)
             pronunciationPlayer.Stop();
         Changed?.Invoke();
     }
 
     private void PronunciationChanged()
     {
-        if (pronunciationPlayer.State == PlaybackState.Playing) articlePlayer.Pause();
+        if (pronunciationPlayer.State == PlaybackState.Playing)
+        {
+            if (articlePlayer.State != PlaybackState.Stopped && !articlePlayer.IsOpen)
+                articlePlayer.Stop();
+            else
+                articlePlayer.Pause();
+        }
         Changed?.Invoke();
     }
 
@@ -39,7 +46,6 @@ public sealed class ReaderPlayback
     private PlaybackController ActivePlayer => pronunciationPlayer.State != PlaybackState.Stopped ? pronunciationPlayer : articlePlayer;
     public PlaybackState State => ActivePlayer.State;
     public string Owner => ActivePlayer.Owner;
-    public string? CurrentSid => pronunciationPlayer.CurrentSid;
     public bool IsArticleActive => articlePlayer.State != PlaybackState.Stopped;
     public bool IsArticlePlaying => articlePlayer.State == PlaybackState.Playing;
     public bool IsArticlePaused => articlePlayer.State == PlaybackState.Paused;
@@ -52,8 +58,8 @@ public sealed class ReaderPlayback
         Handle(() =>
         {
             if (articlePlayer.ToggleCurrent(ArticleOwner)) return;
-            string path = resources.ArticleFile(RequireArticle(article).Directory);
-            articlePlayer.Play(new AudioItem(path), ArticleOwner);
+            var files = resources.ArticleFiles(RequireArticle(article).Directory);
+            articlePlayer.PlayCandidates(files, ArticleOwner);
         }, false);
     }
 
@@ -65,30 +71,6 @@ public sealed class ReaderPlayback
     public void SeekArticle(double seconds)
     {
         if (CanSeekArticle) articlePlayer.Seek(seconds);
-    }
-
-    public void PlaySegment(LoadedArticle? article, string sid, string accent)
-    {
-        Handle(() =>
-        {
-            var current = RequireArticle(article);
-            var segment = current.Segments.Single(s => s.Sid == sid);
-            string path = resources.Segment(current.Directory, segment, accent);
-            if (!AudioResources.IsAvailable(path))
-            {
-                string accentName = accent == "uk" ? "英音" : "美音";
-                throw new FileNotFoundException($"句子 {sid} 的{accentName}录音文件缺失。");
-            }
-            pronunciationPlayer.Play(new AudioItem(path, sid), "segment:" + sid);
-        });
-    }
-
-    public bool CanPlaySegment(LoadedArticle? article, string sid)
-    {
-        var segment = article?.Segments.FirstOrDefault(s => s.Sid == sid);
-        // Check only whether the SID belongs to this article. Do not touch the file system
-        // while rendering controls or switching articles; PlaySegment checks availability.
-        return segment?.HasAudio == true;
     }
 
     public void PlayWord(LoadedArticle? article, VocabularyEntry entry, string accent)

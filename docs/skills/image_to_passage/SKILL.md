@@ -9,8 +9,8 @@ description: Use when converting English textbook or page images into ReadArticl
 
 Convert English reading images into reader-compatible passage content and optional external authoring companions:
 
-- required `<title>.json` with `filetype: "passage"`;
-- optional `<title>.exercise.json` with `filetype: "exercise"`, for external authoring only.
+- required `<filename>.json` with `filetype: "passage"`;
+- optional `<filename>.exercise.json` with `filetype: "exercise"`, for external authoring only.
 
 The current ReadArticles reader skips `.exercise.json` files during navigation and does not load, display, answer, or grade them. The conventions below describe optional preparation output, not implemented exercise support.
 
@@ -28,22 +28,22 @@ Input may include:
 
 When images overlap, keep duplicated source text only once.
 
-Resolve `<title>` in this order:
+Resolve the JSON display `title` in this order:
 
 1. use an explicit user-supplied title;
 2. otherwise transcribe the genuine article title shown in the source;
-3. otherwise draft a concise English title from the Passage body and continue without asking.
+3. otherwise use an empty string; do not invent a title from the filename or article body.
 
 Do not use page headers, unit labels, Exercise headings, captions, or other textbook metadata as the title.
 
-The filename stem is the authoritative Article title. Write:
+The Passage JSON `title` is the authoritative display title, independently provided or inferred from the genuine article heading. The filename stem only identifies the source and related companion files. Write:
 
 ```text
 <title>.json
 <title>.exercise.json
 ```
 
-Do not store `title` inside Passage JSON. The title must therefore be valid as a filename.
+Always store the chosen title in Passage JSON. Choose a valid filename stem separately if necessary.
 
 ## 3. Passage Extraction
 
@@ -68,26 +68,23 @@ If genuine blanks occur inside the Passage body, normalize them in reading order
 
 Do not create placeholders for separate questions outside the Passage. Each placeholder number must occur exactly once and numbering must be continuous from 1.
 
-The Passage JSON always begins with:
+The Passage JSON uses exactly `filetype`, `title`, and `paragraphs`, with an array of nonempty sentence strings for each paragraph:
 
 ```json
 {
-  "filetype": "passage"
+  "filetype": "passage",
+  "title": "Example",
+  "paragraphs": [
+    ["First sentence.", "Second sentence."]
+  ]
 }
 ```
 
-Then follow `../passage_segment/SKILL.md` exactly:
-
-- no placeholders → Article with SID-derived sentence audio;
-- placeholders → ArticleBlank with sentence playback disabled;
-- SID starts at `s001`, is Passage-wide unique, and `next_sid` is correct;
-- do not write `title` or `tts_enabled`.
-
-Neither family stores `audio` fields. Article recordings are resolved from SID under `audio_sentences/<sid>_uk.mp3` or `.wav`, and `_us.mp3` or `.wav`; prefer MP3 when present and use WAV only when MP3 is absent. Decoding errors do not retry WAV. Old directories and indexes are not read or migrated. Ignore legacy `audio` fields when processing existing content and omit them from regenerated JSON.
+Follow [Passage Segment](../passage_segment/SKILL.md) for segmentation and valid `[[n]]` placeholders. Passage has no SID, `text` object, `paragraph` wrapper, `next_sid` counter or sentence audio. No old-format compatibility is provided.
 
 ## 4. Exercise Extraction
 
-Inspect the same images for an Exercise belonging to the Passage. If none of the authoring types below is present, create only `<title>.json`.
+Inspect the same images for an Exercise belonging to the Passage. If none of the authoring types below is present, create only `<filename>.json`.
 
 For an optional external exercise companion, use one of these authoring types:
 
@@ -161,9 +158,9 @@ Uses one shared non-empty `options` array with at least two options plus non-emp
 Before returning/writing files, verify:
 
 - Passage and Exercise text are separated correctly and source order is preserved;
-- `<title>.json` satisfies `../passage_segment/SKILL.md`;
-- Passage has `filetype="passage"`, no `title`, and no `tts_enabled`;
-- no Segment contains `audio`; ArticleBlank has continuous `[[1]]..[[N]]`, while Article has no placeholders;
+- `<filename>.json` satisfies `../passage_segment/SKILL.md`;
+- Passage has `filetype="passage"`, a required string `title` (empty allowed), and two-dimensional sentence-string `paragraphs`;
+- no sentence-level audio, SID or `text` object exists; fill-in-the-blank placeholders are continuous `[[1]]..[[N]]` when present;
 - optional Exercise has `filetype="exercise"` and one of the listed authoring `article_*` types;
 - all answer-unit numbers are unique positive integers;
 - all cloze-family item numbers match Passage placeholder numbers exactly;

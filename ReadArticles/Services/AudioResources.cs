@@ -4,23 +4,26 @@ using System.IO;
 namespace ReadArticles.Services;
 public sealed class AudioResources
 {
-    public string ArticleFile(string root)
+    public IReadOnlyList<string> ArticleFiles(string root)
     {
-        foreach (string extension in new[] { ".mp3", ".wav" })
-        {
-            string? first = Directory.EnumerateFiles(root, "*", SearchOption.TopDirectoryOnly)
-                .Where(path => string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
-                .ThenBy(path => Path.GetFileName(path), StringComparer.Ordinal)
-                .FirstOrDefault();
-            if (first != null) return ResourcePaths.Resolve(root, Path.GetFileName(first));
-        }
-        throw new FileNotFoundException("文章同级目录没有 MP3/WAV 音频文件。");
-    }
-    public string Segment(string root, Segment segment, string accent)
-    {
-        if (!segment.HasAudio) throw new InvalidDataException("ArticleBlank 没有正文音频。");
-        return FindFile(root, "audio_sentences", segment.Sid, accent);
+        string[] priority = [".m4a", ".mp3", ".wav"];
+        return Directory.EnumerateFiles(root, "*", SearchOption.TopDirectoryOnly)
+            .Where(path => priority.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+            .OrderBy(path => Array.FindIndex(priority, extension =>
+                string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase)))
+            .ThenBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+            .ThenBy(path => Path.GetFileName(path), StringComparer.Ordinal)
+            .Select(path =>
+            {
+                try { return ResourcePaths.Resolve(root, Path.GetFileName(path)); }
+                catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
+                {
+                    AppLogger.Default.Warning("AudioCandidatePathRejected", error);
+                    return null;
+                }
+            })
+            .OfType<string>()
+            .ToArray();
     }
     public string Vocabulary(string root, VocabularyEntry entry, string accent)
     {

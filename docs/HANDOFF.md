@@ -1,35 +1,39 @@
-# ReadArticles — Development handoff (2026-11-20)
+# ReadArticles — Development handoff (2026-11-21)
 
-## Verified baseline and PR status
+## Current baseline
 
-- Repository: [chenjing2000/readarticles](https://github.com/chenjing2000/readarticles); local Windows directory: `C:\Projects\ReadArticles`.
-- Stable `main`: `9565fafea6e0f3a956e26cf87c4437355bdd1472` (PR [#19](https://github.com/chenjing2000/readarticles/pull/19) merged). [Windows CI #194](https://github.com/chenjing2000/readarticles/actions/runs/44717115970) passed.
-- Current work: `refactor/simplify-reader-code` and [Draft PR #20](https://github.com/chenjing2000/readarticles/pull/20). The code cleanup was committed through `66e0739`; follow-up `6018db1` removes the CS8620 nullable-type warning and updates GitHub Actions to Node.js 24-compatible v6 actions.
-- [Windows CI #199](https://github.com/chenjing2000/readarticles/actions/runs/44723293426) passed at `6018db1`: Windows build, Core regression, protected portable publish and release-layout verification. Zero GitHub check annotations. Subsequent documentation-only changes require their own CI verification.
-- **Windows real-machine acceptance confirmed by the user:** settings dialog and SVG icons; vocabulary add/delete/move/import; article and word audio; Passage/Script switching. This acceptance covers the cleanup application code through `66e0739`. Later changes through `6018db1` were test/workflow-only; no application behavior changed.
-- Local `Suite UI`, `Suite Full`, and direct `Test-PublishedApp.ps1` execution for this cleanup are **not independently confirmed** by the remote CI. Do not report them as executed unless local logs are provided.
-- **Do not merge PR #20 or delete branches without separate, explicit user approval.** The branch HEAD and PR state must be checked again before any change.
+- Repository: [chenjing2000/readarticles](https://github.com/chenjing2000/readarticles); local Windows workspace: `C:\Projects\ReadArticles`.
+- Stable `main` baseline: `9f6cdc1`. Current development: `feature/simplify-passage-audio-selection`, [Draft PR #21](https://github.com/chenjing2000/readarticles/pull/21). The PR must remain unmerged until the user separately authorizes Squash Merge.
+- [Windows CI #218](https://github.com/chenjing2000/readarticles/actions/runs/44768028098) passed for `af0c66a` (Windows build, Core regression, portable publish and release-layout verification). Later final-review fixes require fresh verification; do **not** treat this earlier CI result as verifying later commits.
+- The user ran `Test.ps1 -Suite UI` successfully (13 groups, 0 failures); then `Test.ps1 -Suite Full` successfully (94 individual regression checks, 0 failures; 6 outer checks, 0 failures) after the test-owner correction at `e473afd`. `Publish.ps1` and `Test-PublishedApp.ps1` also passed on Windows (4 published-app checks, 0 failures). The logs were explicitly supplied in chat.
+- **User-confirmed real-machine functionality:** all six categories passed: new Passage format, Script playback-synchronized foreground color, vocabulary highlighting/selection, M4A/MP3/WAV article audio and fallback, playback controls/word-audio coordination, and removed sentence-audio feature. The user selected **continue acceptance**, not final merge approval.
 
-## Changes in the current cleanup
+## Scope and retained contracts
 
-- Removed obsolete vocabulary action wrappers, unused `ReaderWorkspace.OpenLibrary` and `PassageSelection`, unused WebView2 fallback/setting handler argument, old CSS Highlight cleanup, unused segment availability argument, legacy `ReaderSettings.FontSize` alias, and unused SVG recoloring branches.
-- Updated corresponding tests to check `Try*` vocabulary outcomes and to use the current message/appearance APIs.
-- Preserved native WPF tree async cancellation, C# authoritative audio state, backup/restore and vocabulary transactional writes. Deliberately **did not** refactor the duplicate tree-generation invalidation or introduce a new abstraction.
-- This documentation cleanup removes completed migration logs, dated audits/release notes, a superseded implementation plan and redundant testing-reference content. Their history remains in Git.
+- Passage JSON is **breaking**: exactly `filetype: "passage"`, a required string `title` (empty is allowed, with no filename fallback), and `paragraphs: string[][]`. There are no sentence SIDs, `next_sid`, sentence objects, `HasAudio` or sentence playback. Preserve paragraph/sentence boundaries, valid `[[n]]` markers, and within-sentence selection using paragraph/sentence indices.
+- The optional Script companion and Vocabulary JSON schemas are unchanged. Script foreground follows whole-article playback and seek. Passage and Script source JSON are read-only; Vocabulary saves retain transactional writes, conflict detection and backups.
+- Whole-article audio candidates are taken once from the Passage JSON's direct sibling directory and ordered by extension priority **M4A → MP3 → WAV**, then filename (ordinal ignore-case, with ordinal tie-break). Attempt candidates in order until successful media opening. Opening failure continues to the next candidate, including within the same format; successful opening ends the fallback search. Stop/article switch/window close cancel pending attempts. Once successfully opened, a playback-time error does not switch recordings. Vocabulary audio remains MP3-existence-first, WAV second, without decoding fallback.
+- **No old Passage migration or compatibility logic.** The user will independently normalize their article collection. One secondary source article under `tests/TestData/Library/` is still in the *old* Passage format; the user explicitly requested **not** to convert it. Do not misrepresent it as a new-format loadable fixture or add code to accept it. Existing first-article fixed tests use the converted test fixture.
+- `docs/skills/` contains the current image-to-passage, passage segmentation, vocabulary enrichment and project-code-review contracts.
 
-## Next actions and verification
+## Final delivery review (in progress)
 
-1. Start with [project-contract.md](project-contract.md), [Application-Overview.md](Application-Overview.md), [Testing.md](Testing.md), [Publishing.md](Publishing.md), and [project-code-review skill](skills/project-code-review/SKILL.md). The [documentation index](README.md) lists the retained material.
-2. Confirm GitHub PR #20, current `refactor/simplify-reader-code` HEAD and its latest CI. The last code-bearing HEAD before this documentation cleanup is `6018db1`. Remote status does **not** prove the local working tree is clean.
-3. If additional Windows testing is required, verify `git status --short` before switching or pulling, and use the project's existing checks:
+- Static review confirmed the principal format simplification, WebView2 selection boundaries, word/audio separation and removal of SID-based calls.
+- Approved narrow fixes after the review: reject unsafe individual audio candidates without aborting later candidates; preserve a user pause while media is opening and across a candidate failure; cover both with regression tests. These fixes were applied to `AudioResources.cs`, `PlaybackController.cs`, and `AudioChecks.cs` on PR #21.
+- The second old-format source fixture must remain untouched by this review. No compatibility layer or article migration is authorized.
+- Check the latest PR head and **its own** Windows CI before reporting the final status. Distinguish automatic Core CI from local interactive UI/Full and the user's already accepted six real-machine behaviors. In previous runs, hosted WebView2 sometimes timed out on rendering handshake but succeeded on rerun of unchanged commits; do not suppress or weaken the test to hide this.
+- Do not merge PR #21, close PRs, delete development branches, or alter user article files without separate explicit authorization.
+
+## Verification and handoff commands
 
 ```powershell
 cd C:\Projects\ReadArticles
 git status --short
 git fetch origin
-git switch refactor/simplify-reader-code
-git pull --ff-only origin refactor/simplify-reader-code
+git switch feature/simplify-passage-audio-selection
+git pull --ff-only origin feature/simplify-passage-audio-selection
 
+.\tools\Test.ps1 -Suite Core
 .\tools\Test.ps1 -Suite UI
 .\tools\Test.ps1 -Suite Full
 # Close the running application before publishing.
@@ -37,4 +41,4 @@ git pull --ff-only origin refactor/simplify-reader-code
 .\tools\Test-PublishedApp.ps1
 ```
 
-4. No further code cleanup is required solely to close this documentation task. Keep PR #20 Draft pending explicit merge authorization.
+Start from [project contract](project-contract.md), [library layout](Library-Layout.md), [testing](Testing.md), and [project code review skill](skills/project-code-review/SKILL.md). Preserve the first-principles/minimal-change rule: avoid new models, compatibility branches, or unrelated cleanup. The next gate is reviewing fresh CI and presenting final acceptance options; merging remains separately authorized.
