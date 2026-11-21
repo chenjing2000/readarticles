@@ -64,27 +64,50 @@ public partial class MainWindow
     }
 
     private bool restoringTreeSelection;
+    private NavigationNode? pendingTreeRollback;
 
     private void TreeSelectionChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        if (restoringTreeSelection || e.NewValue is not NavigationNode { PassagePath: not null } node)
+        if (restoringTreeSelection || e.NewValue is not NavigationNode { PassagePath: not null } node ||
+            ReferenceEquals(node, pendingTreeRollback))
             return;
         if (SamePassage(node.PassagePath, ViewModel.Article?.FilePath)) return;
-        if (ViewModel.OpenArticle(node.PassagePath)) return;
-
-        // Restore the committed article only if its tree container already exists.
-        restoringTreeSelection = true;
-        try
+        if (ViewModel.OpenArticle(node.PassagePath))
         {
-            string? committed = ViewModel.Article?.FilePath;
-            var previous = MainViewModel.AllLeaves(ViewModel.Books)
-                .FirstOrDefault(item => SamePassage(item.PassagePath, committed));
-            if (previous is not null && SelectTreeNode(LibraryTree, previous))
-                return;
-            var selected = FindTreeContainer(LibraryTree, node);
-            if (selected is not null) selected.IsSelected = false;
+            pendingTreeRollback = null;
+            return;
         }
-        finally { restoringTreeSelection = false; }
+
+        // Finish the current mouse/keyboard selection before rolling back.
+        // A rollback performed inside SelectedItemChanged can reselect the bad leaf.
+        string? committed = ViewModel.Article?.FilePath;
+        pendingTreeRollback = node;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+        {
+            if (!ReferenceEquals(pendingTreeRollback, node)) return;
+            try
+            {
+                // A later user selection (or successful article switch) wins.
+                if (!ReferenceEquals(LibraryTree.SelectedItem, node) ||
+                    !string.Equals(ViewModel.Article?.FilePath, committed, StringComparison.OrdinalIgnoreCase))
+                    return;
+                restoringTreeSelection = true;
+                try
+                {
+                    var previous = MainViewModel.AllLeaves(ViewModel.Books)
+                        .FirstOrDefault(item => SamePassage(item.PassagePath, committed));
+                    if (previous is not null && SelectTreeNode(LibraryTree, previous))
+                        return;
+                    var selected = FindTreeContainer(LibraryTree, node);
+                    if (selected is not null) selected.IsSelected = false;
+                }
+                finally { restoringTreeSelection = false; }
+            }
+            finally
+            {
+                if (ReferenceEquals(pendingTreeRollback, node)) pendingTreeRollback = null;
+            }
+        }));
     }
 
     private static bool SamePassage(string? a, string? b) =>
