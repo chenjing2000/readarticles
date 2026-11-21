@@ -49,7 +49,7 @@ Use [Testing](Testing.md) for test and acceptance commands, [Publishing](Publish
 | Vocabulary is unreadable and cannot be overwritten | Repair the companion, then reopen the article; the reader protects damaged vocabulary from replacement |
 | Saving reports an external edit | Reopen the article to load the current fingerprint before editing again |
 | Bottom play reports no audio | Place a decodable whole-article M4A, MP3 or WAV directly beside the Passage JSON; the player tries sorted candidates until one opens |
-| A different whole-article file plays | The first case-insensitively sorted sibling audio file wins; keep one intended file or rename deliberately |
+| A different whole-article file plays | The player tries M4A, then MP3, then WAV; within each format it sorts filenames case-insensitively (ordinal tie-break) and uses the first file that opens. Keep one intended recording or rename deliberately |
 | A word cannot play | Check files under audio/ and the first-entry word stem, nonzero size and valid MP3/WAV encoding; vocabulary MP3 decode failure does not retry WAV |
 | A canonical word is not highlighted | Matching is literal, not inflection-aware; see the vocabulary preparation guide's surface-form discussion |
 | Blank text display | Blank passages retain valid [[n]] placeholders and render as blanks; exercise answering is not implemented |
