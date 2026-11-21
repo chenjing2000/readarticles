@@ -1,44 +1,40 @@
 # ReadArticles — Development handoff (2026-11-21)
 
-## Current baseline
+## Repository and verified baseline
 
-- Repository: [chenjing2000/readarticles](https://github.com/chenjing2000/readarticles); local Windows workspace: `C:\Projects\ReadArticles`.
-- Stable `main` baseline: `9f6cdc1`. Current development: `feature/simplify-passage-audio-selection`, [Draft PR #21](https://github.com/chenjing2000/readarticles/pull/21). The PR must remain unmerged until the user separately authorizes Squash Merge.
-- [Windows CI #218](https://github.com/chenjing2000/readarticles/actions/runs/44768028098) passed for `af0c66a` (Windows build, Core regression, portable publish and release-layout verification). Later final-review fixes require fresh verification; do **not** treat this earlier CI result as verifying later commits.
-- The user ran `Test.ps1 -Suite UI` successfully (13 groups, 0 failures); then `Test.ps1 -Suite Full` successfully (94 individual regression checks, 0 failures; 6 outer checks, 0 failures) after the test-owner correction at `e473afd`. `Publish.ps1` and `Test-PublishedApp.ps1` also passed on Windows (4 published-app checks, 0 failures). The logs were explicitly supplied in chat.
-- **User-confirmed real-machine functionality:** all six categories passed: new Passage format, Script playback-synchronized foreground color, vocabulary highlighting/selection, M4A/MP3/WAV article audio and fallback, playback controls/word-audio coordination, and removed sentence-audio feature. The user selected **continue acceptance**, not final merge approval.
+- GitHub: https://github.com/chenjing2000/readarticles; Windows workspace: `C:\Projects\ReadArticles`.
+- **Current production baseline:** `main` incorporates [PR #21](https://github.com/chenjing2000/readarticles/pull/21) via Squash Merge `6e45aed52d2aa9844fb6742cfa6a1ef378f7c5e9` (2026-11-21). PR #21 is closed/merged, not a pending Draft.
+- Before merge, the final feature head `f029f28` passed [Windows CI #222](https://github.com/chenjing2000/readarticles/actions/runs/44847542023): build, Core regression, portable publish and release layout. The user separately confirmed local `Test.ps1 -Suite Full` **97 passed, 0 failed, 0 skipped** at `f029f28`, and earlier local UI (13 groups passed), publish and published-EXE checks. The user approved all six real-machine functional acceptance categories, then authorized the merge.
+- The final merged PR contains the breaking Passage schema, Script-synchronized coloring, vocabulary selection, M4A/MP3/WAV whole-article audio fallback, coordinated word/audio playback and removal of sentence audio. Final audit addressed unsafe candidate paths and pause intent across asynchronous media opening.
+- Branch cleanup was requested after PR #21. The user reported remote tracking branches `origin/main` and `origin/feature/exercise`; three historical local branches were still present at that moment. **Do not assume they have since been deleted**. Inspect current local/remote Git status in the new session.
 
-## Scope and retained contracts
+## Current contracts and exclusions
 
-- Passage JSON is **breaking**: exactly `filetype: "passage"`, a required string `title` (empty is allowed, with no filename fallback), and `paragraphs: string[][]`. There are no sentence SIDs, `next_sid`, sentence objects, `HasAudio` or sentence playback. Preserve paragraph/sentence boundaries, valid `[[n]]` markers, and within-sentence selection using paragraph/sentence indices.
-- The optional Script companion and Vocabulary JSON schemas are unchanged. Script foreground follows whole-article playback and seek. Passage and Script source JSON are read-only; Vocabulary saves retain transactional writes, conflict detection and backups.
-- Whole-article audio candidates are taken once from the Passage JSON's direct sibling directory and ordered by extension priority **M4A → MP3 → WAV**, then filename (ordinal ignore-case, with ordinal tie-break). Attempt candidates in order until successful media opening. Opening failure continues to the next candidate, including within the same format; successful opening ends the fallback search. Stop/article switch/window close cancel pending attempts. Once successfully opened, a playback-time error does not switch recordings. Vocabulary audio remains MP3-existence-first, WAV second, without decoding fallback.
-- **No old Passage migration or compatibility logic.** The user will independently normalize their article collection. One secondary source article under `tests/TestData/Library/` is still in the *old* Passage format; the user explicitly requested **not** to convert it. Do not misrepresent it as a new-format loadable fixture or add code to accept it. Existing first-article fixed tests use the converted test fixture.
-- `docs/skills/` contains the current image-to-passage, passage segmentation, vocabulary enrichment and project-code-review contracts.
+- Passage uses precisely `filetype: "passage"`, string `title` (required, empty permitted; no filename fallback) and `paragraphs: string[][]`. The application **does not** read or convert the old SID/segment format; the user will standardize article sources independently. Some older secondary test/source article material may still have the old format and is intentionally not converted or used as a new-format loading fixture.
+- Script JSON and Vocabulary JSON retain their separate formats. Passage and Script are read-only; writing vocabulary must protect external changes, atomically save, and maintain verified backups.
+- Whole-article audio searches files directly beside the selected Passage JSON, ordered M4A then MP3 then WAV, and filename within each type. Individual unsafe or unplayable files do not prevent trying later valid candidates. A successful open ends candidate search. Stop/switch invalidates old events; a pause request while opening persists through retries. Word pronunciation uses separate MP3/WAV lookup under `audio/`, MP3 preferred by existence, with no WAV retry after MP3 decode failure.
+- No legacy reader, sentence-audio paths, migrations, unnecessary new layers or old-format compatibility. For a new request, follow first principles and the minimum necessary code/doc changes.
 
-## Final delivery review (in progress)
+## Starting the next development round
 
-- Static review confirmed the principal format simplification, WebView2 selection boundaries, word/audio separation and removal of SID-based calls.
-- Approved narrow fixes after the review: reject unsafe individual audio candidates without aborting later candidates; preserve a user pause while media is opening and across a candidate failure; cover both with regression tests. These fixes were applied to `AudioResources.cs`, `PlaybackController.cs`, and `AudioChecks.cs` on PR #21.
-- The second old-format source fixture must remain untouched by this review. No compatibility layer or article migration is authorized.
-- Check the latest PR head and **its own** Windows CI before reporting the final status. Distinguish automatic Core CI from local interactive UI/Full and the user's already accepted six real-machine behaviors. In previous runs, hosted WebView2 sometimes timed out on rendering handshake but succeeded on rerun of unchanged commits; do not suppress or weaken the test to hide this.
-- Do not merge PR #21, close PRs, delete development branches, or alter user article files without separate explicit authorization.
-
-## Verification and handoff commands
+1. Read [project contract](project-contract.md), [architecture](Application-Overview.md), [library format](Library-Layout.md), [test and acceptance](Testing.md), and [review skill](skills/project-code-review/SKILL.md). Refer to [documentation index](README.md) for other focused guides.
+2. Verify GitHub `main` HEAD and current PRs; check local branch and working tree before editing. Do not assume this handoff's historical commit remains the latest after subsequent documentation-only changes.
+3. For new changes, discuss requirements and minimal implementation plan first. Work on a new feature branch/PR, preserve the `main` baseline, and keep merging subject to the user's separate approval.
+4. When necessary, run these existing commands from an interactive Windows desktop:
 
 ```powershell
 cd C:\Projects\ReadArticles
 git status --short
-git fetch origin
-git switch feature/simplify-passage-audio-selection
-git pull --ff-only origin feature/simplify-passage-audio-selection
+git fetch --prune origin
+git switch main
+git pull --ff-only origin main
 
 .\tools\Test.ps1 -Suite Core
 .\tools\Test.ps1 -Suite UI
 .\tools\Test.ps1 -Suite Full
-# Close the running application before publishing.
+# Close the app before publishing.
 .\tools\Publish.ps1
 .\tools\Test-PublishedApp.ps1
 ```
 
-Start from [project contract](project-contract.md), [library layout](Library-Layout.md), [testing](Testing.md), and [project code review skill](skills/project-code-review/SKILL.md). Preserve the first-principles/minimal-change rule: avoid new models, compatibility branches, or unrelated cleanup. The next gate is reviewing fresh CI and presenting final acceptance options; merging remains separately authorized.
+Do not claim local GUI/audio or new-head validation was performed unless corresponding logs are provided. Preserve the selected real article library, `userdata/`, recovery files, and backups. No new feature is authorized by this handoff alone.
