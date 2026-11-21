@@ -819,7 +819,7 @@ function renderSettings(settings) {
   highlightsVisible = settings.highlightsVisible === true;
   byId("highlight-toggle").setAttribute("aria-pressed", String(highlightsVisible));
   byId("highlight-toggle").querySelector("img").src = highlightsVisible
-    ? "icons/not-show-vocabulary.svg" : "icons/show-vocabulary.svg";
+    ? "icons/show-vocabulary.svg" : "icons/not-show-vocabulary.svg";
   refreshHighlights(false);
   scheduleHighlightGeometry();
   if (selectedPassage) refreshSelectionAddPosition();

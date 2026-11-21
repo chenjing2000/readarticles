@@ -510,10 +510,27 @@ internal static class WebViewPilotChecks
                     numericBoundary[0].GetProperty("start").GetInt32() == 0 &&
                     numericBoundary[1].GetProperty("start").GetInt32() == 9);
 
+                // The icon reflects whether highlighting is active, not the action
+                // available after clicking: gray for off, magenta for on.
+                bool HighlightIconMatches(bool enabled)
+                {
+                    JsonElement state = Evaluate(browser, """
+                        (() => {
+                          const button = document.getElementById('highlight-toggle');
+                          return {
+                            pressed: button.getAttribute('aria-pressed'),
+                            icon: button.querySelector('img').getAttribute('src')
+                          };
+                        })()
+                        """);
+                    return state.GetProperty("pressed").GetString() == (enabled ? "true" : "false") &&
+                        state.GetProperty("icon").GetString() == (enabled
+                            ? "icons/show-vocabulary.svg" : "icons/not-show-vocabulary.svg");
+                }
+                Program.Check(!window.ViewModel.HighlightsVisible && HighlightIconMatches(false));
                 Evaluate(browser, "document.getElementById('highlight-toggle').click(); true");
-                WaitFor(() => window.ViewModel.HighlightsVisible &&
-                    Evaluate(browser, "document.getElementById('highlight-toggle').getAttribute('aria-pressed')")
-                        .GetString() == "true", "browser vocabulary highlighting");
+                WaitFor(() => window.ViewModel.HighlightsVisible && HighlightIconMatches(true),
+                    "browser vocabulary highlighting icon on");
                 WaitFor(() => Evaluate(browser,
                     "document.querySelectorAll('#word-highlight-layer .word-highlight-rect').length > 0")
                     .GetBoolean(), "rounded vocabulary highlights");
@@ -524,6 +541,13 @@ internal static class WebViewPilotChecks
                         !CSS.highlights?.has('reader-vocabulary');
                     })()
                     """).GetBoolean());
+                Evaluate(browser, "document.getElementById('highlight-toggle').click(); true");
+                WaitFor(() => !window.ViewModel.HighlightsVisible && HighlightIconMatches(false) &&
+                    Evaluate(browser, "document.querySelector('#word-highlight-layer') === null").GetBoolean(),
+                    "browser vocabulary highlighting icon off");
+                Evaluate(browser, "document.getElementById('highlight-toggle').click(); true");
+                WaitFor(() => window.ViewModel.HighlightsVisible && HighlightIconMatches(true),
+                    "browser vocabulary highlighting icon restored");
                 Evaluate(browser, "document.querySelector('#vocabulary-list .word-row').click(); true");
                 Program.Check(Evaluate(browser,
                     "document.querySelectorAll('#vocabulary-list .word-row.selected').length")
