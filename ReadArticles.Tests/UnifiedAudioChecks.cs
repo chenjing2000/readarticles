@@ -60,7 +60,9 @@ internal static class UnifiedAudioChecks
                 File.WriteAllText(path, """{"filetype":"passage","title":"Test","paragraphs":[["Test."]]}""");
                 File.WriteAllText(Path.ChangeExtension(path, ".vocabulary.json"), """{"filetype":"vocabulary","words":[{"word":"well-being","meanings":[]},{"word":"well being","meanings":[]},{"word":"!!!","meanings":[]}]}""");
                 using var first = new AudioChecks.FakePlayer(); using var second = new AudioChecks.FakePlayer();
-                var model = new MainViewModel(new PlaybackController(first), new PlaybackController(second));
+                var articleController = new PlaybackController(first);
+                var pronunciationController = new PlaybackController(second);
+                var model = new MainViewModel(articleController, pronunciationController);
                 Program.Check(model.OpenArticle(path) && model.Words.Count == 3);
                 var entries = model.Article!.Vocabulary.Data.Words;
                 // The first reserves the stem before any file exists.
@@ -74,13 +76,14 @@ internal static class UnifiedAudioChecks
                 Program.Check(!model.Words[1].CanPlayUk && !model.Words[1].CanPlayUs);
                 Program.Check(!model.Words[2].CanPlayUk && !model.Words[2].CanPlayUs);
                 model.PlayWord(entries[1], "uk");
-                Program.Check(model.PlaybackState == PlaybackState.Stopped && model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("音频资格")));
+                Program.Check(pronunciationController.State == PlaybackState.Stopped &&
+                    model.Notifications.Messages.Any(n => n.Key == "PlaybackFailure" && n.Message.Contains("音频资格")));
                 var formerFirst = entries[0]; var formerSecond = entries[1];
                 model.PlayWord(formerFirst, "uk");
-                Program.Check(model.PlaybackState == PlaybackState.Playing);
+                Program.Check(pronunciationController.State == PlaybackState.Playing);
                 Program.Check(model.TryMoveWord(formerSecond, -1) == VocabularyEditResult.Success);
                 Program.Check(AudioResources.OwnsWordAudio(model.Article!, formerSecond) && !AudioResources.OwnsWordAudio(model.Article!, formerFirst));
-                Program.Check(model.PlaybackState == PlaybackState.Stopped && model.Words[0].CanPlayUk && !model.Words[1].CanPlayUk);
+                Program.Check(pronunciationController.State == PlaybackState.Stopped && model.Words[0].CanPlayUk && !model.Words[1].CanPlayUk);
                 Program.Check(model.TryDeleteWord(formerSecond) == VocabularyEditResult.Success);
                 Program.Check(AudioResources.OwnsWordAudio(model.Article!, formerFirst));
             });
