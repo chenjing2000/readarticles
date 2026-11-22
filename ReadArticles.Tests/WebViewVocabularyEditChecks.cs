@@ -19,6 +19,9 @@ internal static class WebViewVocabularyEditChecks
                 string sourceVocabulary = Path.ChangeExtension(TestData.ArticlePath, ".vocabulary.json");
                 File.Copy(TestData.ArticlePath, articlePath);
                 File.Copy(sourceVocabulary, vocabularyPath);
+                var familyFixture = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(vocabularyPath))!;
+                familyFixture["words"]![0]!["family"] = new System.Text.Json.Nodes.JsonArray("was stuck in");
+                File.WriteAllText(vocabularyPath, familyFixture.ToJsonString());
                 string importPath = Path.Combine(root, "Import.vocabulary.json");
                 File.Copy(vocabularyPath, importPath);
 
@@ -41,7 +44,8 @@ internal static class WebViewVocabularyEditChecks
                 Program.Check(model.TryAddWord(phrase) == VocabularyEditResult.Success);
                 Program.Check(model.Words.Count == originalCount + 1);
                 var committed = new VocabularyRepository().Load(vocabularyPath);
-                Program.Check(committed.Data.Words[^1].Word == phrase);
+                Program.Check(committed.Data.Words[^1].Word == phrase &&
+                    committed.Data.Words[0].Family!.SequenceEqual(["was stuck in"]));
                 string addedFile = File.ReadAllText(vocabularyPath);
 
                 Program.Check(model.TryAddWord(phrase) == VocabularyEditResult.Duplicate);
@@ -50,7 +54,8 @@ internal static class WebViewVocabularyEditChecks
                 var entry = model.Words[^1].Entry;
                 Program.Check(model.TryMoveWord(entry, -1) == VocabularyEditResult.Success);
                 Program.Check(model.Words[^2].Word == phrase);
-                Program.Check(new VocabularyRepository().Load(vocabularyPath).Data.Words[^2].Word == phrase);
+                Program.Check(new VocabularyRepository().Load(vocabularyPath).Data.Words[^2].Word == phrase &&
+                    new VocabularyRepository().Load(vocabularyPath).Data.Words[0].Family!.SequenceEqual(["was stuck in"]));
 
                 entry = model.Words[^2].Entry;
                 Program.Check(model.TryDeleteWord(entry) == VocabularyEditResult.Success);
@@ -58,7 +63,8 @@ internal static class WebViewVocabularyEditChecks
                 Program.Check(!new VocabularyRepository().Load(vocabularyPath).Data.Words.Any(w => w.Word == phrase));
 
                 Program.Check(model.TryImportVocabulary(importPath) == VocabularyEditResult.Success);
-                Program.Check(model.Words.Count == originalCount);
+                Program.Check(model.Words.Count == originalCount &&
+                    new VocabularyRepository().Load(vocabularyPath).Data.Words[0].Family!.SequenceEqual(["was stuck in"]));
 
                 string current = File.ReadAllText(vocabularyPath);
                 File.AppendAllText(vocabularyPath, "\n");

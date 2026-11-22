@@ -682,6 +682,61 @@ internal static class WebViewPilotChecks
                       !document.getElementById('script-toggle').disabled &&
                       document.querySelectorAll('#article-body .article-paragraph').length === 13)()
                     """).GetBoolean(), "return to Passage DOM");
+                // Real DOM: a single headword owns inflected hits in both modes.
+                string familyArticle = Path.Combine(directory, "FamilyFixture.json");
+                File.WriteAllText(familyArticle, """
+                    {"filetype":"passage","title":"Family fixture",
+                     "paragraphs":[["He went home.", "She goes away."]]}
+                    """);
+                File.WriteAllText(Path.ChangeExtension(familyArticle, ".vocabulary.json"), """
+                    {"filetype":"vocabulary","words":[
+                      {"word":"go","family":["went","goes"],"meanings":[]}
+                    ]}
+                    """);
+                File.WriteAllText(ArticleRepository.ScriptPathFor(familyArticle), """
+                    {"filetype":"script","title":"Family script",
+                     "paragraphs":[[{"text":"We went home. She goes away.",
+                       "timed_units":[["We we",0,1],["nt home. She goes away.",1,3]]}]]}
+                    """);
+                Program.Check(window.ViewModel.OpenArticle(familyArticle));
+                WaitFor(() => Evaluate(browser, """
+                    document.getElementById('article-title').textContent === 'Family fixture' &&
+                    document.querySelectorAll('#vocabulary-list .word-row').length === 1
+                    """).GetBoolean(), "family Passage rendering");
+                JsonElement familyPassage = Evaluate(browser, """
+                    (() => ({
+                      forms: matches.filter(m => m.word === 'go').map(m => m.range.toString()),
+                      headings: [...document.querySelectorAll('#vocabulary-list .word-head')]
+                        .map(row => row.textContent)
+                    }))()
+                    """);
+                Program.Check(familyPassage.GetProperty("forms").EnumerateArray()
+                    .Select(x => x.GetString()).SequenceEqual(["went", "goes"]) &&
+                    familyPassage.GetProperty("headings").EnumerateArray()
+                    .Select(x => x.GetString()).SequenceEqual(["go"]));
+                Evaluate(browser, "document.querySelector('#vocabulary-list .word-row').click(); true");
+                WaitFor(() => Evaluate(browser, """
+                    document.querySelectorAll('#vocabulary-list .word-row.selected').length === 1 &&
+                    document.querySelectorAll('#word-highlight-layer .word-highlight-rect').length >= 2
+                    """).GetBoolean(), "family forms highlighted and selected");
+                JsonElement collision = Evaluate(browser, """
+                    matchVocabulary('went goes', [
+                      {word:'go',family:['went','goes']}, {word:'went',family:[]}
+                    ])
+                    """);
+                Program.Check(collision.GetArrayLength() == 2 &&
+                    collision[0].GetProperty("key").GetString() == "went" &&
+                    collision[1].GetProperty("key").GetString() == "go");
+                Evaluate(browser, "document.getElementById('script-toggle').click(); true");
+                WaitFor(() => Evaluate(browser, """
+                    document.getElementById('article-title').textContent === 'Family script' &&
+                    document.querySelectorAll('#article-body .script-sentence').length === 1
+                    """).GetBoolean(), "family Script rendering");
+                JsonElement scriptForms = Evaluate(browser, """
+                    matches.filter(m => m.word === 'go').map(m => m.range.toString())
+                    """);
+                Program.Check(scriptForms.EnumerateArray()
+                    .Select(x => x.GetString()).SequenceEqual(["went", "goes"]));
                 Program.Check(window.FindName("ParagraphHost") is null);
             }
             finally
