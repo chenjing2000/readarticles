@@ -727,36 +727,11 @@ internal static class WebViewPilotChecks
                 Program.Check(collision.GetArrayLength() == 2 &&
                     collision[0].GetProperty("key").GetString() == "went" &&
                     collision[1].GetProperty("key").GetString() == "go");
-                Program.Check(new ArticleRepository().LoadScript(familyArticle).Title == "Family script");
-                JsonElement priorMode = Evaluate(browser, """
-                    (() => ({
-                      disabled: document.getElementById('script-toggle').disabled,
-                      mode: currentMode, pending: pendingModeRequest
-                    }))()
-                    """);
-                if (priorMode.GetProperty("disabled").GetBoolean())
-                    throw new Exception("Family Script toggle disabled: " + priorMode.GetRawText());
                 Evaluate(browser, "document.getElementById('script-toggle').click(); true");
-                try
-                {
-                    WaitFor(() => Evaluate(browser, """
-                        document.getElementById('article-title').textContent === 'Family script' &&
-                        document.querySelectorAll('#article-body .script-sentence').length === 1
-                        """).GetBoolean(), "family Script rendering");
-                }
-                catch (Exception error)
-                {
-                    JsonElement state = Evaluate(browser, """
-                        (() => ({
-                          disabled: document.getElementById('script-toggle').disabled,
-                          mode: currentMode, pending: pendingModeRequest,
-                          title: document.getElementById('article-title').textContent
-                        }))()
-                        """);
-                    throw new Exception("Family Script switch: " + state.GetRawText() +
-                        "; notifications: " +
-                        string.Join(" | ", window.ViewModel.Notifications.Messages.Select(n => n.Message)), error);
-                }
+                WaitFor(() => Evaluate(browser, """
+                    document.getElementById('article-title').textContent === 'Family script' &&
+                    document.querySelectorAll('#article-body .script-paragraph > .script-sentence').length === 1
+                    """).GetBoolean(), "family Script rendering");
                 JsonElement scriptForms = Evaluate(browser, """
                     matches.filter(m => m.word === 'go').map(m => m.range.toString())
                     """);
