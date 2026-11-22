@@ -155,6 +155,37 @@ internal static class ContentChecks
             var result = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
             Program.Check((string?)result["words"]![0]!["meanings"]![0]!["source"] == "kept" && result["words"]![0]!["audio"] == null);
         });
+        RunCopyTest("family optional arrays roundtrip; malformed values rejected", (root, passage) =>
+        {
+            string path = Path.Combine(root, "family.json");
+            File.WriteAllText(path, """
+                {"filetype":"vocabulary","words":[
+                  {"word":"go","family":["went","goes"],"meanings":[]},
+                  {"word":"child","family":[],"meanings":[]},
+                  {"word":"home","meanings":[]}
+                ]}
+                """);
+            var repository = new VocabularyRepository();
+            var snapshot = repository.Load(path);
+            Program.Check(snapshot.Data.Words[0].Family!.SequenceEqual(["went", "goes"]) &&
+                snapshot.Data.Words[1].Family is { Count: 0 } &&
+                snapshot.Data.Words[2].Family is null);
+            repository.Save(path, snapshot.Data, snapshot.Fingerprint);
+            var saved = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
+            Program.Check((string?)saved["words"]![0]!["family"]![0] == "went" &&
+                saved["words"]![1]!["family"] is System.Text.Json.Nodes.JsonArray &&
+                saved["words"]![2]!["family"] is null);
+            foreach (string invalid in new[] {
+                "null", "\"went\"", "5", "[null]", "[5]", "[\"\"]",
+                "[\"go\"]", "[\"went\",\"WENT\"]", "[\" went\"]"
+            })
+            {
+                File.WriteAllText(path,
+                    """{"filetype":"vocabulary","words":[{"word":"go","family":__FAMILY__,"meanings":[]}]}"""
+                        .Replace("__FAMILY__", invalid));
+                ExpectInvalid(() => repository.Load(path));
+            }
+        });
         RunCopyTest("vocabulary copy-only roundtrip and external edit detection", (root, passage) =>
         {
             var repository = new VocabularyRepository();

@@ -30,6 +30,7 @@ When pairing with a passage, use its exact filename stem: `Example.json` pairs w
   "words": [
     {
       "word": "example",
+      "family": [],
       "phonetic_uk": "",
       "phonetic_us": "",
       "meanings": [
@@ -55,6 +56,7 @@ The English glosses demonstrate the structure; actual glosses use the chosen tar
 | `filetype` | Exactly `"vocabulary"` |
 | `words` | Array of entries; `[]` is a valid empty vocabulary |
 | `word` | Non-empty string; normalized lexical identities are unique case-insensitively |
+| `family` | Optional array of strings; it may be omitted or `[]`, never `null`. Forms must occur in the supplied article and differ from `word` ignoring case |
 | `phonetic_uk`, `phonetic_us` | Strings in generated files; use `""` when pronunciation is unavailable or not verified, never `null`. The reader also tolerates omitted phonetic keys |
 | `meanings` | Array of objects with string `pos` and `meaning`; `[]` is technically readable, but supply useful meanings when enrichment can be supported |
 | Legacy `audio` | Ignored while reading; removed when saving or regenerating JSON; never emitted in new files |
@@ -80,7 +82,7 @@ Use conventional phrase placeholders only where they express a learnable pattern
 
 For a passage-supported entry, put the contextual meaning first when practical, then add only useful common senses. Keep existing correct, useful meanings. Correct wrong POS/senses, missing context meanings, and seriously unnatural translations; do not expand into rare or highly technical senses unless context calls for them. Without a passage, do not invent a passage-specific sense.
 
-Always remove legacy `audio` fields from output. Apart from this removal, if the input is already structured and an existing single-word spelling stays unchanged, normally change only its meanings. Preserve verified phonetics. Repair missing or invalid schema fields when necessary for readability. If a word or phrase is renamed, clear both phonetic fields; pronunciation of an inflected form is not pronunciation evidence for its lemma.
+Always remove legacy `audio` fields from output. Apart from this removal and passage-supported `family` updates, if the input is already structured and an existing single-word spelling stays unchanged, normally change only its meanings. Preserve verified phonetics. Repair missing or invalid schema fields when necessary for readability. If a word or phrase is renamed, clear both phonetic fields; pronunciation of an inflected form is not pronunciation evidence for its lemma.
 
 For new entries, leave phonetics empty unless trustworthy pronunciation information is available. Do not guess IPA. Missing or uncertain meanings must not be fabricated; retain a readable partial entry and report unresolved enrichment outside the JSON if clarification is needed.
 
@@ -120,13 +122,15 @@ With a passage, sort the complete final list by first meaningful occurrence of t
 
 Without a passage, preserve surviving input order. When entries merge, the survivor occupies the earliest original position of the merged group.
 
-ReadArticles highlights literal case-insensitive forms, not lemmas or inflections. Consequently `convict` need not highlight source `convicted`, and a canonical phrase with `one's` need not match `his` in the passage. Do not promise automatic highlighting of normalized forms. If the user explicitly prioritizes exact surface-form highlighting, preserve those forms rather than silently imposing lemma normalization, and still use the exact stem algorithm.
+ReadArticles matches each `word` plus its explicitly listed `family` forms case-insensitively. Each match belongs to the canonical headword for highlighting and navigation; a direct `word` match has priority over another entry's `family` match. It does not infer inflections or disambiguate homographs automatically. For example, `convict` highlights `convicted` only if its `family` includes `"convicted"`.
+
+With a source Passage, populate `family` only from forms actually present in its body: attested verb inflections, plural nouns, comparatives/superlatives and inflected fixed expressions when the grammatical relationship is clear. Do not include hypothetical forms, unrelated homographs, or derived words such as `decision` under `decide`. Preserve the first-occurrence spelling and order. Exclude duplicates, the canonical headword itself, empty forms, leading/trailing whitespace and repeated whitespace. With no source Passage, retain existing valid `family` metadata but never invent forms. Audio filenames still derive only from `word`; the right-side vocabulary list does not display `family`.
 
 ## Final checks
 
 - Parse the complete JSON and check all required types, exact `filetype`, non-null fields, and preserved metadata.
 - Confirm contextual meaning/POS decisions and conservative normalization; preserve fixed phrases and supported input entries.
-- Confirm case-insensitive lexical uniqueness, absence of `audio` fields, and first-entry audio ownership for each nonempty stem; preserve distinct colliding entries and entries with empty stems.
+- Confirm case-insensitive lexical uniqueness, valid optional `family` forms, absence of `audio` fields, and first-entry audio ownership for each nonempty stem; preserve distinct colliding entries and entries with empty stems.
 - Confirm verified phonetics were preserved only for unchanged forms and cleared for renamed forms.
 - Confirm ordering follows the supplied context or original input order, as appropriate.
 - Confirm the source passage and physical audio remain unchanged. Do not generate exercises or user state.

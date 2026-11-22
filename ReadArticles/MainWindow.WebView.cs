@@ -669,6 +669,7 @@ public partial class MainWindow
     private object[] WebPilotVocabularyRows() => ViewModel.Words.Select(w => (object)new
     {
         word = w.Word,
+        family = w.Entry.Family ?? new List<string>(),
         phoneticUk = w.PhoneticUk,
         phoneticUs = w.PhoneticUs,
         meanings = w.Meanings.Select(m => new { pos = m.Pos, text = m.Text }).ToArray(),

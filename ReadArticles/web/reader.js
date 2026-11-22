@@ -73,12 +73,22 @@ function findWholeWord(text, word, from) {
 function matchVocabulary(text, entries) {
   const seen = new Set();
   const words = [];
-  for (const entry of entries) {
-    const word = String(entry).trim();
+  const add = (surface, owner) => {
+    const word = String(surface ?? "").trim();
     const key = ordinalFold(word);
-    if (!word || seen.has(key)) continue;
+    if (!word || seen.has(key)) return;
     seen.add(key);
-    words.push(word);
+    words.push({ surface: word, owner });
+  };
+  // Headwords always own exact matches, even when an earlier entry lists
+  // the same surface form as a family member.
+  for (const entry of entries) {
+    const word = typeof entry === "string" ? entry : entry?.word;
+    add(word, String(word ?? "").trim());
+  }
+  for (const entry of entries) {
+    if (!entry || typeof entry === "string" || !Array.isArray(entry.family)) continue;
+    for (const form of entry.family) add(form, entry.word);
   }
   const result = [];
   let cursor = 0;
@@ -86,16 +96,16 @@ function matchVocabulary(text, entries) {
     let bestStart = -1;
     let bestWord = null;
     for (const word of words) {
-      const start = findWholeWord(text, word, cursor);
+      const start = findWholeWord(text, word.surface, cursor);
       if (start >= 0 && (bestStart < 0 || start < bestStart ||
-          (start === bestStart && word.length > bestWord.length))) {
+          (start === bestStart && word.surface.length > bestWord.surface.length))) {
         bestStart = start;
         bestWord = word;
       }
     }
     if (bestWord === null) break;
-    result.push({ start: bestStart, length: bestWord.length, key: bestWord });
-    cursor = bestStart + bestWord.length;
+    result.push({ start: bestStart, length: bestWord.surface.length, key: bestWord.owner });
+    cursor = bestStart + bestWord.surface.length;
   }
   return result;
 }
@@ -385,7 +395,7 @@ function paintRoundedHighlights() {
 function refreshHighlights(recalculate) {
   if (recalculate) {
     matches = [];
-    const words = vocabulary.map(entry => entry.word);
+    const words = vocabulary;
     if (currentMode === "script") {
       // Match the complete sentence, even when a vocabulary phrase crosses
       // two timed units. Range endpoints may sit in different text nodes.

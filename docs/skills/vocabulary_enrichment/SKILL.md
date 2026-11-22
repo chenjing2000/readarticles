@@ -43,6 +43,7 @@ Each word or phrase uses:
 ```json
 {
   "word": "example",
+  "family": [],
   "phonetic_uk": "...",
   "phonetic_us": "...",
   "meanings": [{"pos": "n.", "meaning": "例子；实例"}]
@@ -55,11 +56,11 @@ An existing phrase is an entry whose trimmed `word` contains at least two whites
 
 | Entry | Allowed changes |
 |---|---|
-| Existing single word | Update `meanings`; change `word` only when lexical normalization requires it |
+| Existing single word | Update `meanings` and Passage-attested `family`; change `word` only when lexical normalization requires it |
 | Existing phrase | Canonicalize `word`, update meanings, and fix phrase fields when needed |
 | New phrase | Create the complete phrase entry |
 
-Remove legacy `audio` fields from all output entries. Apart from this removal, if an existing single-word `word` is unchanged, modify only `meanings`. If normalization changes `word`, also:
+Remove legacy `audio` fields from all output entries. Apart from this removal and passage-supported `family` updates, if an existing single-word `word` is unchanged, modify only `meanings`. If normalization changes `word`, also:
 
 - clear `phonetic_uk` and `phonetic_us` to `""`;
 - never reuse or invent IPA from the old inflected form.
@@ -126,7 +127,19 @@ If several entries normalize to the same lexical item:
 4. do not overwrite canonical phonetics with data from an inflected form;
 5. inherit the earliest relevant Passage occurrence for ordering.
 
-Compare lexical identity case-insensitively.
+Compare lexical identity case-insensitively. Combine supported inflected surface forms under the surviving canonical headword.
+
+### Family forms from the source Passage
+
+`family` is an optional list of strings. It may be omitted or `[]`, but must not be `null` or a scalar. It records **only the actual forms in the supplied Passage body** that differ from the canonical `word` ignoring case. For example, when the source contains `went` and `goes`, output `"word": "go", "family": ["went", "goes"]`; do not add `gone` unless it is present in the Passage.
+
+- Determine grammatical identity in context: include inflected verbs, plural nouns, comparatives/superlatives, and grammatical variants of fixed expressions (e.g. `took off` under `take off`). Do not group derived words (e.g. `decision` under `decide`), synonyms or unrelated homographs.
+- Preserve the casing and spelling of the first source occurrence; order distinct forms by first occurrence. Omit strings identical to `word` ignoring case, duplicate forms ignoring case, empty strings, leading/trailing spaces and repeated whitespace.
+- For expressions containing placeholders, include a realized phrase only if it is unambiguously the same phrase in the source, never a hypothetical substitution.
+- After normalization or deduplication, combine eligible original surface forms under the surviving headword. Remove incoming `family` forms that are not attested in the supplied Passage.
+- Without a source Passage, preserve existing valid `family` values (including an existing empty array) but do not invent potential forms. New entries without attested forms may omit the field.
+
+ReadArticles matches both the canonical `word` and explicit `family` strings literally and case-insensitively, attributing matches to the canonical word for highlights and navigation. Direct headwords take priority over another entry's family. The reader does no automatic morphology or contextual disambiguation. Family does not change audio lookup or appear in the right-side word list.
 
 ## 5. Phrase Extraction
 
@@ -189,10 +202,11 @@ Verify that:
 - verbs, plurals, person placeholders, and fixed phrases follow the rules above;
 - phrase-level canonical form takes priority over mechanical token normalization;
 - normalization-created duplicates were merged safely;
-- unchanged existing single words changed only in `meanings`, apart from removing legacy `audio`;
+- unchanged existing single words changed only in `meanings` and passage-supported `family`, apart from removing legacy `audio`;
 - whenever `word` changes, phonetics are cleared;
 - current-context meanings remain first when identifiable;
 - new phrases are conservative, Passage-supported, canonicalized, and use `pos="phrase"`;
+- with a Passage, `family` contains only distinct attested forms in first-occurrence order; without a Passage, no family forms were invented;
 - with a Passage, ordering follows earliest original Passage occurrence and unlocated entries remain at the end in original relative order;
 - without a Passage, surviving entries retain their original relative order;
 - no `audio` fields remain; distinct stem collisions and empty stems retain their text, with audio eligibility determined by final list order;
