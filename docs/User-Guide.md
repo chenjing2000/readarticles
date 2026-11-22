@@ -21,9 +21,11 @@ Select the parent directory of marked book directories. Startup and folder selec
 2. Select a passage leaf to load its text and matching vocabulary.
 3. Select passage text within one sentence to reveal the small circle-plus action. Click it to save that selection to the word list. Cross-sentence selections are not addable.
 4. Select a vocabulary entry to show move-up, move-down, and delete. These actions write the active companion JSON immediately.
-5. Use the highlight toggle to display or hide literal vocabulary matches. Highlighting begins off.
+5. Use the highlight toggle to display or hide case-insensitive literal matches for each `word` and its explicitly listed `family` forms. Highlighting begins off.
 6. Use the import button beside the highlight toggle to replace the active vocabulary with a selected structured JSON file after confirmation.
 7. Click the cog icon next to 选择图书馆 to open the centered 设置 dialog. Adjust title, body, word, IPA, meanings, background colors, default accent and seek steps; click 保存 to commit all changes, 取消 to discard, or 恢复默认 to reset the entire draft.
+
+A vocabulary entry may have an optional `family` list containing inflected spellings actually found in the article (for example, `"word": "go", "family": ["went", "goes"]`). Selecting `go` also highlights and locates `went` and `goes` when present. The right pane displays only the canonical `word`, not its family forms; pronunciation also continues to use the canonical word. The reader does not automatically infer missing forms. See [Vocabulary Preparation](Vocabulary-Preparation.md) for authoring rules.
 
 Right-clicking anywhere in the vocabulary pane has no action or popup menu. Use the bottom buttons to move or delete the selected word.
 
@@ -51,7 +53,7 @@ Use [Testing](Testing.md) for test and acceptance commands, [Publishing](Publish
 | Bottom play reports no audio | Place a decodable whole-article M4A, MP3 or WAV directly beside the Passage JSON; the player tries sorted candidates until one opens |
 | A different whole-article file plays | The player tries M4A, then MP3, then WAV; within each format it sorts filenames case-insensitively (ordinal tie-break) and uses the first file that opens. Keep one intended recording or rename deliberately |
 | A word cannot play | Check files under audio/ and the first-entry word stem, nonzero size and valid MP3/WAV encoding; vocabulary MP3 decode failure does not retry WAV |
-| A canonical word is not highlighted | Matching is literal, not inflection-aware; see the vocabulary preparation guide's surface-form discussion |
+| A canonical word or its inflected form is not highlighted | Enable highlights and verify that the exact headword is listed as `word`, or that the observed inflection is explicitly included in its `family` array. Matching is case-insensitive but does not infer additional forms; see [Vocabulary Preparation](Vocabulary-Preparation.md) |
 | Blank text display | Blank passages retain valid [[n]] placeholders and render as blanks; exercise answering is not implemented |
 | Settings do not restore a passage or old window size | This is intentional: library-only startup and a centered window (70% work-area height; width at least 796 DIP when it fits) are the current behavior |
 
