@@ -57,6 +57,8 @@ For a passage named `Example.json`, the automatically loaded companion is exactl
 
 A standalone file named `vocabulary.json` can be selected through the vocabulary import button, but it is not automatically paired with a passage. Keep such input files outside scanned book branches, or rename the final file to the matching companion name. Otherwise `vocabulary.json` may appear as a potential passage and fail the passage `filetype` check.
 
+The optional `family` array on each vocabulary entry holds article-attested surface forms differing from its `word`. It may be omitted or empty; invalid or duplicate forms are rejected. Both Passage and Script match explicitly listed forms to the canonical headword without changing pronunciation filenames or the right-side vocabulary display.
+
 Import replaces the active article's word list and saves the result to its matching companion file; it is not a merge operation. Moving or deleting words also saves that companion. If the file has changed externally since loading, the save is rejected: reopen the article before editing again. Malformed vocabulary does not block passage reading, but overwriting that malformed companion is disabled until it is repaired and reopened.
 
 See the [passage skill](skills/passage_segment/SKILL.md) and [vocabulary skill](Vocabulary-Preparation.md) for the exact JSON structures.
