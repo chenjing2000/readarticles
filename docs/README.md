@@ -23,6 +23,7 @@ This index links to the **current** application contracts, developer guides, and
 - [Project code review](skills/project-code-review/SKILL.md) — approved change scope and regression invariants
 - [Image to passage](skills/image_to_passage/SKILL.md) — externally prepare passage JSON from images
 - [Passage segmentation](skills/passage_segment/SKILL.md) — segment and validate passage JSON
+- [Script generation from WhisperX](skills/script_generation/SKILL.md) — convert WhisperX JSON directly to a timed Script companion
 - [Vocabulary enrichment](skills/vocabulary_enrichment/SKILL.md) — enrich and normalize vocabulary JSON
 
 Use the project contract for behavioral rules, the relevant reference for details, and the existing Test/Publish scripts for validation. Avoid duplicating changing settings, test counts, or release instructions across documents.

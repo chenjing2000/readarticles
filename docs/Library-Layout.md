@@ -113,3 +113,5 @@ The Script JSON root must have `"filetype": "script"`, `"title": ""` (or another
 The application uses `text` as the displayed source; timed-unit text is located in original sentence order when rendering, but its alignment is not an admission check. Unlocatable units are not colored. Script and Passage text need not match. A nonempty Script title uses the regular Passage title styling; an empty title hides the title. Script has timed sentence units and no fill-in-the-blank placeholders; Passage also has no sentence pronunciation. The original Passage file determines the directory used for whole-article audio and the companion vocabulary file; Script never changes those lookup rules.
 
 The music icon is dark grey for Passage and colored for Script. Vocabulary highlighting independently controls the background in both views. The audio clock controls Script foreground progress, which is cleared when article playback stops or naturally ends. Neither source JSON is modified.
+
+To convert an original WhisperX transcript JSON directly into this companion format, use the [Script generation skill](skills/script_generation/SKILL.md).
