@@ -11,6 +11,9 @@ public sealed record Meaning([property: JsonPropertyName("pos")] string Pos, [pr
 public sealed class VocabularyEntry
 {
     [JsonPropertyName("word")] public string Word { get; init; } = "";
+    [JsonPropertyName("family")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Family { get; init; }
     [JsonPropertyName("phonetic_uk")] public string PhoneticUk { get; init; } = "";
     [JsonPropertyName("phonetic_us")] public string PhoneticUs { get; init; } = "";
     [JsonPropertyName("meanings")] public List<Meaning> Meanings { get; init; } = new List<Meaning>();

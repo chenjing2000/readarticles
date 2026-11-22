@@ -27,6 +27,8 @@ public sealed class VocabularyRepository
         foreach (var entry in JsonFiles.Array(root, "words").EnumerateArray())
         {
             JsonFiles.Text(entry, "word");
+            if (entry.TryGetProperty("family", out var family) && family.ValueKind != JsonValueKind.Array)
+                throw new InvalidDataException("family 必须为字符串数组。");
             JsonFiles.Text(entry, "phonetic_uk", false);
             JsonFiles.Text(entry, "phonetic_us", false);
             foreach (var meaning in JsonFiles.Array(entry, "meanings").EnumerateArray())
@@ -154,6 +156,16 @@ public sealed class VocabularyRepository
                 throw new InvalidDataException("词条为空或重复。");
             if (entry.Meanings is null || entry.PhoneticUk is null || entry.PhoneticUs is null || entry.Meanings.Any(m => m is null || m.Pos is null || m.Text is null))
                 throw new InvalidDataException($"词条音标或释义无效：{entry.Word}");
+            if (entry.Family is null) continue;
+            var forms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string headword = Regex.Replace(entry.Word, @"\s+", " ").Trim();
+            foreach (string? form in entry.Family)
+            {
+                string normalized = Regex.Replace(form ?? "", @"\s+", " ").Trim();
+                if (normalized.Length == 0 || form != normalized ||
+                    normalized.Equals(headword, StringComparison.OrdinalIgnoreCase) || !forms.Add(normalized))
+                    throw new InvalidDataException($"family 包含空值、词头或重复词形：{entry.Word}");
+            }
         }
     }
 }
