@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using ReadArticles.Models;
+using ReadArticles.Infrastructure;
 namespace ReadArticles.Services;
 public sealed class ReaderWorkspace
 {
@@ -32,7 +33,7 @@ public sealed class ReaderWorkspace
     {
         var article = Article ?? throw new InvalidOperationException("请先打开文章。");
         if (Script is not null) return Script;
-        return File.Exists(ArticleRepository.ScriptPathFor(article.FilePath))
+        return File.Exists(ResourcePaths.RejectReparsePoints(ArticleRepository.ScriptPathFor(article.FilePath)))
             ? new ArticleRepository().LoadScript(article.FilePath)
             : null;
     }

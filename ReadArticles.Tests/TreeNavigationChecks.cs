@@ -220,6 +220,78 @@ internal static class TreeNavigationChecks
             }
         });
 
+        Program.Run("junction paths cannot bypass passage and companion safety checks", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-link-" + Guid.NewGuid().ToString("N"));
+            string library = Path.Combine(root, "Library");
+            string book = Path.Combine(library, "Book");
+            string outside = Path.Combine(root, "Outside");
+            Directory.CreateDirectory(book);
+            Directory.CreateDirectory(outside);
+            string link = Path.Combine(book, "Linked");
+            string passage = Path.Combine(book, "Reading.json");
+            string externalPassage = Path.Combine(outside, "Reading.json");
+            string externalVocabulary = Path.ChangeExtension(externalPassage, ".vocabulary.json");
+            string companionLink = Path.ChangeExtension(passage, ".vocabulary.json");
+            string scriptLink = Path.ChangeExtension(passage, ".script.json");
+            void Junction(string destination)
+            {
+                using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/d /c mklink /J \"{destination}\" \"{outside}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }) ?? throw new Exception("Could not create junction fixture.");
+                process.WaitForExit();
+                Program.Check(process.ExitCode == 0 &&
+                    (File.GetAttributes(destination) & FileAttributes.ReparsePoint) != 0);
+            }
+            void Reject(Action action)
+            {
+                try { action(); }
+                catch (ArgumentException) { return; }
+                throw new Exception("Reparse path was accepted.");
+            }
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                File.Copy(TestData.ArticlePath, passage);
+                File.Copy(TestData.ArticlePath, externalPassage);
+                File.WriteAllText(externalVocabulary, """{"filetype":"vocabulary","words":[]}""");
+                string original = JsonFiles.Fingerprint(externalVocabulary);
+                Junction(link);
+                Junction(companionLink);
+                Junction(scriptLink);
+                var vm = window.ViewModel;
+                Program.Check(vm.OpenLibrary(library) && window.SelectPassage(passage));
+                var article = vm.Article;
+                Program.Check(article is not null && !article.Vocabulary.CanWrite && article.Warnings.Count > 0);
+                Program.Check(!window.SelectPassage(Path.Combine(link, "Reading.json")) &&
+                    ReferenceEquals(vm.Article, article));
+                Program.Check(!vm.OpenArticle(Path.Combine(link, "Reading.json")));
+                Program.Check(vm.PrepareReadingMode(out _, out _) == ReadArticles.ViewModels.ReadingModePreparation.Failed &&
+                    !vm.IsScriptMode);
+                var repository = new ReadArticles.Services.VocabularyRepository();
+                string linkedVocabulary = Path.Combine(link, "Reading.vocabulary.json");
+                Reject(() => repository.Load(linkedVocabulary));
+                Reject(() => repository.Save(linkedVocabulary, new VocabularyData(), original));
+                Reject(() => repository.RestoreLatestBackup(linkedVocabulary, original));
+                Reject(() => repository.Save(companionLink, new VocabularyData(), null));
+                Program.Check(JsonFiles.Fingerprint(externalVocabulary) == original);
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                // Remove links themselves before recursive fixture cleanup.
+                foreach (string junction in new[] { link, companionLink, scriptLink })
+                    if (Directory.Exists(junction)) Directory.Delete(junction);
+                Directory.Delete(root, true);
+            }
+        });
+
         Program.Run("failed article selection restores the previously committed tree leaf", () =>
         {
             string root = Path.Combine(Path.GetTempPath(), "ReadArticles-selection-rollback-" + Guid.NewGuid().ToString("N"));

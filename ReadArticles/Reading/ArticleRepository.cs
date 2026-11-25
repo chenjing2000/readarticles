@@ -8,7 +8,7 @@ public sealed class ArticleRepository
 {
     public LoadedArticle Load(string path)
     {
-        string absolute = Path.GetFullPath(path);
+        string absolute = ResourcePaths.RejectReparsePoints(path);
         
         using var json = JsonDocument.Parse(File.ReadAllText(absolute));
         var (title, paragraphs) = ReadParagraphs(json.RootElement);
@@ -16,7 +16,7 @@ public sealed class ArticleRepository
         var warnings = new List<string>();
         VocabularySnapshot vocabulary;
         try { vocabulary = new VocabularyRepository().Load(vocabularyPath); }
-        catch (Exception error) when (error is JsonException or InvalidDataException or IOException or UnauthorizedAccessException)
+        catch (Exception error) when (error is JsonException or InvalidDataException or IOException or UnauthorizedAccessException or ArgumentException)
         {
             warnings.Add("词汇表无法加载：" + error.Message);
             vocabulary = new VocabularySnapshot(new VocabularyData(), null, false, error.Message);
@@ -31,7 +31,7 @@ public sealed class ArticleRepository
     // It does not read vocabulary, find recordings or mutate the active Passage.
     public ScriptArticle LoadScript(string passagePath)
     {
-        using var json = JsonDocument.Parse(File.ReadAllText(ScriptPathFor(passagePath)));
+        using var json = JsonDocument.Parse(File.ReadAllText(ResourcePaths.RejectReparsePoints(ScriptPathFor(passagePath))));
         JsonElement root = json.RootElement;
         if (root.ValueKind != JsonValueKind.Object)
             throw new InvalidDataException("Script 根节点必须为对象。");

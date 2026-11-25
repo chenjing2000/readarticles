@@ -89,6 +89,8 @@ The scanner excludes hidden files/directories, names beginning with `.`, names e
 
 Saving a changed exclusion set cancels old scans, invalidates cached nodes and asynchronously rebuilds a collapsed tree for the same library. The current article, vocabulary and playback are retained. Equivalent sets do not refresh the tree. If root discovery fails, the tree remains empty, the library path and reading state remain committed, and an error is shown. A pending explicit library switch takes precedence: its discovery uses the latest exclusion set; on switch failure the committed library is refreshed instead. A closed navigation session never publishes pending results.
 
+Passage reads, on-demand Script reads and vocabulary reads/writes reject paths traversing junctions or symbolic links, including existing ancestors. An unsafe vocabulary companion leaves Passage readable but disables vocabulary editing; an unsafe Script leaves the current reading mode unchanged. Programmatic passage selection cannot bypass these checks; ordinary directory exclusions remain navigation-only. Word-head duplicate checks normalize surrounding and repeated whitespace and compare case-insensitively without rewriting existing word text.
+
 Derived audio paths stay within the passage directory. Paths escaping that directory and paths traversing reparse points are rejected. Prepare recordings under the exact new directories and inferred filenames; JSON paths cannot redirect playback.
 
 ## 6. Files outside the library
