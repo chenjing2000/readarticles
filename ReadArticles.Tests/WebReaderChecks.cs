@@ -126,6 +126,9 @@ internal static class WebReaderChecks
                       "paragraphs": [[{
                         "text": "It is a beautiful day.",
                         "timed_units": [["It is a",1.0,1.8],["beautiful",1.8,2.4],["day",2.4,2.8]]
+                      }], [{
+                        "text": "Alpha stays beta.",
+                        "timed_units": [["Alpha",3,4],["stays",null,null],["missing",4,4.5],["beta",4.5,5]]
                       }]]
                     }
                     """);
@@ -741,7 +744,7 @@ internal static class WebReaderChecks
                 WaitFor(() => Evaluate(browser, """
                     (() => document.getElementById('script-toggle').getAttribute('aria-pressed') === 'true' &&
                       !document.getElementById('script-toggle').disabled &&
-                      document.querySelectorAll('#article-body .script-paragraph > .script-sentence .script-timed-unit').length === 3)()
+                      document.querySelectorAll('#article-body .script-paragraph > .script-sentence .script-timed-unit').length === 5)()
                     """).GetBoolean(), "Script DOM switch");
                 Program.Check(Evaluate(browser,
                     "document.getElementById('article-title').textContent").GetString() ==
@@ -806,11 +809,55 @@ internal static class WebReaderChecks
                     sweep.GetProperty("backward").GetDouble() != sweep.GetProperty("middle").GetDouble() ||
                     sweep.GetProperty("redundant").GetInt32() != 0)
                     throw new Exception("Unexpected Script SVG sweep: " + sweep.GetRawText());
+                // Exercise real JSON admission, untimed/unaligned text, paragraph boundaries and
+                // glyph-height geometry in the actual reader rather than only in synthetic DOM.
+                Program.Check(EvaluateModule(browser, """
+                    (() => {
+                      const rows = [...document.querySelectorAll('#article-body > .script-paragraph')];
+                      const near = (a, b) => Math.abs(a - b) < 0.02;
+                      const width = rect => Number(rect.getAttribute('width'));
+                      if (rows.length !== 2 || rows[1].textContent !== 'Alpha stays beta.' ||
+                          [...rows[1].querySelectorAll('.script-timed-unit')].map(unit => unit.textContent).join('|') !== 'Alpha|beta')
+                        return false;
+                      const savedPlayback = getPlayback();
+                      try {
+                        paintScriptProgress({ position: 5, isArticleActive: true, canSeek: true });
+                        for (const [index, row] of rows.entries()) {
+                          const svg = row.querySelector(':scope > svg.script-background');
+                          const base = svg.getBoundingClientRect();
+                          const actual = [...svg.querySelectorAll(':scope > rect')];
+                          const units = [...row.querySelectorAll('.script-timed-unit')];
+                          const groups = units.map(unit => {
+                            const range = document.createRange();
+                            range.selectNodeContents(unit);
+                            return [...range.getClientRects()].filter(r => r.width > 0.25 && r.height > 0.25)
+                              .sort((a,b) => a.top-b.top || a.left-b.left);
+                          });
+                          const expected = groups.flat();
+                          if (expected.length !== actual.length || groups.some(group => !group.length)) return false;
+                          if (!expected.every((r,i) =>
+                            near(Number(actual[i].getAttribute('x')), r.left-base.left) &&
+                            near(Number(actual[i].getAttribute('y')), r.top-base.top-1) &&
+                            near(Number(actual[i].getAttribute('height')), r.height+2))) return false;
+                          // No extension past the last unit of either paragraph, including punctuation.
+                          if (!near(width(actual.at(-1)), expected.at(-1).width)) return false;
+                          // The real null/unaligned interval must not create rectangles or join the gap.
+                          if (index === 1 && !actual.every((rect,i) => near(width(rect),expected[i].width))) return false;
+                        }
+                        return true;
+                      } finally {
+                        paintScriptProgress(savedPlayback);
+                      }
+                    })()
+                    """).GetBoolean());
                 // Use actual browser geometry for same-line, cross-sentence and wrapped units.
                 Program.Check(EvaluateModule(browser, """
                     (async () => {
                       const body = document.getElementById('article-body');
                       const saved = [...body.childNodes];
+                      const savedPlayback = getPlayback();
+                      const scroll = document.getElementById('article-scroll');
+                      const savedScroll = scroll.scrollTop;
                       const word = (text, start) => '<span class="script-timed-unit" data-start="' +
                         start + '" data-end="' + (start + 1) + '">' + text + '</span>';
                       const sentence = text => '<span class="script-sentence">' + text + '</span>';
@@ -856,11 +903,18 @@ internal static class WebReaderChecks
                         if (![c,d,e,f,g].every((rect,i) => near(width(rect), widths[i+2])) || near(y(f),y(g))) return false;
                         paint(0.5);
                         if (!near(width(a),widths[0]/2) || [b,c,d,e,f,g].some(rect => width(rect)!==0)) return false;
+                        // A paused playback snapshot must be restored by geometry measurement itself.
+                        // No subsequent explicit paint or playback update may repair the new rectangles.
+                        renderPlayback({ ...savedPlayback, position:6, duration:7, state:'paused',
+                          isArticleActive:true, canSeek:true });
+                        if (!near(width(f),widths[5]) || width(g)!==0) return false;
                         wrap.style.width = '1000px';
                         await measure();
                         const [left,right] = rects(wrap);
-                        paint(6);
-                        if (!near(x(left)+width(left),x(right)) || width(right)!==0) return false;
+                        if (rects(wrap).length !== 2 || getPlayback().position !== 6 ||
+                            getPlayback().state !== 'paused' || !near(y(left),y(right)) ||
+                            !near(x(left)+width(left),x(right)) || width(left)<=widths[5] || width(right)!==0)
+                          return false;
                         wrap.style.cssText = 'font-family:monospace;width:8ch;text-indent:0';
                         wrap.replaceChildren(...paragraph(sentence(word('ABCDEFGHIJK',5)+' '+word('xy',6)), '').childNodes);
                         await measure();
@@ -883,7 +937,10 @@ internal static class WebReaderChecks
                         return [...rects(row),...rects(wrap)].every(rect=>width(rect)===0);
                       } finally {
                         body.replaceChildren(...saved);
+                        refreshHighlights(true);
+                        renderPlayback(savedPlayback);
                         await measure();
+                        scroll.scrollTop = savedScroll;
                       }
                     })()
                     """).GetBoolean());
@@ -998,7 +1055,7 @@ internal static class WebReaderChecks
             (async () => {
               const { getPlayback, isSeekDragging, renderPlayback, formatSeconds } = await import('https://readarticles.invalid/playback.js');
               const { matchVocabulary, positionSelectionAddButton, updateSelectionAdd,
-                selectionTracking, matchedTexts } = await import('https://readarticles.invalid/vocabulary.js');
+                selectionTracking, matchedTexts, refreshHighlights } = await import('https://readarticles.invalid/vocabulary.js');
               const { applyPaneWidth, getRightWidth } = await import('https://readarticles.invalid/layout.js');
               const { paintScriptProgress, scheduleScriptGeometry } = await import('https://readarticles.invalid/reading.js');
               return (

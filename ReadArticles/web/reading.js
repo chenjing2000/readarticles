@@ -93,7 +93,6 @@ function renderArticle(article, mode = "passage", restoreScroll = false) {
 function renderScriptArticle(article, host) {
   (article.paragraphs ?? []).forEach((paragraph, paragraphIndex) => {
     const row = element("p", "article-paragraph script-paragraph");
-    row.dataset.paragraph = String(paragraphIndex);
     paragraph.forEach((sentence, sentenceIndex) => {
       const raw = String(sentence.text ?? "");
       if (sentenceIndex > 0) {
@@ -229,7 +228,6 @@ function updateReadingMode(next, content) {
   try {
     renderArticle(content, next, true);
     refreshHighlights(true);
-    if (next === "script") scheduleScriptGeometry();
   } catch (error) {
     if (scriptGeometryFrame) cancelAnimationFrame(scriptGeometryFrame);
     scriptGeometryFrame = 0;
