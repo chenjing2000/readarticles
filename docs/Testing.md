@@ -80,6 +80,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 `Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files, including refusal of linked dist and release directories.
 
+## Script progress color palette
+
+Verify all five colors are accepted and appear in the native settings and browser Script progress. Former palette colors normalize to the new red default without changing other preferences. Manually inspect the colored text on the five available reading backgrounds.
+
 ## Playback update efficiency
 
 Live absolute divider drag frames do not accumulate in the request deduplication set; durable actions and drag completion retain request checks. Script geometry caches segment widths and skips unchanged clip writes, including during reverse seeks and stop. The progress timer runs only while article playback is playing; native and browser seek handlers explicitly publish the new position, even when paused. Manually verify paused forward/backward seeks, pointer seek, resume and Script progress.

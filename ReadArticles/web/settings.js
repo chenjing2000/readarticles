@@ -30,7 +30,7 @@ export function renderSettings(settings) {
     "--body-indent": (body.firstLineIndent ?? 2) + "em",
     "--body-color": body.color ?? "#283747",
     "--reading-bg": body.background ?? "#F8F8F6",
-    "--script-color": body.scriptColor ?? "#B64550",
+    "--script-color": body.scriptColor ?? "#E02020",
     "--selection-add-size": (body.selectionAddSize ?? 0.65) + "em",
     "--selection-background": body.selectionBackground ?? "#DDE8F2",
     "--word-font": fontStack(word.font ?? "Georgia", english),

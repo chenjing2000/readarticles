@@ -40,8 +40,8 @@ internal sealed class SettingsDialog : Window
     ];
     private static readonly (string Value, string Name)[] ScriptColors =
     [
-        ("#B64550", "柔和红"), ("#A33D30", "砖红"), ("#A45A2C", "陶土橙"),
-        ("#856300", "赭金黄"), ("#53713C", "橄榄绿")
+        ("#E02020", "鲜红"), ("#0066E6", "亮蓝"), ("#008A48", "翠绿"),
+        ("#8A36D1", "亮紫"), ("#D65A00", "鲜橙")
     ];
     private static readonly (string Value, string Name)[] BackgroundColors =
     [

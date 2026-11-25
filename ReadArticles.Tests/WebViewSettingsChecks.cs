@@ -125,7 +125,7 @@ internal static class WebViewSettingsChecks
                     root.GetProperty("appearance").GetProperty("title").GetProperty("size").GetDouble() == 18 &&
                     root.GetProperty("appearance").GetProperty("title").GetProperty("lineHeight").GetDouble() == 1.7 &&
                     root.GetProperty("appearance").GetProperty("body").GetProperty("lineHeight").GetDouble() == 1.7 &&
-                    root.GetProperty("appearance").GetProperty("body").GetProperty("scriptColor").GetString() == "#B64550" &&
+                    root.GetProperty("appearance").GetProperty("body").GetProperty("scriptColor").GetString() == "#E02020" &&
                     root.GetProperty("appearance").GetProperty("body").GetProperty("selectionAddSize").GetDouble() == 0.65 &&
                     root.GetProperty("appearance").GetProperty("body").GetProperty("selectionBackground").GetString() == "#DDE8F2" &&
                     root.GetProperty("appearance").GetProperty("meanings").GetProperty("lineHeight").GetDouble() == 1.5 &&

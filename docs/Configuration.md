@@ -17,7 +17,7 @@ The cog next to 选择图书馆 opens the modal window titled 设置. It uses th
 - Phonetics: #0A7785, #256CA5, #38735A, #7657A0, #995431
 - Background: #F8F8F6, #F0F3F7, #F7F1E6, #EFF5F0, #F1F0F7
 - Selection background (native CSS `::selection`): #DDE8F2, #E5EDE0, #F3E9DC, #EBE5F2, #F2E5E7 (default #DDE8F2)
-- Script progress text: #B64550, #A33D30, #A45A2C, #856300, #53713C
+- Script progress text: #E02020 (default vivid red), #0066E6 (bright blue), #008A48 (emerald green), #8A36D1 (purple), #D65A00 (orange). Former Script palette values normalize to the new default; other preferences are unchanged.
 
 Title defaults: Georgia 18px bold (16/18/20/22/24), 1.7 line height (1.6/1.7/1.8), 16px after (16/18/20). Body defaults: Georgia 15px (14/15/16/17), 1.7 line height (1.6/1.7/1.8), 16px after (14/16/18), 2em first-line indent (0/1/2/3). Word head: Georgia 16px semibold with choices 15/16/17. IPA: 14px with choices 13/14/15. Meanings: 15px (14/15/16), 1.5 line height (choices 1.5/1.6/1.7). English font choices are Georgia (default), Microsoft YaHei UI, Nunito and Segoe UI. Noto Sans is not offered; previously saved Noto Sans values normalize to Georgia. Chinese meaning font choices remain Microsoft YaHei, SimSun and KaiTi. Installed-font checks apply only to Georgia, Nunito and Segoe UI; unavailable choices show a nonmodal "未检测到字体 {name}。" message and keep the previous usable font. Default accent UK, fixed 100% audio output, forward steps 4/7/10/15s, backward 5/8/11/16s. The first seek step in each list is the default. The intervals govern the exclusive main-window arrow shortcuts. There is no speed or volume control.
 

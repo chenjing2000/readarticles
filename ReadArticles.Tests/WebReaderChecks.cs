@@ -688,7 +688,7 @@ internal static class WebReaderChecks
                 draft.Appearance.Vocabulary.Font = "Nunito";
                 draft.Appearance.Body.SelectionAddSize = 0.80;
                 draft.Appearance.Body.SelectionBackground = "#E5EDE0";
-                draft.Appearance.Body.ScriptColor = "#856300";
+                draft.Appearance.Body.ScriptColor = "#8A36D1";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
                     "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 object?[] settingsArguments = [draft, null];
@@ -716,7 +716,7 @@ internal static class WebReaderChecks
                         .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--script-color')")
-                        .GetString() == "#856300" &&
+                        .GetString() == "#8A36D1" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--selection-background')")
                         .GetString() == "#E5EDE0" &&

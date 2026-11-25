@@ -68,7 +68,7 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
   user-select: none;
   white-space: normal;
 }
-.script-paint .script-timed-unit { color: var(--script-color, #B64550); }
+.script-paint .script-timed-unit { color: var(--script-color, #E02020); }
 .script-clips { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
 /* Each IPA and its speaker stay together; the two groups may wrap. */
 .phonetic-line { display: flex; flex-wrap: wrap; align-items: center;

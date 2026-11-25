@@ -155,7 +155,7 @@ internal static class ReaderControlsChecks
                 Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
                     loaded.Appearance.Title.LineHeight == 1.7 &&
                     loaded.Appearance.Body.LineHeight == 1.7 &&
-                    loaded.Appearance.Body.ScriptColor == "#B64550" &&
+                    loaded.Appearance.Body.ScriptColor == "#E02020" &&
                     loaded.Appearance.Body.SelectionAddSize == 0.65 &&
                     loaded.Appearance.Title.Font == "Georgia" &&
                     loaded.Appearance.Body.Font == "Georgia" &&
@@ -242,7 +242,7 @@ internal static class ReaderControlsChecks
                     defaults.Appearance.Meanings.LineHeight == 1.5 &&
                     defaults.Appearance.Body.SelectionAddSize == 0.65 &&
                     defaults.Appearance.Body.SelectionBackground == "#DDE8F2" &&
-                    defaults.Appearance.Body.ScriptColor == "#B64550" &&
+                    defaults.Appearance.Body.ScriptColor == "#E02020" &&
                     defaults.Appearance.Title.Font == "Georgia" &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
                     defaults.Appearance.Phonetics.Size == 14);

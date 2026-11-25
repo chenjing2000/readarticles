@@ -239,7 +239,7 @@ public sealed class ReaderSettings
         a.Body.FirstLineIndent = Allowed(a.Body.FirstLineIndent, 2, 0, 1, 2, 3);
         a.Body.Color = ColorCode(a.Body.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         a.Body.Background = ColorCode(a.Body.Background, "#F8F8F6", "#F8F8F6", "#F0F3F7", "#F7F1E6", "#EFF5F0", "#F1F0F7");
-        a.Body.ScriptColor = ColorCode(a.Body.ScriptColor, "#B64550", "#B64550", "#A33D30", "#A45A2C", "#856300", "#53713C");
+        a.Body.ScriptColor = ColorCode(a.Body.ScriptColor, "#E02020", "#E02020", "#0066E6", "#008A48", "#8A36D1", "#D65A00");
         a.Body.SelectionAddSize = Allowed(a.Body.SelectionAddSize, 0.65, 0.65, 0.70, 0.75, 0.80);
         a.Body.SelectionBackground = ColorCode(a.Body.SelectionBackground, "#DDE8F2",
             "#DDE8F2", "#E5EDE0", "#F3E9DC", "#EBE5F2", "#F2E5E7");
@@ -279,7 +279,7 @@ public sealed class ReaderBodyStyle : ReaderTextStyle
     public ReaderBodyStyle() { Size = 15; LineHeight = 1.7; ParagraphAfter = 16; }
     public double FirstLineIndent { get; set; } = 2;
     public string Background { get; set; } = "#F8F8F6";
-    public string ScriptColor { get; set; } = "#B64550";
+    public string ScriptColor { get; set; } = "#E02020";
     public double SelectionAddSize { get; set; } = 0.65;
     public string SelectionBackground { get; set; } = "#DDE8F2";
 }
