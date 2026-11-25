@@ -14,18 +14,16 @@ Library/                              <- select this directory
       When America walks away/        <- optional article directory
         When America walks away.json
         When America walks away.vocabulary.json
+        When America walks away.script.json
         article.m4a
         audio/
           be_stuck_in_uk.mp3
           be_stuck_in_us.mp3
-    userdata/                         <- optional; excluded from navigation
-      xiaoxin/
-        answer_sheet.json
 ```
 
 Date and article directories are conventions, not requirements. A passage may sit directly in the book directory or deeper within it. Separate article directories are useful because all passages sharing a directory also share its whole-article audio selection and relative audio locations.
 
-Opening a library discovers only immediate book directories and checks for `book.json`; it does not enumerate passages inside books, parse passage or vocabulary JSON, open an article, or start audio. The tree starts collapsed. Each expansion enumerates one directory level, and collapsing a node also collapses its descendants.
+Opening a library discovers only immediate book directories and checks for `book.json`; it does not enumerate passages inside books, parse passage or vocabulary JSON, open an article, or start audio. The tree starts collapsed. Each expansion enumerates one directory level and parses direct JSON files to identify top-level objects with exact filetype `passage`; collapsing invalidates pending scans and descendant load states.
 
 ## 2. Required and optional files
 
@@ -36,8 +34,9 @@ Opening a library discovers only immediate book directories and checks for `book
 | `<title>.json` | Required to read a passage | Anywhere inside a recognized book, outside excluded branches | Parsed only when selected; must have `filetype: "passage"` |
 | `<title>.vocabulary.json` | Optional | Same directory and same filename stem as the passage | Automatically loaded with the passage; missing file gives an empty, writable word list |
 | `audio/` and its MP3/WAV files | Optional physical files | Passage directory | Names derived from word stem; missing or empty files disable pronunciation buttons; later stem collisions have no audio eligibility |
-| One whole-article `.m4a`, `.mp3` or `.wav` | Optional | Directly beside the passage JSON | Used only by the central bottom play/pause button |
-| `userdata/xiaoxin/answer_sheet.json` | Optional | Relative to the book directory | Only `username` is read for the account label; authentication and exercise answering are not implemented |
+| Whole-article `.m4a`, `.mp3` or `.wav` candidates | Optional | Directly beside the passage JSON | Playback opens the first successful candidate in priority/name order |
+| `<title>.script.json` | Optional | Same directory and stem as the Passage | Read-only Script companion loaded on demand; see below |
+| `userdata/` | Optional external folder | Anywhere below a book | Excluded from navigation; no account or answer-sheet data is loaded |
 | `<title>.exercise.json` | Optional authoring companion | Beside the passage | Excluded from navigation and not read or displayed by the current reader |
 | Images, PDFs, text, and other non-JSON source files | Optional stored material | Any convenient location | Not opened by the reader and not shown as passage leaves |
 
@@ -47,7 +46,7 @@ A minimal marker can contain:
 {}
 ```
 
-A book is listed whenever its immediate directory contains `book.json`, even if it currently has no passages. JSON validity is not checked during discovery, so a malformed potential passage can appear in the tree and fail only when selected.
+A book is listed whenever its immediate directory contains `book.json`, even if it currently has no passages. Book markers are not parsed. During expansion, malformed JSON and objects without exact `filetype: "passage"` are omitted. A syntactically valid passage-tagged object can still fail the full schema validation when selected.
 
 ## 3. Passage and vocabulary naming
 
@@ -55,7 +54,7 @@ The Passage JSON `title` field supplies the center-pane title, including an empt
 
 For a passage named `Example.json`, the automatically loaded companion is exactly `Example.vocabulary.json`. The application does not search for an arbitrary vocabulary file in the same folder.
 
-A standalone file named `vocabulary.json` can be selected through the vocabulary import button, but it is not automatically paired with a passage. Keep such input files outside scanned book branches, or rename the final file to the matching companion name. Otherwise `vocabulary.json` may appear as a potential passage and fail the passage `filetype` check.
+A standalone file named `vocabulary.json` can be selected through the vocabulary import button, but it is not automatically paired with a passage. Keep such input files outside scanned book branches, or rename the final file to the matching companion name. A valid vocabulary document is not a passage leaf because its filetype is different.
 
 The optional `family` array on each vocabulary entry holds article-attested surface forms differing from its `word`. It may be omitted or empty; invalid or duplicate forms are rejected. Both Passage and Script match explicitly listed forms to the canonical headword without changing pronunciation filenames or the right-side vocabulary display.
 
@@ -86,9 +85,7 @@ Passage and Vocabulary JSON never declare media paths. Passage sentences have no
 
 ## 5. Excluded branches and safe paths
 
-The scanner excludes hidden files/directories, names beginning with `.`, directories named `userdata`, `__pycache__` or `cache` (case-insensitive exact names), and reparse points such as junctions or symbolic links. If a directory directly contains any `.json` file (case-insensitive extension), its immediate child directories whose names contain `audio` (case-insensitive substring) are also hidden. Without a directly contained JSON file, audio-named child directories remain visible. These are navigation-only filters: they do not delete directories or prevent audio/cache access. Inside a book, `book.json`, `*.vocabulary.json` and `*.exercise.json` are excluded from passage leaves.
-
-Other JSON files are treated as potential passages without inspecting their contents. Keep unrelated JSON outside scanned book branches.
+The scanner excludes hidden files/directories, names beginning with `.`, directories named `userdata`, `__pycache__` or `cache` (case-insensitive exact names), and reparse points such as junctions or symbolic links. If a directory directly contains any `.json` file (case-insensitive extension), its immediate child directories whose names contain `audio` (case-insensitive substring) are also hidden. Without a directly contained JSON file, audio-named child directories remain visible. These are navigation-only filters: they do not delete directories or prevent audio/cache access. Inside a book, direct JSON files become leaves only if they parse as objects with a string `filetype` exactly equal to `passage`. Normal book markers, vocabulary, Script and exercise companions therefore do not become leaves. This is a content-based filter, not a filename-suffix blacklist. Malformed JSON is skipped; unreadable files may yield an incomplete scan and a warning.
 
 Derived audio paths stay within the passage directory. Paths escaping that directory and paths traversing reparse points are rejected. Prepare recordings under the exact new directories and inferred filenames; JSON paths cannot redirect playback.
 
@@ -96,19 +93,19 @@ Derived audio paths stay within the passage directory. Paths escaping that direc
 
 Application settings live in `dist/ReadArticles/userdata/config/settings.json`, beside the published `dist/ReadArticles/ReadArticles.exe` in its `userdata/` directory. The legacy executable-sibling settings file is ignored by the current format but is not automatically deleted. The portable release uses a framework-dependent single EXE and requires the compatible .NET 10 Windows Desktop Runtime x64 on the target machine. Keep `userdata/` and the rest of the application directory together during updates.
 
-Source images and the original Python ZIP are preparation/reference material. ReadArticles does not convert them when a library is opened.
+Images, PDFs and other source materials may be prepared externally using the skills in [the documentation index](README.md). They are not opened or converted by the reader.
 
 ## 7. Lazy navigation and refresh
 
-The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's direct JSON passage candidates and immediate subdirectories. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Passage JSON is parsed only when opened, and whole-article audio candidates are checked only when playback is requested.
+The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's immediate files and subdirectories and parses direct JSON to check the passage tag. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Full Passage schema validation and companion loading occur only when a leaf is opened; whole-article audio candidates are checked only when playback is requested.
 
 Collapsing invalidates pending scans; reopening refreshes that directory. When a refresh fails, the last successful snapshot is retained where available and a warning is shown. Navigation excludes the files and folders described in [Excluded branches and safe paths](#5-excluded-branches-and-safe-paths); there is no recursive pre-scan.
 
 ## Optional Script reading companion
 
-For an existing `<name>.json` Passage, place `<name>.script.json` in the **same directory**. The Script companion is not a separate article leaf and is not read when opening Passage. Clicking the music toggle attempts to load it once; when missing or invalid, Passage remains visible and playback continues.
+For an existing `<name>.json` Passage, place `<name>.script.json` in the **same directory**. The Script companion is not a separate article leaf and is not read when opening Passage. Clicking the music toggle loads it on demand; a successfully loaded Script is reused until the active article changes; failed attempts can be retried. When missing or invalid, Passage remains visible and playback continues.
 
-The Script JSON root must have `"filetype": "script"`, `"title": ""` (or another string), and nonempty `"paragraphs"`. Every paragraph is a nonempty array of sentences; each sentence has nonempty `"text"` and `"timed_units"` array. Timed units are exactly `[displayText, startSeconds, endSeconds]`: displayText is a nonempty string; both time fields must be null or valid finite nonnegative numbers with end greater than start. Empty timed_units arrays are valid.
+The Script JSON root must have `"filetype": "script"`, `"title": ""` (or another string), and nonempty `"paragraphs"`. Every paragraph is a nonempty array of sentences; each sentence has nonblank `"text"` and `"timed_units"` array. Timed units are exactly `[displayText, startSeconds, endSeconds]`: displayText is a nonempty string; both time fields must be null or valid finite nonnegative numbers with end greater than start. Empty timed_units arrays are valid.
 
 The application uses `text` as the displayed source; timed-unit text is located in original sentence order when rendering, but its alignment is not an admission check. Unlocatable units are not colored. Script and Passage text need not match. A nonempty Script title uses the regular Passage title styling; an empty title hides the title. Script has timed sentence units and no fill-in-the-blank placeholders; Passage also has no sentence pronunciation. The original Passage file determines the directory used for whole-article audio and the companion vocabulary file; Script never changes those lookup rules.
 
