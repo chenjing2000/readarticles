@@ -496,6 +496,13 @@ internal sealed class SettingsDialog : Window
             AcceptsReturn = false, TextWrapping = TextWrapping.NoWrap,
             ToolTip = "使用逗号或分号分隔多个文件夹名称，忽略大小写。"
         };
+        // Keep the Fluent single-line TextBox, but hide its built-in clear action.
+        excluded.Loaded += (_, _) =>
+        {
+            excluded.ApplyTemplate();
+            if (excluded.Template?.FindName("DeleteButton", excluded) is UIElement clearButton)
+                clearButton.Visibility = Visibility.Collapsed;
+        };
         excluded.TextChanged += (_, _) => draft.ExcludedFolders = excluded.Text;
         Grid.SetColumn(excluded, 1);
         row.Children.Add(excluded);

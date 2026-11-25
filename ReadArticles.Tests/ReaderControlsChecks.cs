@@ -343,6 +343,12 @@ internal static class ReaderControlsChecks
                         var input = row.Children.OfType<TextBox>().Single();
                         Program.Check(input.Text == ReaderSettings.DefaultExcludedFolders &&
                             input.Width == 332 && input.Height == 30 && !input.AcceptsReturn);
+                        // Exercise the Loaded handler after the Fluent template is applied.
+                        input.ApplyTemplate();
+                        input.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+                        if (input.Template?.FindName("DeleteButton", input) is UIElement clearButton)
+                            Program.Check(Equals(clearButton.ReadLocalValue(UIElement.VisibilityProperty),
+                                Visibility.Collapsed));
                         input.Text = "video, 结果";
                         var edited = (ReaderSettings)type.GetField("draft",
                             BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
