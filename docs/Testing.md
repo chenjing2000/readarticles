@@ -16,9 +16,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite 
 - **UI** uses one `--ui-suite` process for the same Core cases plus native window/tree, settings, controls, icons and backups, with no duplicate test methods. The isolated logger check still runs once. Run UI on an interactive Windows desktop.
 - **Full** runs the complete application regression suite (including logger checks), real M4A/MP3/WAV playback checks, and separate read-only checks against the unified test article. It does not re-run logger checks in a separate process. Run this locally before merging; it does not require a developer-specific article directory.
 
-The existing targeted `--*-only` entry points remain unchanged for focused development tests. Core and UI consolidate previously overlapping categories without removing any unique assertions.
+Targeted `--*-only` entry points remain available for focused development tests. The standard suites avoid duplicate invocations.
 
-The single Windows CI workflow runs on pushes and pull requests to `main` (and manual dispatch). Its Core suite already includes real WebView2 DOM tests; the retired feature-branch pilot workflow has been removed. Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
+The single Windows CI workflow runs on pushes and pull requests to `main` (and manual dispatch). Its Core suite already includes real WebView2 DOM tests;  Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
 
 The summary distinguishes Passed, Failed, and Skipped groups. A skipped group is not counted as verified. A failed native command or assertion makes the entry point return a nonzero exit code.
 
@@ -90,6 +90,7 @@ Run the following from the repository root on Windows:
 
 ```powershell
 dotnet build ReadArticles.Tests -c Release
+# Targeted commands assume an isolated fixture environment if the case needs TestData.
 dotnet run --project ReadArticles.Tests -c Release -- --webview-pilot-only
 dotnet run --project ReadArticles.Tests -c Release -- --script-only
 .\tools\Test.ps1 -Suite Core
@@ -98,12 +99,12 @@ dotnet run --project ReadArticles.Tests -c Release -- --script-only
 .\tools\Test-PublishedApp.ps1
 ```
 
-- `--webview-pilot-only` covers the embedded static assets, terminal native error screen, lack of legacy WPF reader, real Passage/word DOM and Script switching, vocabulary matching boundaries and `family` mapping across Passage/Script timed units, independent scroll, font-setting roundtrip, notification dismissal and SVG clip/foreground progress.
+- `--webview-pilot-only` covers the embedded static assets, terminal native error screen, lack of legacy WPF reader, real Passage/word DOM and Script switching, exclusive reserved-key dispatch and focus-outline suppression, vocabulary matching boundaries and `family` mapping across Passage/Script timed units, independent scroll, font-setting roundtrip, notification dismissal and SVG clip/foreground progress.
 - `--script-only` covers Script JSON validation, timed-unit offsets, null-time handling and bridge snapshot/selection contracts. Script unaligned units are allowed but not colored; single-null and zero-duration intervals must be rejected.
 - `--tree-only`, `--lazy-tree-only`, `--controls-only`, `--editing-only`, `--notifications-only` and `--backup-only` keep the native tree, business states and data-safety checks. `--rendering-only` checks the browser and Script bridge, **not** the deleted WPF `ParagraphReader`.
 - `--source-only` verifies that the active test article and vocabulary load without writes. It is **not** an independent browser-rendering test; real DOM assertions are in `--webview-pilot-only` / `--rendering-only`.
 - The browser matches the headword `word` and explicit `family` strings using case-insensitive literal matches, longest match at the earliest start, and the established apostrophe/hyphen/numeric-boundary rules. Hits map back to their canonical headword; a direct headword match takes precedence over another entry's family alias. The repository checks optional family-array structure, uniqueness, and save round-trips. Do not reintroduce the deleted C# `VocabularyMatcher` merely to test this behavior.
-- Notification queue tests cover severity, FIFO order, three visible cards, overflow and persistent errors. Browser DOM tests check rendering/dismissal; deleted WPF ToastHost animation/bitmap tests are no longer applicable.
+- Notification queue tests cover severity, FIFO order, three visible cards, waiting messages and persistent errors. Browser DOM tests check rendering/dismissal; deleted WPF ToastHost animation/bitmap tests are no longer applicable.
 - Script foreground coloring uses SVG clip geometry driven by the C# audio clock. DOM/geometry checks verify structure and updates; **real-audio listening and visual inspection of wrapped timed units** remain separate acceptance evidence. Confirm first-line-to-last-line coloring for hyphenated/multiword units, seek, pause, stop, highlight backgrounds and mode switches.
 - The published-app smoke validates launch, renamed executable, settings location and missing-.NET guidance; it does **not** independently prove every published EXE WebView2 interaction. Exercise the actual published build on an interactive desktop before release.
 

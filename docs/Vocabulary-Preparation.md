@@ -14,7 +14,7 @@ Use the supplied [Vocabulary Enrichment skill](skills/vocabulary_enrichment/SKIL
 
 Optional inputs are a matching passage JSON, a desired filename/destination, and a translation language. Use the passage's segment text in reading order as authoritative context, without editing it.
 
-The default gloss language is Simplified Chinese, matching the original learning workflow. A user can request another language; the WPF schema accepts strings in any language. These instructions and their structural examples are English-only. Do not treat an English example below as a requirement to change the requested output language.
+The default gloss language is Simplified Chinese. A user can request another language; the runtime schema accepts strings in any language. These instructions and their structural examples are English-only. Do not treat an English example below as a requirement to change the requested output language.
 
 ## Output and placement
 
@@ -56,7 +56,7 @@ The English glosses demonstrate the structure; actual glosses use the chosen tar
 | `filetype` | Exactly `"vocabulary"` |
 | `words` | Array of entries; `[]` is a valid empty vocabulary |
 | `word` | Non-empty string; normalized lexical identities are unique case-insensitively |
-| `family` | Optional array of strings; it may be omitted or `[]`, never `null`. Forms must occur in the supplied article and differ from `word` ignoring case |
+| `family` | Optional array of strings; it may be omitted or `[]`, never `null`. Author only forms attested in a supplied article; the runtime validates normalized nonempty strings distinct from the headword and from one another, not article attestation |
 | `phonetic_uk`, `phonetic_us` | Strings in generated files; use `""` when pronunciation is unavailable or not verified, never `null`. The reader also tolerates omitted phonetic keys |
 | `meanings` | Array of objects with string `pos` and `meaning`; `[]` is technically readable, but supply useful meanings when enrichment can be supported |
 | Legacy `audio` | Ignored while reading; removed when saving or regenerating JSON; never emitted in new files |
@@ -65,7 +65,9 @@ Never emit null word entries or null meanings. Do not introduce a separate `phra
 
 Use conventional single-word POS labels such as `n.`, `v.`, `adj.`, `adv.`, `prep.`, `conj.`, `pron.`, `det.`, `interj.`, or `num.`. Use `phrase` for phrase meanings. These labels are authoring conventions; the reader itself accepts string labels.
 
-## Normalize and enrich
+## Plain-list preparation and enrichment
+
+Convert plain-list entries into the schema above, then apply the shared [Vocabulary Enrichment skill](skills/vocabulary_enrichment/SKILL.md). The following summarizes the reader-facing rules; the skill owns detailed linguistic decisions.
 
 Determine the lexical role and passage-context sense before normalizing. Do not apply suffix removal mechanically.
 
@@ -88,11 +90,7 @@ For new entries, leave phonetics empty unless trustworthy pronunciation informat
 
 ## Deduplication and phrases
 
-Compare lexical identity case-insensitively after trimming and normalizing whitespace. If several entries become the same item, prefer an existing canonical entry; otherwise keep the earliest input entry. Merge useful distinct meanings, keeping the contextual sense first. Preserve canonical pronunciation and metadata rather than replacing them with an inflected entry's data.
-
-With passage context, add only useful multi-word units such as phrasal verbs, fixed expressions, or conventional academic phrases. Every new phrase needs a grammatical surface form in the passage. Avoid ordinary free combinations and arbitrary sentence fragments. Do not invent passage-derived phrases without a passage.
-
-Canonicalize the expression as a unit: `resulted in` -> `result in`; `was responsible for` -> `be responsible for`; `tried my best to` -> `try one's best to`. Do not replace lexical identities with synonyms. New phrase phonetics are empty and meanings use `pos: "phrase"`.
+Apply the [skill's normalization, deduplication and phrase extraction rules](skills/vocabulary_enrichment/SKILL.md). Compare lexical identities case-insensitively after whitespace normalization; keep canonical metadata and phonetics, merge useful meanings, and add only Passage-supported phrases. Use empty phonetics for renamed or new unverified entries.
 
 ## Audio stem algorithm and eligibility
 
@@ -110,7 +108,7 @@ One's Own           -> one_s_own
 café                -> caf
 ```
 
-Word recordings use `audio/<stem>_uk.mp3` or `.wav` and `audio/<stem>_us.mp3` or `.wav`, relative to the passage directory. Prefer an existing MP3 for each accent, otherwise WAV; an empty or undecodable MP3 fails without a WAV retry. These paths are inferred, never stored in JSON.
+Word recordings use `audio/<stem>_uk.mp3` or `.wav` and `audio/<stem>_us.mp3` or `.wav`, relative to the passage directory. Prefer an existing MP3 for each accent, otherwise WAV; an empty MP3 disables the pronunciation action, and a nonempty undecodable MP3 fails without a WAV retry. These paths are inferred, never stored in JSON.
 
 Distinct words with the same stem remain in the final list. Reserve each nonempty stem immediately for its first entry in the final `words` array, irrespective of file existence or generation success. All later collisions retain their text but lose all audio eligibility; no suffixes or fallback ownership. Empty stems retain their entries with audio disabled. Spelling-duplicate validation is unchanged. Establish ownership after ordering, because moving entries changes the first owner.
 

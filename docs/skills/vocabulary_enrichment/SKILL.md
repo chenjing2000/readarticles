@@ -9,11 +9,7 @@ description: Use when enriching or normalizing ReadArticles vocabulary JSON, opt
 
 Update `<title>.vocabulary.json` by improving meanings, normalizing lexical forms, deduplicating entries, and—when a source Passage is provided—extracting useful phrases and reordering the final vocabulary by Passage occurrence.
 
-Required input:
-
-```text
-<title>.vocabulary.json
-```
+Required input: a structured vocabulary JSON document (`<title>.vocabulary.json`, standalone `vocabulary.json`, or pasted JSON). For plain lists, first follow [Vocabulary Preparation](../../Vocabulary-Preparation.md).
 
 Optional context:
 
@@ -69,7 +65,7 @@ For an existing phrase, preserve phonetics when `word` is unchanged; if canonica
 
 Single-word POS labels may include `n.`, `v.`, `adj.`, `adv.`, `prep.`, `conj.`, `pron.`, `det.`, `interj.`, `num.`. Phrase meanings use exactly `"pos": "phrase"`.
 
-Meanings contain only `pos` and concise Simplified Chinese `meaning`. Do not add examples or English definitions.
+New meanings contain `pos` and a concise `meaning` in Simplified Chinese by default, or another language explicitly requested by the user. Do not invent examples or separate definition fields. Preserve existing unrelated extension metadata at root, entry and meaning levels; repair missing required fields when necessary.
 
 ## 3. Meaning Rules
 
@@ -127,7 +123,7 @@ If several entries normalize to the same lexical item:
 4. do not overwrite canonical phonetics with data from an inflected form;
 5. inherit the earliest relevant Passage occurrence for ordering.
 
-Compare lexical identity case-insensitively. Combine supported inflected surface forms under the surviving canonical headword.
+Compare lexical identity case-insensitively after trimming and normalizing whitespace. Combine supported inflected surface forms under the surviving canonical headword.
 
 ### Family forms from the source Passage
 
@@ -175,7 +171,7 @@ state-of-the-art -> state_of_the_art
 café             -> caf
 ```
 
-Word recordings belong beside the passage in `audio/<stem>_uk.mp3` or `.wav`, and `audio/<stem>_us.mp3` or `.wav`. For each accent, MP3 wins when present; WAV is selected only when MP3 is absent. An empty or undecodable MP3 reports failure without a WAV retry.
+Word recordings belong beside the passage in `audio/<stem>_uk.mp3` or `.wav`, and `audio/<stem>_us.mp3` or `.wav`. For each accent, MP3 wins when present; WAV is selected only when MP3 is absent. An empty MP3 disables pronunciation; a nonempty undecodable MP3 reports failure without a WAV retry.
 
 Lexical identities remain unique under the existing spelling rules. Distinct entries with the same stem must remain in the vocabulary: do not merge or delete them merely because their filenames collide, and do not add filename suffixes. In the final `words` order, the first entry immediately reserves its nonempty stem regardless of file existence or generation success. Later collisions retain all text but have no audio eligibility. Empty stems retain their entries with all audio disabled. Establish ownership after any passage-order sorting; reordering may change ownership. This skill does not generate audio.
 
@@ -211,4 +207,4 @@ Verify that:
 - without a Passage, surviving entries retain their original relative order;
 - no `audio` fields remain; distinct stem collisions and empty stems retain their text, with audio eligibility determined by final list order;
 - no audio file or extra analysis/user-state field was generated;
-- response contains raw JSON only.
+- output file contains raw JSON only; if not paired with a Passage or requested filename, use standalone `vocabulary.json`.

@@ -4,7 +4,7 @@ ReadArticles writes best-effort diagnostic logs to `userdata/logs/` beside the p
 
 ## Contents
 
-Logs are UTF-8 JSON Lines. Each entry contains a local timestamp, severity, a fixed diagnostic event name, and (when available) the exception type, HRESULT, and method-only stack trace.
+Logs are UTF-8 JSON Lines in daily `yyyy-MM-dd.log` files. Each entry contains a local timestamp, severity, a fixed diagnostic event name, and (when available) the exception type, HRESULT, and method-only stack trace.
 
 The logger deliberately omits exception messages and arbitrary user-provided strings. It must not record article text, vocabulary words or meanings, imported text, or absolute article/audio paths. Event names are fixed code identifiers, not user content.
 
@@ -14,7 +14,7 @@ Events include application start and exit, handled operation failures, article/l
 
 - Active daily log: at most 2 MiB.
 - One rollover file per day is retained; when the active file reaches its limit, the previous rollover is replaced.
-- Files older than 14 days are removed during a successful write.
+- Files whose last-write calendar date is at least 14 days old are removed during a successful write.
 - The entire log directory is capped at 20 MiB; oldest files are removed first when necessary.
 - Logging I/O and cleanup failures are swallowed. Diagnostics must never interrupt reading, playback, vocabulary editing, or shutdown.
 
