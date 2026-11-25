@@ -16,6 +16,8 @@ public sealed class LibraryNavigation
     private long librarySession;
     private bool navigationClosed;
     private HashSet<string> excludedFolders;
+    private Task<bool>? pendingSwitch;
+    private bool refreshRequired;
 
     private readonly Action<string, string, NotificationSeverity> notify;
     private LibrarySnapshot? library;
@@ -31,30 +33,41 @@ public sealed class LibraryNavigation
 
     public LibrarySnapshot PrepareLibrary(string root) => libraryRepository.Load(root, excludedFolders);
 
-    // Only navigation changes: the committed reading workspace and players are untouched.
+    // A filter change never supersedes a user's pending library selection.
     public Task UpdateExcludedFoldersAsync(HashSet<string> names)
     {
         if (navigationClosed || excludedFolders.SetEquals(names)) return Task.CompletedTask;
         excludedFolders = names;
-        CancelAllDirectoryScans();
-        string? root = Root;
-        // A pending initial library open retries with the latest filter.
-        if (root is null) return Task.CompletedTask;
+        if (Root is { } root)
+        {
+            refreshRequired = true;
+            CancelAllDirectoryScans();
+            library = new LibrarySnapshot(root, Array.Empty<NavigationNode>(), Array.Empty<string>());
+            RefreshBooks();
+        }
+        return pendingSwitch is { IsCompleted: false } switching
+            ? switching : RefreshCurrentAsync();
+    }
 
-        ++librarySession;
-        library = new LibrarySnapshot(root, Array.Empty<NavigationNode>(), Array.Empty<string>());
-        RefreshBooks();
-        return OpenLibraryAsync(root, prepared =>
+    private Task RefreshCurrentAsync() => Root is { } root
+        ? LoadRootAsync(root, prepared =>
         {
             CommitLibrary(prepared);
             RefreshBooks();
             if (prepared.Warnings.Count > 0)
+            {
+                AppLogger.Default.Warning("LibraryLoadedWithWarnings");
                 notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);
-        });
-    }
+            }
+        })
+        : Task.CompletedTask;
 
-    public async Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot> commit)
+    public Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot> commit) =>
+        pendingSwitch = LoadRootAsync(root, commit, isSwitch: true);
+
+    private async Task<bool> LoadRootAsync(string root, Action<LibrarySnapshot> commit, bool isSwitch = false)
     {
+        if (navigationClosed) return false;
         Dispatcher ui = Dispatcher.CurrentDispatcher;
         long session = ++librarySession;
         CancelAllDirectoryScans();
@@ -85,12 +98,15 @@ public sealed class LibraryNavigation
         catch (Exception error) when (error is ArgumentException or IOException or
             InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
         {
-            await ui.InvokeAsync(() =>
+            Task? fallback = await ui.InvokeAsync<Task?>(() =>
             {
-                if (session != librarySession || navigationClosed) return;
+                if (session != librarySession || navigationClosed) return null;
                 AppLogger.Default.Warning("LibraryOpenFailed", error);
                 notify("LibraryOpenFailed", "无法打开图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
+                // A failed switch still owes the committed library its new filter.
+                return isSwitch && refreshRequired ? RefreshCurrentAsync() : null;
             });
+            if (fallback is not null) await fallback;
             return false;
         }
     }
@@ -100,6 +116,8 @@ public sealed class LibraryNavigation
         ++librarySession;
         CancelAllDirectoryScans();
         library = prepared;
+        pendingSwitch = null;
+        refreshRequired = false;
     }
 
     // Publish after the application has stopped the previous playback and
@@ -125,7 +143,7 @@ public sealed class LibraryNavigation
         long session = librarySession;
         var cts = new CancellationTokenSource();
         CancellationToken token = cts.Token;
-        if (directoryScans.Remove(node, out var previous)) { previous.Cancel(); previous.Dispose(); }
+        if (directoryScans.Remove(node, out var previous)) previous.Cancel();
         directoryScans[node] = cts;
         node.LoadState = NodeLoadState.Loading;
         try
@@ -165,7 +183,8 @@ public sealed class LibraryNavigation
         {
             await ui.InvokeAsync(() =>
             {
-                if (!navigationClosed && session == librarySession && generation == node.Generation)
+                if (!navigationClosed && node.IsExpanded && !token.IsCancellationRequested &&
+                    session == librarySession && generation == node.Generation)
                 {
                     node.LoadState = NodeLoadState.Failed;
                     if (node.LastSuccessfulSnapshot is not null)
@@ -188,14 +207,10 @@ public sealed class LibraryNavigation
 
     public void CollapseDirectory(NavigationNode node)
     {
+        node.IsExpanded = false;
         foreach (var current in EnumerateNodes(node))
         {
-            current.NextGeneration();
-            if (directoryScans.Remove(current, out var cts))
-            {
-                cts.Cancel();
-                cts.Dispose();
-            }
+            if (directoryScans.Remove(current, out var cts)) cts.Cancel();
             if (!current.IsPassage && !current.IsPlaceholder)
                 current.LoadState = NodeLoadState.NotLoaded;
         }
@@ -211,11 +226,13 @@ public sealed class LibraryNavigation
 
     private void CancelAllDirectoryScans()
     {
-        foreach (var cts in directoryScans.Values)
+        foreach (var (node, cts) in directoryScans)
         {
             cts.Cancel();
-            cts.Dispose();
+            if (node.LoadState == NodeLoadState.Loading)
+                node.LoadState = NodeLoadState.NotLoaded;
         }
+        // The task that created each source disposes it in its finally block.
         directoryScans.Clear();
     }
 

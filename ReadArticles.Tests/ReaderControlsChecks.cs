@@ -284,7 +284,11 @@ internal static class ReaderControlsChecks
                 draft.Appearance.Body.Background = "#F7F1E6";
                 var apply = typeof(ReadArticles.MainWindow).GetMethod("ApplyDialogSettings",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
-                Program.Check((bool)apply.Invoke(window, [draft])!);
+                object?[] arguments = [draft, null];
+                Program.Check((bool)apply.Invoke(window, arguments)!);
+                var refresh = (Task)arguments[1]!;
+                WpfTestHelpers.Wait(() => refresh.IsCompleted);
+                refresh.GetAwaiter().GetResult();
                 Program.Check(window.ViewModel.Accent == "us");
                 var saved = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && saved.Appearance.Body.Size == 17 &&

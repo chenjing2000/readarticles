@@ -96,14 +96,24 @@ public partial class MainWindow
     private void LibrarySplitterDragged(object sender, DragDeltaEventArgs e) =>
         ResizeLibraryPane(paneLayout.LeftWidth + e.HorizontalChange);
 
-    private void SettingsClicked(object sender, RoutedEventArgs e)
+    private async void SettingsClicked(object sender, RoutedEventArgs e)
     {
-        var dialog = new SettingsDialog(settings, ApplyDialogSettings) { Owner = this };
+        Task refresh = Task.CompletedTask;
+        var dialog = new SettingsDialog(settings,
+            edited => ApplyDialogSettings(edited, out refresh)) { Owner = this };
         dialog.ShowDialog();
+        try { await refresh; }
+        catch (Exception error)
+        {
+            AppLogger.Default.Error("SettingsRefreshFailed", error);
+            if (IsVisible)
+                ViewModel.Notify("SettingsRefreshFailed", "设置已保存，但目录刷新失败。", NotificationSeverity.Error);
+        }
     }
 
-    private bool ApplyDialogSettings(ReaderSettings edited)
+    private bool ApplyDialogSettings(ReaderSettings edited, out Task refresh)
     {
+        refresh = Task.CompletedTask;
         edited.Library = ViewModel.LibraryRoot;
         try
         {
@@ -123,7 +133,7 @@ public partial class MainWindow
             return false;
         }
 
-        _ = ViewModel.ApplySettings(edited);
+        refresh = ViewModel.ApplySettings(edited);
         webReaderBridge?.SendSettings();
         return true;
     }

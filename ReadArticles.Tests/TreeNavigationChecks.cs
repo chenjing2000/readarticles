@@ -161,6 +161,65 @@ internal static class TreeNavigationChecks
             }
         });
 
+        Program.Run("pending library switches preserve the latest filter and user selection", () =>
+        {
+            string temp = Path.Combine(Path.GetTempPath(), "ReadArticles-root-filter-" + Guid.NewGuid().ToString("N"));
+            string a = Path.Combine(temp, "A"), b = Path.Combine(temp, "B");
+            foreach (string root in new[] { a, b })
+                foreach (string name in new[] { "Keep", "Video", "Audio" })
+                {
+                    string book = Path.Combine(root, name);
+                    Directory.CreateDirectory(book);
+                    File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                }
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                var vm = window.ViewModel;
+                Task<bool> initial = vm.OpenLibraryAsync(a);
+                Task initialFilter = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "video" });
+                WpfTestHelpers.Wait(() => initial.IsCompleted && initialFilter.IsCompleted);
+                Program.Check(initial.GetAwaiter().GetResult());
+                initialFilter.GetAwaiter().GetResult();
+                Program.Check(vm.LibraryRoot == a && vm.Books.Count == 2 &&
+                    vm.Books.All(n => n.Name != "Video"));
+
+                // No dispatcher pump between the requests: no earlier root result can commit.
+                Task<bool> switched = vm.OpenLibraryAsync(b);
+                Task first = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "audio" });
+                Task latest = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "audio, video" });
+                WpfTestHelpers.Wait(() => switched.IsCompleted && first.IsCompleted && latest.IsCompleted);
+                Program.Check(switched.GetAwaiter().GetResult());
+                first.GetAwaiter().GetResult();
+                latest.GetAwaiter().GetResult();
+                Program.Check(vm.LibraryRoot == b && vm.Books.Single().Name == "Keep");
+
+                string passage = Path.Combine(b, "Keep", "Article.json");
+                File.Copy(TestData.ArticlePath, passage);
+                Program.Check(vm.OpenArticle(passage));
+                var article = vm.Article;
+                Task<bool> failed = vm.OpenLibraryAsync(Path.Combine(temp, "missing"));
+                Task fallback = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "video" });
+                WpfTestHelpers.Wait(() => failed.IsCompleted && fallback.IsCompleted);
+                Program.Check(!failed.GetAwaiter().GetResult());
+                fallback.GetAwaiter().GetResult();
+                Program.Check(vm.LibraryRoot == b && ReferenceEquals(vm.Article, article) &&
+                    vm.Books.Select(n => n.Name).SequenceEqual(new[] { "Audio", "Keep" }));
+
+                Task refresh = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "" });
+                vm.CloseNavigation();
+                WpfTestHelpers.Wait(() => refresh.IsCompleted);
+                refresh.GetAwaiter().GetResult();
+                Program.Check(vm.Books.Count == 0 && ReferenceEquals(vm.Article, article));
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                Directory.Delete(temp, true);
+            }
+        });
+
         Program.Run("failed article selection restores the previously committed tree leaf", () =>
         {
             string root = Path.Combine(Path.GetTempPath(), "ReadArticles-selection-rollback-" + Guid.NewGuid().ToString("N"));
