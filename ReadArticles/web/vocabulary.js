@@ -342,8 +342,7 @@ function focusVocabulary(word, index) {
 
 function sentenceFor(node) {
   const parent = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-  const sentence = parent?.closest(".sentence, .script-sentence") ?? null;
-  return sentence?.closest(".script-paint") ? null : sentence;
+  return parent?.closest(".sentence, .script-sentence") ?? null;
 }
 
 function stopSelectionAddPositionTimer() {

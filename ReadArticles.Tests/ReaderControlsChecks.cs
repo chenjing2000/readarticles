@@ -155,7 +155,7 @@ internal static class ReaderControlsChecks
                 Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
                     loaded.Appearance.Title.LineHeight == 1.7 &&
                     loaded.Appearance.Body.LineHeight == 1.7 &&
-                    loaded.Appearance.Body.ScriptColor == "#E02020" &&
+                    loaded.Appearance.Body.ScriptColor == "#F6EDC2" &&
                     loaded.Appearance.Body.SelectionAddSize == 0.65 &&
                     loaded.Appearance.Title.Font == "Georgia" &&
                     loaded.Appearance.Body.Font == "Georgia" &&
@@ -177,6 +177,31 @@ internal static class ReaderControlsChecks
                     loaded.Appearance.Body.Font == "Nunito" &&
                     loaded.Appearance.Vocabulary.Font == "Nunito" &&
                     loaded.Appearance.Body.SelectionBackground == "#EBE5F2");
+                foreach (var (oldColor, expected) in new[]
+                {
+                    ("#B64550", "#F6EDC2"), ("#A33D30", "#F6EDC2"), ("#E02020", "#F6EDC2"),
+                    ("#A45A2C", "#F5E4D6"), ("#D65A00", "#F5E4D6"),
+                    ("#53713C", "#E1EEDB"), ("#008A48", "#E1EEDB"),
+                    ("#0066E6", "#E0ECF4"), ("#856300", "#ECE6F3"), ("#8a36d1", "#ECE6F3"),
+                    ("#123456", "#F6EDC2")
+                })
+                {
+                    loaded.Appearance.Body.ScriptColor = oldColor;
+                    JsonFiles.WriteAtomic(path, loaded);
+                    byte[] before = File.ReadAllBytes(path);
+                    loaded = ReaderSettings.Load(out warning);
+                    Program.Check(warning == null && loaded.Appearance.Body.ScriptColor == expected &&
+                        loaded.Appearance.Body.Font == "Nunito" &&
+                        loaded.Appearance.Body.SelectionBackground == "#EBE5F2" &&
+                        File.ReadAllBytes(path).SequenceEqual(before));
+                }
+                foreach (string color in new[] { "#F6EDC2", "#F5E4D6", "#E1EEDB", "#E0ECF4", "#ECE6F3" })
+                {
+                    loaded.Appearance.Body.ScriptColor = color;
+                    loaded.Save();
+                    loaded = ReaderSettings.Load(out warning);
+                    Program.Check(warning == null && loaded.Appearance.Body.ScriptColor == color);
+                }
                 loaded.Appearance.Body.Size = double.NaN;
                 loaded.Save();
                 loaded = ReaderSettings.Load(out warning);
@@ -242,7 +267,7 @@ internal static class ReaderControlsChecks
                     defaults.Appearance.Meanings.LineHeight == 1.5 &&
                     defaults.Appearance.Body.SelectionAddSize == 0.65 &&
                     defaults.Appearance.Body.SelectionBackground == "#DDE8F2" &&
-                    defaults.Appearance.Body.ScriptColor == "#E02020" &&
+                    defaults.Appearance.Body.ScriptColor == "#F6EDC2" &&
                     defaults.Appearance.Title.Font == "Georgia" &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
                     defaults.Appearance.Phonetics.Size == 14);
@@ -409,7 +434,20 @@ internal static class ReaderControlsChecks
                     body.Children.OfType<Grid>().Any(row =>
                     row.Children.OfType<TextBlock>().Any(label => label.Text == "文字颜色")) &&
                     body.Children.OfType<Grid>().Any(row =>
-                    row.Children.OfType<TextBlock>().Any(label => label.Text == "台词颜色")));
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "播放颜色")));
+                var playbackRow = body.Children.OfType<Grid>().Single(row =>
+                    row.Children.OfType<TextBlock>().Any(label => label.Text == "播放颜色"));
+                var playbackLabel = playbackRow.Children.OfType<TextBlock>().Single(label => label.Text == "播放颜色");
+                var playbackPalette = playbackRow.Children.OfType<Grid>().Single(group =>
+                    Grid.GetColumn(group) == Grid.GetColumn(playbackLabel) + 1);
+                var playbackSwatches = playbackPalette.Children.OfType<Button>().Select(button => (Grid)button.Content).ToArray();
+                Program.Check(playbackSwatches.Select(swatch =>
+                    ((System.Windows.Media.SolidColorBrush)swatch.Children.OfType<System.Windows.Shapes.Ellipse>()
+                        .Single().Fill).Color.ToString()).SequenceEqual(
+                    new[] { "#FFF6EDC2", "#FFF5E4D6", "#FFE1EEDB", "#FFE0ECF4", "#FFECE6F3" }) &&
+                    playbackSwatches.All(swatch =>
+                        ((System.Windows.Media.SolidColorBrush)swatch.Children.OfType<TextBlock>()
+                            .Single().Foreground).Color.ToString() == "#FF283747"));
                 var selectionRow = body.Children.OfType<Grid>().Single(row =>
                     row.Children.OfType<TextBlock>().Any(label => label.Text == "选词加号"));
                 var selectionSize = selectionRow.Children.OfType<Grid>()
@@ -456,6 +494,7 @@ internal static class ReaderControlsChecks
                 var selectors = (List<ComboBox>)type.GetField("englishFontSelectors",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
                 Program.Check(resetDraft.ExcludedFolders == ReaderSettings.DefaultExcludedFolders &&
+                    resetDraft.Appearance.Body.ScriptColor == "#F6EDC2" &&
                     resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Body.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Vocabulary.Font == "Microsoft YaHei UI" &&
