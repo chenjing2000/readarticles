@@ -20,9 +20,8 @@ public partial class MainWindow : Window
         DataContext = ViewModel;
         InitializeWindowSettings();
         ViewModel.HighlightsVisible = false;
-        InitializePlayback();
         ViewModel.PropertyChanged += SettingsChanged;
-        InitializeWebPilot();
+        InitializeWebReader();
         Closing += WindowClosing;
         Closed += WindowClosed;
 
@@ -35,7 +34,8 @@ public partial class MainWindow : Window
 
     private void WindowClosed(object? sender, EventArgs e)
     {
-        CloseWebPilot();
+        CloseWebReader();
+        ViewModel.PropertyChanged -= SettingsChanged;
         ViewModel.CloseNavigation();
         ClosePlayback();
     }

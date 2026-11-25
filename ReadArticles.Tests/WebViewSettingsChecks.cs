@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows.Controls;
 using ReadArticles.Infrastructure;
 using ReadArticles.Layout;
+using ReadArticles.Presentation;
 
 internal static class WebViewSettingsChecks
 {
@@ -30,6 +31,47 @@ internal static class WebViewSettingsChecks
             Program.Check(layout.LeftWidth == 200 && layout.RightWidth == 200);
         });
 
+        Program.Run("reader bridge rejects stale identities, repeated requests and actions after failure", () =>
+        {
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                var bridge = Bridge(window);
+                var host = (WebReaderHost)typeof(ReadArticles.MainWindow)
+                    .GetField("webReaderHost", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+                string page = Guid.NewGuid().ToString("D");
+                string otherPage = Guid.NewGuid().ToString("D");
+                string session = (string)typeof(WebReaderBridge)
+                    .GetField("currentSessionId", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(bridge)!;
+                string request = Guid.NewGuid().ToString("D");
+                void Highlight(bool enabled, string pageId, string sessionId, string requestId, int version = 1, int revision = 0) =>
+                    bridge.Receive(JsonSerializer.Serialize(new
+                    {
+                        version, type = "setHighlight", pageId, sessionId, requestId,
+                        vocabularyRevision = revision, payload = new { enabled }
+                    }));
+
+                Highlight(true, page, session, Guid.NewGuid().ToString("D"));
+                Program.Check(!window.ViewModel.HighlightsVisible); // not ready
+                bridge.Receive(JsonSerializer.Serialize(new { version = 1, type = "ready", pageId = page }));
+                Highlight(true, page, session, Guid.NewGuid().ToString("D"), version: 2);
+                Highlight(true, otherPage, session, Guid.NewGuid().ToString("D"));
+                Highlight(true, page, "stale-session", Guid.NewGuid().ToString("D"));
+                Highlight(true, page, session, Guid.NewGuid().ToString("D"), revision: 1);
+                Program.Check(!window.ViewModel.HighlightsVisible);
+                Highlight(true, page, session, request);
+                Program.Check(window.ViewModel.HighlightsVisible);
+                Highlight(false, page, session, request);
+                Program.Check(window.ViewModel.HighlightsVisible); // duplicate request
+                Highlight(false, page, session, Guid.NewGuid().ToString("D"));
+                Program.Check(!window.ViewModel.HighlightsVisible);
+                host.Fail("test failure");
+                Highlight(true, page, session, Guid.NewGuid().ToString("D"));
+                Program.Check(!window.ViewModel.HighlightsVisible && host.IsUnavailable);
+            }
+            finally { window.Close(); }
+        });
+
         Program.Run("highlight toggles do not simulate vocabulary edits or advance its revision", () =>
         {
             var window = new ReadArticles.MainWindow(false);
@@ -40,9 +82,7 @@ internal static class WebViewSettingsChecks
                 window.ViewModel.HighlightsVisible = true;
                 window.ViewModel.HighlightsVisible = true;
                 window.ViewModel.HighlightsVisible = false;
-                var revision = typeof(ReadArticles.MainWindow).GetField(
-                    "webPilotVocabularyRevision", BindingFlags.Instance | BindingFlags.NonPublic)!;
-                Program.Check(vocabularyEvents == 0 && (int)revision.GetValue(window)! == 0);
+                Program.Check(vocabularyEvents == 0 && Bridge(window).VocabularyRevision == 0);
             }
             finally { window.Close(); }
         });
@@ -55,8 +95,7 @@ internal static class WebViewSettingsChecks
                 var type = typeof(ReadArticles.MainWindow);
                 var selected = (PaneLayout)type.GetField("paneLayout",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
-                var handler = type.GetMethod("WebPilotSettingIntent",
-                    BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var bridge = Bridge(window);
                 var center = (ColumnDefinition)window.FindName("CenterColumn");
                 Program.Check(center.MinWidth == 403);
                 Apply(300);
@@ -69,9 +108,7 @@ internal static class WebViewSettingsChecks
                 Program.Check(selected.RightWidth == 200);
                 Apply(400);
                 Program.Check(selected.RightWidth >= 200 && selected.RightWidth <= 400);
-                var method = type.GetMethod("WebPilotSettingsSnapshot",
-                    BindingFlags.Instance | BindingFlags.NonPublic)!;
-                using var snap = JsonDocument.Parse(JsonSerializer.Serialize(method.Invoke(window, null)));
+                using var snap = JsonDocument.Parse(JsonSerializer.Serialize(bridge.SettingsSnapshot()));
                 var root = snap.RootElement;
                 Program.Check(root.GetProperty("rightWidth").GetDouble() == selected.RightWidth &&
                     root.GetProperty("appearance").GetProperty("title").GetProperty("size").GetDouble() == 18 &&
@@ -90,8 +127,7 @@ internal static class WebViewSettingsChecks
                 {
                     using var data = JsonDocument.Parse("{\"payload\":{\"width\":" +
                         width.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}");
-                    handler.Invoke(window, [data.RootElement,
-                        "00000000-0000-4000-8000-000000000001"]);
+                    bridge.HandlePaneWidth(data.RootElement, "00000000-0000-4000-8000-000000000001");
                 }
             }
             finally { window.Close(); }
@@ -106,13 +142,11 @@ internal static class WebViewSettingsChecks
                 var posted = Enumerable.Range(0, 5)
                     .Select(index => notifications.Publish("error-" + index,
                         "Retained error " + index, NotificationSeverity.Error)!).ToArray();
-                var method = typeof(ReadArticles.MainWindow).GetMethod(
-                    "WebPilotNotificationSnapshot", BindingFlags.Instance | BindingFlags.NonPublic);
-                Program.Check(method is not null);
+                var bridge = Bridge(window);
                 JsonElement Snapshot()
                 {
                     using var json = JsonDocument.Parse(JsonSerializer.Serialize(
-                        method!.Invoke(window, null)));
+                        bridge.NotificationSnapshot()));
                     return json.RootElement.Clone();
                 }
                 var first = Snapshot();
@@ -160,8 +194,7 @@ internal static class WebViewSettingsChecks
                     NotificationSeverity.Warning)!;
                 var error = service.Publish("error", "Persistent error",
                     NotificationSeverity.Error)!;
-                var dismiss = typeof(ReadArticles.MainWindow).GetMethod(
-                    "WebPilotDismissNotification", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var bridge = Bridge(window);
                 Program.Check(service.Messages.Count == 2);
                 Apply(warning.Id);
                 Program.Check(service.Messages.Count == 1 &&
@@ -173,11 +206,13 @@ internal static class WebViewSettingsChecks
                 {
                     using var data = JsonDocument.Parse("{\"payload\":{\"id\":" +
                         id.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}");
-                    dismiss.Invoke(window, [data.RootElement,
-                        "00000000-0000-4000-8000-000000000002"]);
+                    bridge.DismissNotification(data.RootElement, "00000000-0000-4000-8000-000000000002");
                 }
             }
             finally { window.Close(); }
         });
     }
+    private static WebReaderBridge Bridge(ReadArticles.MainWindow window) =>
+        (WebReaderBridge)typeof(ReadArticles.MainWindow)
+            .GetField("webReaderBridge", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
 }

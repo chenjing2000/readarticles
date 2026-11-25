@@ -111,7 +111,7 @@
       </Thumb.Template>
     </Thumb>
     <!-- The sole reader is hosted in WebView2; native WPF retains the library tree. -->
-    <Grid x:Name="WebPilotOverlay" Grid.Column="2" Panel.ZIndex="20"
+    <Grid x:Name="ReaderOverlay" Grid.Column="2" Panel.ZIndex="20"
           Visibility="Collapsed" Background="White">
       <wv2:WebView2 x:Name="ReaderWebView" />
     </Grid>

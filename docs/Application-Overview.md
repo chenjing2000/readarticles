@@ -20,7 +20,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `MainWindow.xaml` | Native left navigation and one WebView2 reader host, with a native failure/exit overlay |
 | `MainWindow.xaml.cs` | Construct the state model and two independent media players; initialize modules and coordinate shutdown |
 | `MainWindow.Library.cs` | Folder selection, tree selection, library restoration and article selection |
-| `MainWindow.Playback.cs` | Native playback key interception, shared relative seek, progress timer and resource cleanup |
+| `MainWindow.Playback.cs` | Native playback key interception and player cleanup |
 | `MainWindow.Settings.cs`, `SettingsDialog.cs` | Apply native pane widths, native modal settings and preference persistence |
 | `Layout/PaneLayout.cs` | Session-only pane widths, shared width solver and right-divider drag rollback |
 | `ViewModels/MainViewModel.cs` | Shared state, notifications, and operation errors |
@@ -46,10 +46,12 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `Infrastructure/AppPaths.cs`, `BackupFiles.cs`, `AppLogger.cs` | Portable data paths, verified backup/recovery and bounded diagnostics |
 | `Infrastructure/NotificationService.cs` | Authoritative in-memory FIFO notification queue |
 | `Infrastructure/WpfAudioPlayer.cs` | Native audio playback adapter |
-| `MainWindow.WebView.cs` | Browser initialization, verified bridge messages and native terminal failure handling |
+| `MainWindow.WebView.cs` | Compose the browser modules, native import confirmation and terminal failure UI |
+| `Presentation/WebReaderHost.cs` | WebView2 lifecycle, restricted resource serving and transport |
+| `Presentation/WebReaderBridge.cs` | Protocol identity, validated commands, snapshots and progress timer |
 | `web/reader.html`, `reader.css`, `reader.js`, `web/icons/*.svg` | Article/Script DOM, matching, selection, playback visuals, embedded icon states, styles and notifications |
 
-The window and main view model each use partial files to group responsibilities while sharing their existing state. `ReaderPlayback` is a concrete service with no window or view-model dependency. `PlaybackController` operates through `IAudioPlayer`, which includes media-open events and progress. The window sends playback snapshots to the page; the page sends validated seek/playback intents to `ReaderPlayback`. Repositories own validation and persistence, the workspace owns committed content, and the browser owns text/selection display. No additional service interfaces or generic frameworks are introduced.
+The window and main view model each use partial files to group responsibilities while sharing their existing state. `ReaderPlayback` is a concrete service with no window or view-model dependency. `PlaybackController` operates through `IAudioPlayer`, which includes media-open events and progress. The bridge sends playback snapshots to the page; the page sends validated seek/playback intents to `ReaderPlayback`. Repositories own validation and persistence, the workspace owns committed content, and the browser owns text/selection display. No additional service interfaces or generic frameworks are introduced.
 
 ## Important data flows
 
@@ -112,7 +114,7 @@ The application reads passages and vocabulary and plays existing audio. OCR, voc
 
 Matching is literal and case-insensitive for each `word` and its explicit optional `family` forms: `convict` matches `convicted` only when `"convicted"` is listed. Every hit belongs to the canonical `word`, with direct headwords preferred over another entry's family forms. No automatic morphological inference runs, and straight/curly apostrophes are not normalized. ASCII letters, apostrophes, and hyphens participate in word boundaries; digits deliberately do not. Among matches starting at the same position, the longest wins. These details matter when authoring canonical vocabulary entries.
 
-Each playback controller owns one active audio file at a time. Whole-article opening may advance across a fixed sorted list of candidate files; it is not a playback playlist. Playback state belongs to the controller, coordination and relative seeking belong to ReaderPlayback, and timers and controls belong to MainWindow.Playback. MainViewModel and MainWindow share one ReaderSettings instance; the accent is not separately stored in the view model. The existing concrete repositories and window partial classes remain together; small repeated UI operations do not require another abstraction layer.
+Each playback controller owns one active audio file at a time. Whole-article opening may advance across a fixed sorted list of candidate files; it is not a playback playlist. Playback state belongs to the controller, coordination and relative seeking belong to ReaderPlayback, and the publication timer belongs to WebReaderBridge and native input belongs to MainWindow.Playback. MainViewModel and MainWindow share one ReaderSettings instance; the accent is not separately stored in the view model. The existing concrete repositories and window partial classes remain together; small repeated UI operations do not require another abstraction layer.
 
 Tests exercise these production modules directly; the obsolete prototype application has been removed. See [Testing](Testing.md) for categories and their data ownership. Exercise authoring remains in the supplied skills, but there is no exercise runtime module on main.
 

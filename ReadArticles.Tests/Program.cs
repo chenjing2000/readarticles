@@ -23,8 +23,8 @@ internal static class Program
                 RealMediaChecks.Run();
                 ReaderControlsChecks.Run();
                 IconChecks.Run();
-                WebViewPilotChecks.Run();
-                WebViewPilotChecks.RunBrowser();
+                WebReaderChecks.Run();
+                WebReaderChecks.RunBrowser();
                 WebViewScriptBridgeChecks.Run();
                 WebViewVocabularyEditChecks.Run();
                 WebViewSettingsChecks.Run();
@@ -38,10 +38,10 @@ internal static class Program
                 UnifiedAudioChecks.Run();
                 ContentChecks.Run();
                 ScriptChecks.Run();
-                WebViewPilotChecks.Run();
+                WebReaderChecks.Run();
                 WebViewScriptBridgeChecks.Run();
                 WebViewSettingsChecks.Run();
-                WebViewPilotChecks.RunBrowser();
+                WebReaderChecks.RunBrowser();
                 TreeNavigationChecks.Run();
                 WebViewVocabularyEditChecks.Run();
                 NotificationChecks.Run();
@@ -53,13 +53,13 @@ internal static class Program
                     BackupChecks.Run();
                 }
                 break;
-            case "--rendering-only": WebViewPilotChecks.RunBrowser(); WebViewScriptBridgeChecks.Run(); break;
+            case "--rendering-only": WebReaderChecks.RunBrowser(); WebViewScriptBridgeChecks.Run(); break;
             case "--audio-only": AudioChecks.Run(); RealMediaChecks.Run(); break;
-            case "--content-only": UnifiedAudioChecks.Run(); ContentChecks.Run(); ScriptChecks.Run(); WebViewPilotChecks.Run(); WebViewScriptBridgeChecks.Run(); WebViewSettingsChecks.Run(); break;
+            case "--content-only": UnifiedAudioChecks.Run(); ContentChecks.Run(); ScriptChecks.Run(); WebReaderChecks.Run(); WebViewScriptBridgeChecks.Run(); WebViewSettingsChecks.Run(); break;
             case "--script-only": ScriptChecks.Run(); WebViewScriptBridgeChecks.Run(); break;
-            case "--webview-pilot-only": WebViewPilotChecks.Run(); WebViewPilotChecks.RunBrowser(); break;
+            case "--webview-pilot-only": WebReaderChecks.Run(); WebReaderChecks.RunBrowser(); break;
             case "--unified-audio-only": UnifiedAudioChecks.Run(); break;
-            case "--window-only": WebViewPilotChecks.Run(); WebViewPilotChecks.RunBrowser(); TreeNavigationChecks.Run(); break;
+            case "--window-only": WebReaderChecks.Run(); WebReaderChecks.RunBrowser(); TreeNavigationChecks.Run(); break;
             case "--editing-only": WebViewVocabularyEditChecks.Run(); break;
             case "--icons-only": IconChecks.Run(); break;
             case "--controls-only": ReaderControlsChecks.Run(); WebViewSettingsChecks.Run(); BackupChecks.Run(); break;

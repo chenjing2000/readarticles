@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using ReadArticles.Models;
+using ReadArticles.Presentation;
 
 internal static class WebViewScriptBridgeChecks
 {
@@ -9,10 +10,7 @@ internal static class WebViewScriptBridgeChecks
         Program.Run("WebView2 Script snapshot preserves timed-unit offsets and validity", () =>
         {
             var script = ScriptFixture();
-            var serialize = typeof(ReadArticles.MainWindow).GetMethod(
-                "WebPilotScriptSnapshot", BindingFlags.Static | BindingFlags.NonPublic);
-            Program.Check(serialize is not null);
-            object snapshot = serialize!.Invoke(null, [script])!;
+            object snapshot = WebReaderBridge.ScriptSnapshot(script);
             using var json = JsonDocument.Parse(JsonSerializer.Serialize(snapshot));
             var root = json.RootElement;
             Program.Check(root.GetProperty("title").GetString() == "");
@@ -63,9 +61,8 @@ internal static class WebViewScriptBridgeChecks
                 var type = typeof(ReadArticles.MainWindow);
                 Program.Check(window.ViewModel.OpenArticle(TestData.ArticlePath));
                 window.ViewModel.CommitReadingMode(true, ScriptFixture());
-                var verify = type.GetMethod("WebPilotValidateSelection",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                Program.Check(verify is not null);
+                var bridge = (WebReaderBridge)type.GetField("webReaderBridge",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
                 Program.Check(Valid("""
                     {"mode":"script","paragraphIndex":0,"sentenceIndex":0,
                      "text":"non-identical","offset":0,"length":13}
@@ -86,9 +83,7 @@ internal static class WebViewScriptBridgeChecks
                 bool Valid(string source)
                 {
                     using var data = JsonDocument.Parse(source);
-                    object?[] args = [data.RootElement, null];
-                    bool accepted = (bool)verify!.Invoke(window, args)!;
-                    return accepted && args[1] is string;
+                    return bridge.ValidateSelection(data.RootElement, out var text) && text is not null;
                 }
             }
             finally { window.Close(); }

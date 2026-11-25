@@ -8,11 +8,11 @@ using Microsoft.Web.WebView2.Wpf;
 using ReadArticles.Infrastructure;
 using ReadArticles.Services;
 
-internal static class WebViewPilotChecks
+internal static class WebReaderChecks
 {
     internal static void Run()
     {
-        Program.Run("WebView2 pilot assets embedded in application assembly", () =>
+        Program.Run("WebView2 reader assets embedded in application assembly", () =>
         {
             Assembly assembly = typeof(ReadArticles.MainWindow).Assembly;
             foreach (string name in new[]
@@ -44,12 +44,12 @@ internal static class WebViewPilotChecks
             var window = new ReadArticles.MainWindow(persistSettings: false);
             try
             {
-                var fail = typeof(ReadArticles.MainWindow).GetMethod(
-                    "WebPilotFailure", BindingFlags.Instance | BindingFlags.NonPublic);
-                Program.Check(fail is not null);
-                fail!.Invoke(window, ["WebView2 initialization failed"]);
+                var host = (ReadArticles.Presentation.WebReaderHost)typeof(ReadArticles.MainWindow)
+                    .GetField("webReaderHost", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+                host.Fail("WebView2 initialization failed");
+                Program.Check(host.IsUnavailable);
                 var failurePanel = (Grid)window.FindName("WebFailurePanel");
-                var legacyOverlay = (Grid)window.FindName("WebPilotOverlay");
+                var legacyOverlay = (Grid)window.FindName("ReaderOverlay");
                 var failureMessage = (TextBlock)window.FindName("WebFailureMessage");
                 var exitButton = (Button)window.FindName("WebFailureExitButton");
                 Program.Check(failurePanel.Visibility == Visibility.Visible &&
@@ -111,7 +111,7 @@ internal static class WebViewPilotChecks
                 window.Show();
                 Program.Check(window.ViewModel.OpenArticle(article));
                 var browser = (WebView2)window.FindName("ReaderWebView");
-                var overlay = (System.Windows.Controls.Grid)window.FindName("WebPilotOverlay");
+                var overlay = (System.Windows.Controls.Grid)window.FindName("ReaderOverlay");
                 WaitFor(() => browser.CoreWebView2 is not null &&
                     overlay.Visibility == System.Windows.Visibility.Visible, "browser render handshake");
 

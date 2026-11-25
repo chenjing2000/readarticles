@@ -84,8 +84,7 @@ public partial class MainWindow
     {
         if (Math.Abs(LeftColumn.Width.Value - paneLayout.LeftWidth) >= 0.5)
             LeftColumn.Width = new GridLength(paneLayout.LeftWidth);
-        if (rightChanged && webPilotReady)
-            PostWebPilot("setPaneWidth", new { rightWidth = paneLayout.RightWidth });
+        if (rightChanged) webReaderBridge?.SendPaneWidth();
     }
 
     private void ResizeLibraryPane(double requestedLeft) =>
@@ -122,7 +121,7 @@ public partial class MainWindow
         }
 
         ViewModel.ApplySettings(edited);
-        SendWebPilotSettings();
+        webReaderBridge?.SendSettings();
         return true;
     }
 }
