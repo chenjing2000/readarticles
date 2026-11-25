@@ -78,41 +78,42 @@ internal static class ReaderControlsChecks
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
-        Program.Run("left splitter keyboard width survives window resize", () =>
+        Program.Run("native main-window playback keys are consumed without an article", () =>
         {
             var window = new ReadArticles.MainWindow(false);
             try
             {
                 window.Show();
-                var grid = (Grid)window.Content;
-                var splitter = grid.Children.OfType<Thumb>().Single();
-                var left = (ColumnDefinition)window.FindName("LeftColumn");
                 var source = PresentationSource.FromVisual(window);
                 Program.Check(source is not null);
-
-                var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
-                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .GetValue(window)!;
-                double before = settings.LeftWidth;
-                double available = Math.Floor(Math.Max(606, grid.ActualWidth) - 6);
-                double target = Math.Clamp(Math.Round(before + 16), 200,
-                    Math.Min(400, available - 400));
-                splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, source!, 0, Key.Right)
+                var splitter = (Thumb)window.FindName("LibrarySplitter");
+                var left = (ColumnDefinition)window.FindName("LeftColumn");
+                var controls = new UIElement[] { window, splitter,
+                    (TreeView)window.FindName("LibraryTree"),
+                    (Button)window.FindName("SettingsButton") };
+                double before = left.Width.Value;
+                foreach (var control in controls)
+                {
+                    foreach (Key key in new[] { Key.Space, Key.Left, Key.Right })
+                    {
+                        foreach (var routedEvent in new[] { Keyboard.PreviewKeyDownEvent, Keyboard.PreviewKeyUpEvent })
+                        {
+                            var args = new KeyEventArgs(Keyboard.PrimaryDevice, source!, 0, key)
+                            {
+                                RoutedEvent = routedEvent
+                            };
+                            control.RaiseEvent(args);
+                            Program.Check(args.Handled);
+                        }
+                    }
+                }
+                Program.Check(left.Width.Value == before && !window.ViewModel.Playback.IsArticleActive);
+                var enter = new KeyEventArgs(Keyboard.PrimaryDevice, source!, 0, Key.Enter)
                 {
                     RoutedEvent = Keyboard.PreviewKeyDownEvent
-                });
-                WpfTestHelpers.Pump();
-                if (Math.Abs(settings.LeftWidth - target) >= 1 ||
-                    Math.Abs(left.ActualWidth - target) >= 1)
-                    throw new Exception($"Keyboard pane resize: expected={target}, " +
-                        $"session={settings.LeftWidth}, actual={left.ActualWidth}, " +
-                        $"grid={grid.ActualWidth}, initial={before}");
-
-                window.Width += 50;
-                WpfTestHelpers.Pump();
-                if (Math.Abs(left.ActualWidth - target) >= 1)
-                    throw new Exception($"Pane width changed after window resize: " +
-                        $"expected={target}, actual={left.ActualWidth}, grid={grid.ActualWidth}");
+                };
+                splitter.RaiseEvent(enter);
+                Program.Check(!enter.Handled);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });

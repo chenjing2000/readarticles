@@ -9,7 +9,7 @@ internal static class TreeNavigationChecks
 {
     internal static void Run()
     {
-        Program.Run("native tree and button PreviewKeyDown are not stolen by playback shortcuts", () =>
+        Program.Run("native tree and button retain non-playback keyboard input", () =>
         {
             var window = new ReadArticles.MainWindow(persistSettings: false);
             try
@@ -21,7 +21,7 @@ internal static class TreeNavigationChecks
                 Program.Check(presentationSource is not null);
                 foreach (UIElement target in new UIElement[] { tree, settingsButton })
                 {
-                    foreach (Key key in new[] { Key.Left, Key.Right, Key.Space })
+                    foreach (Key key in new[] { Key.Up, Key.Down, Key.Tab, Key.Enter })
                     {
                         var input = new KeyEventArgs(Keyboard.PrimaryDevice, presentationSource!, 0, key)
                         {

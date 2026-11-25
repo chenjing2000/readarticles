@@ -186,9 +186,9 @@ internal static class WebViewPilotChecks
                         progress.focus();
                         const focused = document.activeElement === progress;
                         const outline = getComputedStyle(progress).outlineStyle;
-                        const fire = (target, key) => {
-                          const event = new KeyboardEvent('keydown', {
-                            key, bubbles: true, cancelable: true
+                        const fire = (target, key, extra = {}, type = "keydown") => {
+                          const event = new KeyboardEvent(type, {
+                            key, bubbles: true, cancelable: true, ...extra
                           });
                           target.dispatchEvent(event);
                           return event.defaultPrevented;
@@ -197,15 +197,26 @@ internal static class WebViewPilotChecks
                         const right = fire(progress, 'ArrowRight');
                         const global = fire(document.getElementById('article-scroll'), 'ArrowRight');
                         const nativeStep = progress.step;
+                        const button = document.getElementById('article-stop');
+                        button.focus();
+                        const space = fire(button, ' ');
+                        const repeatSpace = fire(button, ' ', { repeat: true });
+                        const up = fire(button, ' ', {}, 'keyup');
+                        const repeatArrow = fire(button, 'ArrowLeft', { repeat: true });
+                        const modified = fire(button, 'ArrowRight', { shiftKey: true });
+                        const retainedFocus = document.activeElement === button;
                         renderPlayback({
                           position: 120, duration: 300, canSeek: false,
                           canPlay: true, isArticleActive: false, state: 'stopped'
                         });
                         const count = calls.length;
                         const stopped = fire(progress, 'ArrowRight');
+                        currentPlayback = { ...currentPlayback, canPlay: false };
+                        const noArticleSpace = fire(button, ' ');
                         return {
                           focused, outline, left, right, global, stopped,
-                          nativeStep, count, calls
+                          nativeStep, count, calls, space, repeatSpace, up,
+                          repeatArrow, modified, retainedFocus, noArticleSpace
                         };
                       } finally {
                         send = originalSend;
@@ -220,19 +231,78 @@ internal static class WebViewPilotChecks
                     seekKeys.GetProperty("left").GetBoolean() &&
                     seekKeys.GetProperty("right").GetBoolean() &&
                     seekKeys.GetProperty("global").GetBoolean() &&
-                    !seekKeys.GetProperty("stopped").GetBoolean() &&
+                    seekKeys.GetProperty("stopped").GetBoolean() &&
                     seekKeys.GetProperty("nativeStep").GetString() == "0.05" &&
-                    seekKeys.GetProperty("count").GetInt32() == 3 &&
+                    seekKeys.GetProperty("space").GetBoolean() &&
+                    seekKeys.GetProperty("repeatSpace").GetBoolean() &&
+                    seekKeys.GetProperty("up").GetBoolean() &&
+                    seekKeys.GetProperty("repeatArrow").GetBoolean() &&
+                    !seekKeys.GetProperty("modified").GetBoolean() &&
+                    seekKeys.GetProperty("retainedFocus").GetBoolean() &&
+                    seekKeys.GetProperty("noArticleSpace").GetBoolean() &&
+                    seekKeys.GetProperty("count").GetInt32() == 5 &&
                     seekKeys.GetProperty("calls").EnumerateArray().Select(call => (
                         Type: call.GetProperty("type").GetString(),
-                        Direction: call.GetProperty("direction").GetString()))
+                        Direction: call.TryGetProperty("direction", out var direction) ? direction.GetString() : null))
                     .SequenceEqual(new (string? Type, string? Direction)[] {
                         (Type: "seekArticle", Direction: "backward"),
                         (Type: "seekArticle", Direction: "forward"),
-                        (Type: "seekArticle", Direction: "forward")
+                        (Type: "seekArticle", Direction: "forward"),
+                        (Type: "playArticle", Direction: null),
+                        (Type: "seekArticle", Direction: "backward")
                     });
                 if (!validKeys)
                     throw new Exception("Unexpected progress keyboard outcome: " + seekKeys.GetRawText());
+
+                // Reserved keys must not reach any focused DOM control or reveal a focus outline.
+                JsonElement exclusiveKeys = Evaluate(browser, """
+                    (() => {
+                      const originalSend = send;
+                      const previousPlayback = currentPlayback;
+                      const targets = [
+                        document.querySelector('.word-row'),
+                        document.getElementById('highlight-toggle'),
+                        document.getElementById('reader-splitter'),
+                        document.getElementById('article-play')
+                      ];
+                      const calls = [];
+                      let delivered = 0;
+                      const listener = () => delivered++;
+                      try {
+                        send = (type, options = {}) => {
+                          calls.push(type + (options.payload?.direction ?? ''));
+                          return 'captured';
+                        };
+                        renderPlayback({ position: 120, duration: 300, canSeek: true,
+                          canPlay: true, isArticleActive: true, state: 'paused' });
+                        const results = targets.map(target => {
+                          target.focus();
+                          const focused = document.activeElement === target;
+                          target.addEventListener('keydown', listener);
+                          target.addEventListener('keyup', listener);
+                          const before = calls.length;
+                          const consumed = [' ', 'ArrowLeft', 'ArrowRight'].every(key =>
+                            ['keydown', 'keyup'].every(type => {
+                              const event = new KeyboardEvent(type, { key, bubbles: true, cancelable: true });
+                              target.dispatchEvent(event);
+                              return event.defaultPrevented;
+                            }));
+                          target.removeEventListener('keydown', listener);
+                          target.removeEventListener('keyup', listener);
+                          return focused && document.activeElement === target && consumed &&
+                            getComputedStyle(target).outlineStyle === 'none' &&
+                            calls.slice(before).join(',') === 'playArticle,seekArticlebackward,seekArticleforward';
+                        });
+                        return { all: results.every(Boolean), delivered, count: calls.length };
+                      } finally {
+                        send = originalSend;
+                        renderPlayback(previousPlayback);
+                      }
+                    })()
+                    """);
+                Program.Check(exclusiveKeys.GetProperty("all").GetBoolean() &&
+                    exclusiveKeys.GetProperty("delivered").GetInt32() == 0 &&
+                    exclusiveKeys.GetProperty("count").GetInt32() == 12);
 
                 // Time labels preserve 60:00 at one hour, then switch to hh:mm:ss.
                 JsonElement timeFormats = Evaluate(browser, """
@@ -553,22 +623,31 @@ internal static class WebViewPilotChecks
                     "document.querySelectorAll('#vocabulary-list .word-row.selected').length")
                     .GetInt32() == 1);
 
-                // Keyboard activation of ARIA word buttons must never trigger article playback.
+                // Space is reserved for article playback; Enter still activates a word row.
                 JsonElement wordKeys = Evaluate(browser, """
                     (() => {
                       const rows = [...document.querySelectorAll('#vocabulary-list .word-row')];
-                      const press = (row, key) => {
-                        row.focus();
-                        const event = new KeyboardEvent('keydown',
-                          { key, bubbles: true, cancelable: true });
-                        row.dispatchEvent(event);
-                        return event.defaultPrevented && row.classList.contains('selected');
-                      };
-                      return { space: press(rows[1], ' '), enter: press(rows[0], 'Enter') };
+                      const originalSend = send;
+                      const calls = [];
+                      try {
+                        send = type => { calls.push(type); return 'captured'; };
+                        const press = (row, key) => {
+                          row.focus();
+                          const event = new KeyboardEvent('keydown',
+                            { key, bubbles: true, cancelable: true });
+                          row.dispatchEvent(event);
+                          return event.defaultPrevented;
+                        };
+                        const space = press(rows[1], ' ') && !rows[1].classList.contains('selected');
+                        const enter = press(rows[1], 'Enter') && rows[1].classList.contains('selected');
+                        press(rows[0], 'Enter');
+                        return { space, enter, playback: calls.filter(type => type === 'playArticle').length };
+                      } finally { send = originalSend; }
                     })()
                     """);
                 Program.Check(wordKeys.GetProperty("space").GetBoolean() &&
                     wordKeys.GetProperty("enter").GetBoolean() &&
+                    wordKeys.GetProperty("playback").GetInt32() == 1 &&
                     !window.ViewModel.Playback.IsArticleActive);
 
                 // The native modal is the sole settings entry. Its validated

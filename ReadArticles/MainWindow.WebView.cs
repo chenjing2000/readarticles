@@ -513,7 +513,6 @@ public partial class MainWindow
                 PostWebPilot("actionResult", new { status = "invalid" }, requestId);
                 return;
             }
-            double seconds;
             if (data.TryGetProperty("direction", out var direction))
             {
                 if (direction.ValueKind != JsonValueKind.String ||
@@ -522,20 +521,18 @@ public partial class MainWindow
                     PostWebPilot("actionResult", new { status = "invalid" }, requestId);
                     return;
                 }
-                double step = direction.GetString() == "backward"
-                    ? -settings.BackwardStep : settings.ForwardStep;
-                seconds = Math.Clamp(ViewModel.Playback.ArticlePosition + step,
-                    0, ViewModel.Playback.ArticleDuration);
+                SeekArticleRelative(direction.GetString() == "backward");
             }
             else if (!data.TryGetProperty("position", out var time) ||
                      time.ValueKind != JsonValueKind.Number ||
-                     !time.TryGetDouble(out seconds) || !double.IsFinite(seconds) ||
+                     !time.TryGetDouble(out double seconds) || !double.IsFinite(seconds) ||
                      seconds < 0 || seconds > ViewModel.Playback.ArticleDuration)
             {
                 PostWebPilot("actionResult", new { status = "invalid" }, requestId);
                 return;
             }
-            ViewModel.Playback.SeekArticle(seconds);
+            else
+                ViewModel.Playback.SeekArticle(seconds);
         }
         else if (type == "playWord")
         {
