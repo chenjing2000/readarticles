@@ -93,12 +93,10 @@ function ordinalFold(value) {
   }).join("");
 }
 
-function findWholeWord(text, word, from) {
-  const source = ordinalFold(text);
-  const target = ordinalFold(word);
+function findWholeWord(text, source, target, from) {
   let start = source.indexOf(target, from);
   while (start >= 0) {
-    const end = start + word.length;
+    const end = start + target.length;
     if ((start === 0 || !englishBoundary(text[start - 1])) &&
         (end === text.length || !englishBoundary(text[end]))) return start;
     start = source.indexOf(target, start + 1);
@@ -114,7 +112,7 @@ export function matchVocabulary(text, entries) {
     const key = ordinalFold(word);
     if (!word || seen.has(key)) return;
     seen.add(key);
-    words.push({ surface: word, owner });
+    words.push({ surface: word, folded: key, owner });
   };
   // Headwords always own exact matches, even when an earlier entry lists
   // the same surface form as a family member.
@@ -127,12 +125,13 @@ export function matchVocabulary(text, entries) {
     for (const form of entry.family) add(form, entry.word);
   }
   const result = [];
+  const source = ordinalFold(text);
   let cursor = 0;
   while (cursor < text.length) {
     let bestStart = -1;
     let bestWord = null;
     for (const word of words) {
-      const start = findWholeWord(text, word.surface, cursor);
+      const start = findWholeWord(text, source, word.folded, cursor);
       if (start >= 0 && (bestStart < 0 || start < bestStart ||
           (start === bestStart && word.surface.length > bestWord.surface.length))) {
         bestStart = start;
@@ -464,14 +463,12 @@ export function updateSelectionAdd() {
     hideSelectionAdd();
     return;
   }
-  selectedPassage = getMode() === "script"
-    ? {
-        mode: "script", paragraphIndex: Number(sentence.dataset.paragraphIndex),
-        sentenceIndex: Number(sentence.dataset.sentenceIndex),
-        text, offset, length: raw.length
-      }
-    : { mode: "passage", paragraphIndex: Number(sentence.dataset.paragraphIndex),
-        sentenceIndex: Number(sentence.dataset.sentenceIndex), text, offset, length: raw.length };
+  selectedPassage = {
+    mode: getMode(),
+    paragraphIndex: Number(sentence.dataset.paragraphIndex),
+    sentenceIndex: Number(sentence.dataset.sentenceIndex),
+    text, offset, length: raw.length
+  };
   const button = byId("selection-add");
   button.disabled = !canWriteVocabulary || !!pendingMutation;
   refreshSelectionAddPosition();

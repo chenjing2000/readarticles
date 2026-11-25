@@ -235,6 +235,24 @@ internal static class AudioChecks
                 player.Fail(player.Played[^1].Request);
                 Program.Check(controller.State == PlaybackState.Stopped && warning is not null);
             });
+            Program.Run("candidate validation skips unavailable files and never falls back after opening", () =>
+            {
+                var player = new FakePlayer { AutoOpen = false };
+                var controller = new PlaybackController(player);
+                string empty = Path.Combine(root, "empty.wav");
+                string unsupported = Path.Combine(root, "unsupported.txt");
+                File.WriteAllBytes(empty, []);
+                File.WriteAllBytes(unsupported, [1]);
+                int warnings = 0;
+                controller.Message += _ => warnings++;
+                controller.PlayCandidates(["relative.mp3", empty, unsupported, first, second], "passage");
+                Program.Check(player.Played.Count == 1 && player.Played[0].Path == first);
+                player.Open(player.Played[0].Request);
+                player.Fail(player.Played[0].Request);
+                Program.Check(player.Played.Count == 1 && controller.State == PlaybackState.Stopped && warnings == 1);
+                controller.Play(new AudioItem(empty), "word");
+                Program.Check(player.Played.Count == 1 && controller.State == PlaybackState.Stopped && warnings == 2);
+            });
             Program.Run("ordered candidates retry failures and stop at first opened file", () =>
             {
                 var player = new FakePlayer { AutoOpen = false };

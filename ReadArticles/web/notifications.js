@@ -7,8 +7,7 @@ function dismissNotification(id) {
   if (hasSession()) send("notificationDismiss", { payload: { id } });
 }
 
-// Shared visual lifetime for all severities. Unacknowledged error records
-// remain in the C# notification service after their cards disappear.
+// Non-error cards expire automatically; errors require explicit dismissal.
 const toastDisplayMs = 4650;
 const toastFadeMs = 1000;
 

@@ -17,7 +17,6 @@ public sealed class PlaybackController
     public string Owner { get; private set; } = "";
     private IReadOnlyList<string>? candidates;
     private int nextCandidate;
-    private bool awaitingOpen;
     public bool IsOpen => player.IsOpen;
     public TimeSpan Duration => player.Duration;
     public TimeSpan Position => player.Position;
@@ -42,10 +41,7 @@ public sealed class PlaybackController
         Stop();
         try
         {
-            string extension = Path.GetExtension(item.Path);
-            if (!Path.IsPathFullyQualified(item.Path) ||
-                !(string.Equals(extension, ".m4a", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".mp3", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".wav", StringComparison.OrdinalIgnoreCase)) ||
-                !File.Exists(item.Path) || new FileInfo(item.Path).Length == 0)
+            if (!AudioResources.IsPlayableFile(item.Path))
             {
                 AppLogger.Default.Warning("AudioFileUnavailable");
                 Message?.Invoke("缺少或无效 M4A/MP3/WAV 音频文件。");
@@ -85,16 +81,9 @@ public sealed class PlaybackController
             string path = candidates[nextCandidate++];
             try
             {
-                string extension = Path.GetExtension(path);
-                if (!Path.IsPathFullyQualified(path) ||
-                    !(extension.Equals(".m4a", StringComparison.OrdinalIgnoreCase) ||
-                      extension.Equals(".mp3", StringComparison.OrdinalIgnoreCase) ||
-                      extension.Equals(".wav", StringComparison.OrdinalIgnoreCase)) ||
-                    !File.Exists(path) || new FileInfo(path).Length == 0)
-                    continue;
+                if (!AudioResources.IsPlayableFile(path)) continue;
                 player.Stop();
                 long token = ++request;
-                awaitingOpen = true;
                 State = State == PlaybackState.Paused ? PlaybackState.Paused : PlaybackState.Playing;
                 player.Play(path, token);
                 if (token == request && State != PlaybackState.Stopped)
@@ -113,7 +102,6 @@ public sealed class PlaybackController
     private void OnOpened(long token)
     {
         if (token != request || State == PlaybackState.Stopped) return;
-        awaitingOpen = false;
         candidates = null;
         if (State == PlaybackState.Paused) player.Pause();
         Changed?.Invoke();
@@ -128,9 +116,8 @@ public sealed class PlaybackController
     private void OnFailed(long token, string error)
     {
         if (token != request || State == PlaybackState.Stopped) return;
-        if (awaitingOpen && candidates is not null)
+        if (candidates is not null)
         {
-            awaitingOpen = false;
             TryNextCandidate();
             return;
         }
@@ -161,7 +148,6 @@ public sealed class PlaybackController
         player.Stop();
         candidates = null;
         nextCandidate = 0;
-        awaitingOpen = false;
         Owner = "";
         State = PlaybackState.Stopped;
         Changed?.Invoke();

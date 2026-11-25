@@ -68,6 +68,7 @@ internal static class UnifiedAudioChecks
                 var entries = model.Article!.Vocabulary.Data.Words;
                 // The first reserves the stem before any file exists.
                 Program.Check(AudioResources.OwnsWordAudio(model.Article!.Vocabulary.Data.Words, entries[0]) && !AudioResources.OwnsWordAudio(model.Article!.Vocabulary.Data.Words, entries[1]));
+                Program.Check(model.Words.All(w => !w.CanPlayUk && !w.CanPlayUs));
                 File.WriteAllBytes(Path.Combine(root, "audio", "well_being_uk.mp3"), [1]);
                 File.WriteAllBytes(Path.Combine(root, "audio", "well_being_us.wav"), [1]);
                 File.WriteAllBytes(Path.Combine(root, "audio", "_uk.mp3"), [1]);

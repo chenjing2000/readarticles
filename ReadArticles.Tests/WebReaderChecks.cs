@@ -580,6 +580,11 @@ internal static class WebReaderChecks
                     boundary[0].GetProperty("start").GetInt32() == 27);
 
                 // Preserve Python-compatible numeric boundaries (digits are not letters).
+                JsonElement repeated = EvaluateModule(browser,
+                    "matchVocabulary('GO went Go goes İ go', [{word:'go',family:['went','goes']}])");
+                Program.Check(repeated.EnumerateArray().Select(hit => hit.GetProperty("start").GetInt32())
+                    .SequenceEqual(new[] { 0, 3, 8, 11, 18 }) &&
+                    repeated.EnumerateArray().All(hit => hit.GetProperty("key").GetString() == "go"));
                 JsonElement numericBoundary = EvaluateModule(browser,
                     "matchVocabulary('public2 2public', ['public'])");
                 Program.Check(numericBoundary.GetArrayLength() == 2 &&

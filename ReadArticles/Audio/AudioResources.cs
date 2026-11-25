@@ -5,9 +5,10 @@ using System.Text.RegularExpressions;
 namespace ReadArticles.Services;
 public sealed class AudioResources
 {
+    private static readonly string[] priority = [".m4a", ".mp3", ".wav"];
+
     public IReadOnlyList<string> ArticleFiles(string root)
     {
-        string[] priority = [".m4a", ".mp3", ".wav"];
         return Directory.EnumerateFiles(root, "*", SearchOption.TopDirectoryOnly)
             .Where(path => priority.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             .OrderBy(path => Array.FindIndex(priority, extension =>
@@ -33,7 +34,11 @@ public sealed class AudioResources
 
     public string Vocabulary(string root, VocabularyEntry entry, string accent)
     {
-        string stem = AudioStem(entry.Word);
+        return VocabularyByStem(root, AudioStem(entry.Word), accent);
+    }
+
+    internal string VocabularyByStem(string root, string stem, string accent)
+    {
         if (stem.Length == 0) throw new InvalidDataException("词条没有可用的音频文件名。");
         return FindFile(root, "audio", stem, accent);
     }
@@ -51,9 +56,16 @@ public sealed class AudioResources
         string wav = ResourcePaths.Resolve(root, $"{folder}/{stem}_{accent}.wav");
         return File.Exists(wav) ? wav : mp3;
     }
+    // Keep access errors observable for actual playback, while UI eligibility
+    // treats unavailable files as disabled buttons.
+    internal static bool IsPlayableFile(string path) =>
+        Path.IsPathFullyQualified(path) &&
+        priority.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase) &&
+        File.Exists(path) && new FileInfo(path).Length > 0;
+
     public static bool IsAvailable(string path)
     {
-        try { return File.Exists(path) && new FileInfo(path).Length > 0; }
+        try { return IsPlayableFile(path); }
         catch (IOException) { return false; }
         catch (UnauthorizedAccessException) { return false; }
     }
