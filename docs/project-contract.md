@@ -46,3 +46,4 @@
 - Library discovery is strictly one level at a time and directory enumeration occurs away from the WPF Dispatcher. Directory collapse invalidates pending work but must not interrupt reading or audio.
 - A failed article switch preserves the previously committed passage and vocabulary, and the UI must not display a false selected passage.
 - Failed backup restoration may retain exceptional rescue copies. Never delete the only valid version of a source, backup or staged recovery copy.
+- Unmodified Space, Left and Right are exclusively whole-article playback shortcuts throughout the active main window (WPF and WebView2). Consume them even when unavailable; Space toggles once per physical press, arrows repeat using configured intervals, seeking preserves focus and playback state. Separate dialogs and modified shortcuts retain normal behavior. See [architecture](Application-Overview.md).

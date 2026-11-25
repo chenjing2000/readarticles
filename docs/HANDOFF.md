@@ -40,7 +40,7 @@ git pull --ff-only origin main
 .\tools\Test-PublishedApp.ps1
 ```
 
-## Approved next change: main-window playback shortcuts (not yet implemented)
+## Main-window playback shortcuts (implemented; acceptance pending)
 
 1. **Exclusive:** Unmodified Space, Left and Right are reserved for whole-article play/pause, backward seek and forward seek, respectively, throughout the active main window. Use the existing configured seek intervals; separate dialogs and modified key combinations retain normal behavior.
 2. **Focus-independent:** The same shortcuts apply to every focused native WPF or WebView2 control; mouse behavior remains unchanged.
@@ -48,4 +48,4 @@ git pull --ff-only origin main
 4. **State-preserving:** Seeking retains the playing/paused state and keyboard focus. The progress bar reflects authoritative playback state; do not synthesize input or move focus to the bar.
 5. **Minimal implementation:** Use one interception point in WPF and one in the WebView2 document capture phase, sharing existing C# playback commands. Remove conflicting control-specific listeners (including keyboard splitter resizing); no global hooks, new controller or shortcut settings.
 
-Acceptance must cover native and browser focus, unavailable playback, repeat behavior, focus retention, dialog isolation and duplicate-event suppression on interactive Windows. Update the current-behavior specifications when the implementation is accepted.
+Acceptance must cover native and browser focus, unavailable playback, repeat behavior, focus retention, dialog isolation and duplicate-event suppression on interactive Windows. The development branch updates the current-behavior specifications; Windows acceptance and merge remain pending.
