@@ -331,8 +331,9 @@ internal static class ReaderControlsChecks
                         input.Focus();
                         WpfTestHelpers.Pump();
                         dialog.UpdateLayout();
-                        Program.Check(input.IsLoaded && input.Template is not null);
-                        var clearButton = input.Template.FindName("DeleteButton", input) as UIElement;
+                        Program.Check(input.IsLoaded);
+                        var template = input.Template ?? throw new Exception("Fluent TextBox template was not loaded.");
+                        var clearButton = template.FindName("DeleteButton", input) as UIElement;
                         Program.Check(clearButton is not null &&
                             clearButton.Visibility == Visibility.Collapsed &&
                             Equals(clearButton.ReadLocalValue(UIElement.VisibilityProperty), Visibility.Collapsed));
