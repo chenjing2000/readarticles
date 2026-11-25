@@ -49,7 +49,7 @@ These unmodified keys are reserved throughout the active main window, regardless
 
 A time label between the progress bar and play button displays current time/total duration; no 文章音频 caption is shown. Each value uses mm:ss through one hour (including 60:00 at exactly one hour) and hh:mm:ss beyond one hour. The label updates during playback and seeking, stays visible while paused, and resets to zero on Stop.
 
-Successful ordinary actions are quiet. Floating informational and warning notifications expire after approximately five seconds of active display time, with expiry paused on hover. Errors remain until dismissed or the article/library context changes; at most three notices are visible and waiting notices are admitted FIFO. Missing physical audio does not prevent passage reading.
+Successful ordinary actions are quiet. Missing physical audio does not prevent passage reading. See Floating messages below for notification behavior.
 
 Use a separate working copy of a library for interactive editing experiments. Do not alter `tests/TestData/` directly while tests are running; deterministic tests use this fixed source data and operate on temporary copies.
 

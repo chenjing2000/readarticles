@@ -28,7 +28,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `ViewModels/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |
 | `ViewModels/VocabularyEntryViewModel.cs` | A word's display fields and pronunciation availability; edits are coordinated by the main view model |
 | `Models/` | Passage sentence arrays, selection ranges, vocabulary entries, navigation nodes, and loaded snapshots |
-| `Services/LibraryRepository.cs` | Discover immediate book directories and scan one level and parse JSON for exact passage tags; full schema validation is deferred |
+| `Services/LibraryRepository.cs` | Discover immediate book directories; scan one level and parse JSON for exact passage tags; defer full schema validation |
 | `Services/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` prepares the matching vocabulary and article snapshot; `LoadScript` reads the optional Script on demand |
 | `Services/VocabularyRepository.cs` | Validate vocabulary, derive audio stems, and save with external-change detection |
 | `Services/ReaderWorkspace.cs` | Commit prepared library/article state and replace vocabulary after successful persistence |
@@ -88,7 +88,7 @@ The bottom play/pause and stop controls own only whole-article audio, selected b
 
 ### Notifications and lifecycle
 
-Routine successful actions are quiet. Floating notifications appear over the middle reading pane without allocating a status row. Informational and warning messages expire automatically after approximately five seconds of active display time, paused while hovered; errors remain accessible until dismissed. The service admits the first three queued messages, displays them newest-first within that group, and admits waiting messages FIFO when a card is dismissed. Errors never auto-expire; switching to a successfully committed library or article clears the previous context's queue.
+Routine successful actions are quiet. Floating notifications appear over the middle reading pane without allocating a status row. Informational and warning messages expire automatically after approximately five seconds of active display time, paused while hovered; errors do not auto-expire. The service admits the first three queued messages, displays them newest-first within that group, and admits waiting messages FIFO when a card is dismissed. Switching to a successfully committed library or article clears the previous context's queue.
 
 On close, normal application windows save final settings during `Closing`, before the window is disposed; a failed final save shows a synchronous warning. During `Closed`, notifications and navigation are detached and playback resources are released. Test windows can disable settings persistence.
 

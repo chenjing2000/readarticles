@@ -31,7 +31,7 @@ Opening a library discovers only immediate book directories and checks for `book
 | --- | --- | --- | --- |
 | Book directory | Required for normal library navigation | Immediate child of the selected root | Recognized only when it contains `book.json` |
 | `book.json` | Required marker for each book | Book directory itself | Only its existence is checked; its contents are not parsed |
-| `<title>.json` | Required to read a passage | Anywhere inside a recognized book, outside excluded branches | Parsed only when selected; must have `filetype: "passage"` |
+| `<title>.json` | Required to read a passage | Anywhere inside a recognized book, outside excluded branches | Tag checked during expansion; fully validated when selected |
 | `<title>.vocabulary.json` | Optional | Same directory and same filename stem as the passage | Automatically loaded with the passage; missing file gives an empty, writable word list |
 | `audio/` and its MP3/WAV files | Optional physical files | Passage directory | Names derived from word stem; missing or empty files disable pronunciation buttons; later stem collisions have no audio eligibility |
 | Whole-article `.m4a`, `.mp3` or `.wav` candidates | Optional | Directly beside the passage JSON | Playback opens the first successful candidate in priority/name order |
@@ -54,9 +54,9 @@ The Passage JSON `title` field supplies the center-pane title, including an empt
 
 For a passage named `Example.json`, the automatically loaded companion is exactly `Example.vocabulary.json`. The application does not search for an arbitrary vocabulary file in the same folder.
 
-A standalone file named `vocabulary.json` can be selected through the vocabulary import button, but it is not automatically paired with a passage. Keep such input files outside scanned book branches, or rename the final file to the matching companion name. A valid vocabulary document is not a passage leaf because its filetype is different.
+A standalone file named `vocabulary.json` can be selected through the vocabulary import button, but it is not automatically paired with a passage. Rename the final file to the matching companion name for automatic pairing. A valid vocabulary document is not a passage leaf because its filetype is different.
 
-The optional `family` array on each vocabulary entry holds article-attested surface forms differing from its `word`. It may be omitted or empty; invalid or duplicate forms are rejected. Both Passage and Script match explicitly listed forms to the canonical headword without changing pronunciation filenames or the right-side vocabulary display.
+Authors use the optional `family` array for article-attested surface forms differing from its `word`; the runtime validates the list structure, not attestation. It may be omitted or empty; invalid or duplicate forms are rejected. Both Passage and Script match explicitly listed forms to the canonical headword without changing pronunciation filenames or the right-side vocabulary display.
 
 Import replaces the active article's word list and saves the result to its matching companion file; it is not a merge operation. Moving or deleting words also saves that companion. If the file has changed externally since loading, the save is rejected: reopen the article before editing again. Malformed vocabulary does not block passage reading, but overwriting that malformed companion is disabled until it is repaired and reopened.
 
@@ -107,6 +107,6 @@ For an existing `<name>.json` Passage, place `<name>.script.json` in the **same 
 
 The Script JSON root must have `"filetype": "script"`, `"title": ""` (or another string), and nonempty `"paragraphs"`. Every paragraph is a nonempty array of sentences; each sentence has nonblank `"text"` and `"timed_units"` array. Timed units are exactly `[displayText, startSeconds, endSeconds]`: displayText is a nonempty string; both time fields must be null or valid finite nonnegative numbers with end greater than start. Empty timed_units arrays are valid.
 
-The application uses `text` as the displayed source; timed-unit text is located in original sentence order when rendering, but its alignment is not an admission check. Unlocatable units are not colored. Script and Passage text need not match. A nonempty Script title uses the regular Passage title styling; an empty title hides the title. Script has timed sentence units and no fill-in-the-blank placeholders; Passage also has no sentence pronunciation. The original Passage file determines the directory used for whole-article audio and the companion vocabulary file; Script never changes those lookup rules.
+The application uses `text` as the displayed source; timed-unit text is located in original sentence order when rendering, but its alignment is not an admission check. Unlocatable units are not colored. Script and Passage text need not match. A nonempty Script title uses the regular Passage title styling; an empty title hides the title. Script has timed sentence units and does not interpret fill-in-the-blank placeholders; Passage also has no sentence pronunciation. The original Passage file determines the directory used for whole-article audio and the companion vocabulary file; Script never changes those lookup rules.
 
 The music icon is dark grey for Passage and colored for Script. Vocabulary highlighting independently controls the background in both views. The audio clock controls Script foreground progress, which is cleared when article playback stops or naturally ends. Neither source JSON is modified.

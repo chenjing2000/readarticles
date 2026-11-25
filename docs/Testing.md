@@ -18,7 +18,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test.ps1 -Suite 
 
 Targeted `--*-only` entry points remain available for focused development tests. The standard suites avoid duplicate invocations.
 
-The single Windows CI workflow runs on pushes and pull requests to `main` (and manual dispatch). Its Core suite already includes real WebView2 DOM tests;  Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
+The single Windows CI workflow runs on pushes and pull requests to `main` (and manual dispatch). Its Core suite already includes real WebView2 DOM tests. Browser/Windows focus and media-device behavior can differ between hosted and interactive sessions. Local UI/Full and manual browser/audio checks remain required.
 
 The summary distinguishes Passed, Failed, and Skipped groups. A skipped group is not counted as verified. A failed native command or assertion makes the entry point return a nonzero exit code.
 
@@ -84,7 +84,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 Never edit `tests/TestData/` during a test run. When intentionally changing a fixture, update `tests/TestData/README.md` and the corresponding regression assertions in the same change. Do not commit generated screenshots, reports, logs, personal settings, or temporary media. Run tests sequentially because native WPF input and playback checks require exclusive desktop interaction.
 
-## Current targeted regression checks (single WebView2 reader)
+## Targeted regression checks
 
 Run the following from the repository root on Windows:
 
@@ -93,10 +93,6 @@ dotnet build ReadArticles.Tests -c Release
 # Targeted commands assume an isolated fixture environment if the case needs TestData.
 dotnet run --project ReadArticles.Tests -c Release -- --webview-pilot-only
 dotnet run --project ReadArticles.Tests -c Release -- --script-only
-.\tools\Test.ps1 -Suite Core
-.\tools\Test.ps1 -Suite UI
-.\tools\Test.ps1 -Suite Full
-.\tools\Test-PublishedApp.ps1
 ```
 
 - `--webview-pilot-only` covers the embedded static assets, terminal native error screen, lack of legacy WPF reader, real Passage/word DOM and Script switching, exclusive reserved-key dispatch and focus-outline suppression, vocabulary matching boundaries and `family` mapping across Passage/Script timed units, independent scroll, font-setting roundtrip, notification dismissal and SVG clip/foreground progress.
