@@ -66,7 +66,7 @@ public partial class MainWindow
 
     private void RefreshPlayback()
     {
-        progressTimer.Interval = webPilotScriptMode && ViewModel.Playback.IsArticlePlaying
+        progressTimer.Interval = ViewModel.IsScriptMode && ViewModel.Playback.IsArticlePlaying
             ? TimeSpan.FromMilliseconds(33) : TimeSpan.FromMilliseconds(100);
         if (!webPilotFailureShown && ViewModel.Playback.IsArticleActive) progressTimer.Start();
         else progressTimer.Stop();

@@ -33,16 +33,36 @@ internal static class WebViewScriptBridgeChecks
                 !units[2].GetProperty("canColor").GetBoolean());
         });
 
+        Program.Run("reading workspace owns committed mode and resets only with article context", () =>
+        {
+            var workspace = new ReadArticles.Services.ReaderWorkspace();
+            var article = new ReadArticles.Services.ArticleRepository().Load(TestData.ArticlePath);
+            workspace.CommitArticle(article);
+            var script = ScriptFixture();
+            Program.Check(!workspace.IsScriptMode && workspace.Script is null);
+            workspace.CommitReadingMode(true, script);
+            Program.Check(workspace.IsScriptMode && ReferenceEquals(workspace.Script, script));
+            Program.Check(ReferenceEquals(workspace.PrepareScript(), script));
+            Program.Check(workspace.ValidateSelection(true, 0, 0, 0, 13, "non-identical"));
+            Program.Check(!workspace.ValidateSelection(true, 0, 0, 2, 13, "non-identical"));
+            Program.Check(!workspace.ValidateSelection(false, 0, 0, 0, 13, "non-identical"));
+            workspace.CommitReadingMode(false, null);
+            Program.Check(!workspace.IsScriptMode && ReferenceEquals(workspace.Script, script));
+            workspace.CommitArticle(article);
+            Program.Check(!workspace.IsScriptMode && workspace.Script is null);
+            workspace.CommitReadingMode(true, script);
+            workspace.ClearArticle();
+            Program.Check(workspace.Article is null && workspace.Script is null && !workspace.IsScriptMode);
+        });
+
         Program.Run("WebView2 Script selection validates sentence boundaries without SID", () =>
         {
             var window = new ReadArticles.MainWindow(false);
             try
             {
                 var type = typeof(ReadArticles.MainWindow);
-                type.GetField("webPilotScriptMode", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .SetValue(window, true);
-                type.GetField("webPilotScriptArticle", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .SetValue(window, ScriptFixture());
+                Program.Check(window.ViewModel.OpenArticle(TestData.ArticlePath));
+                window.ViewModel.CommitReadingMode(true, ScriptFixture());
                 var verify = type.GetMethod("WebPilotValidateSelection",
                     BindingFlags.Instance | BindingFlags.NonPublic);
                 Program.Check(verify is not null);

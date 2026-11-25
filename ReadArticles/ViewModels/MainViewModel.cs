@@ -6,6 +6,7 @@ using System.Text.Json;
 using ReadArticles.Models;
 using ReadArticles.Infrastructure;
 using ReadArticles.Services;
+using ReadArticles.Library;
 
 namespace ReadArticles.ViewModels;
 
@@ -13,6 +14,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
 {
     private readonly ReaderWorkspace workspace = new ReaderWorkspace();
     private readonly ReaderPlayback playback;
+    private readonly LibraryNavigation navigation;
     public NotificationService Notifications { get; } = new();
     public void Notify(string key, string message, NotificationSeverity severity) =>
         Notifications.Publish(key, message, severity);
@@ -22,10 +24,10 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public event Action? ArticleChanged;
     public event Action? VocabularyChanged;
     public event Action? PlaybackChanged;
-    public ObservableCollection<NavigationNode> Books { get; } = new ObservableCollection<NavigationNode>();
+    public ObservableCollection<NavigationNode> Books => navigation.Books;
     public ObservableCollection<VocabularyEntryViewModel> Words { get; } = new ObservableCollection<VocabularyEntryViewModel>();
     public LoadedArticle? Article => workspace.Article;
-    public string? LibraryRoot => workspace.Library?.Root;
+    public string? LibraryRoot => navigation.Root;
     public string ArticleTitle => Article?.Title ?? "";
     public ReaderPlayback Playback => playback;
     public bool CanWriteVocabulary => Article?.Vocabulary.CanWrite == true;
@@ -52,6 +54,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     }
     public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer)
     {
+        navigation = new LibraryNavigation(Notify);
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
         playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);
         playback.Changed += () => PlaybackChanged?.Invoke();

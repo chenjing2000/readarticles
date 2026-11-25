@@ -22,11 +22,8 @@ public partial class MainWindow
     private bool webPilotClosed;
     private bool webPilotFailureShown;
     private int webPilotVocabularyRevision;
-    private ScriptArticle? webPilotScriptArticle;
-    private bool webPilotScriptMode;
-    private string? webPilotPendingModeRequest;
-    private bool webPilotPendingModeIsScript;
-    private ScriptArticle? webPilotPendingScriptArticle;
+    private sealed record PendingReadingMode(string RequestId, bool IsScript, ScriptArticle? Script);
+    private PendingReadingMode? webPilotPendingMode;
     private string? webPilotPendingSnapshotId;
     private readonly HashSet<string> webPilotSeenRequests = new(StringComparer.Ordinal);
 
@@ -72,8 +69,7 @@ public partial class MainWindow
                 webPilotPageId = null;
                 webPilotPendingSnapshotId = null;
                 webPilotSeenRequests.Clear();
-                webPilotPendingModeRequest = null;
-                webPilotPendingScriptArticle = null;
+                webPilotPendingMode = null;
                 WebPilotOverlay.Visibility = Visibility.Collapsed;
             };
             core.NewWindowRequested += (_, args) => args.Handled = true;
@@ -158,13 +154,12 @@ public partial class MainWindow
                 if (!TryMessageString(root, "sessionId", out string? modeSession) ||
                     modeSession != webPilotSessionId ||
                     !TryMessageString(root, "requestId", out string? modeRequest) ||
-                    modeRequest != webPilotPendingModeRequest)
+                    webPilotPendingMode is not { } pending || modeRequest != pending.RequestId)
                     return;
                 bool succeeded = type == "modeRendered";
                 if (succeeded)
                 {
-                    webPilotScriptMode = webPilotPendingModeIsScript;
-                    if (webPilotScriptMode) webPilotScriptArticle = webPilotPendingScriptArticle;
+                    ViewModel.CommitReadingMode(pending.IsScript, pending.Script);
                     RefreshPlayback();
                 }
                 else
@@ -173,8 +168,7 @@ public partial class MainWindow
                         "Script 切换失败或不可用，已保留原阅读模式",
                         NotificationSeverity.Error);
                 }
-                webPilotPendingModeRequest = null;
-                webPilotPendingScriptArticle = null;
+                webPilotPendingMode = null;
                 PostWebPilot("actionResult", new { status = succeeded ? "success" : "failed" }, modeRequest);
                 return;
             }
@@ -432,52 +426,21 @@ public partial class MainWindow
 
     private void WebPilotSwitchReadingMode(string requestId)
     {
-        var article = ViewModel.Article;
-        if (article is null)
+        if (webPilotPendingMode is not null)
         {
             PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
             return;
         }
-        if (webPilotPendingModeRequest is not null)
+        var result = ViewModel.PrepareReadingMode(out bool nextScript, out var script);
+        if (result != ReadingModePreparation.Ready)
         {
-            PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
-            return;
-        }
-        bool nextScript = !webPilotScriptMode;
-        ScriptArticle? script = null;
-        if (nextScript)
-        {
-            script = webPilotScriptArticle;
-            if (script is null)
+            PostWebPilot("actionResult", new
             {
-                string path = ArticleRepository.ScriptPathFor(article.FilePath);
-                if (!File.Exists(path))
-                {
-                    ViewModel.Notify("ScriptNotFound",
-                        "Script 切换失败或不可用，已保留原阅读模式。未找到同名 Script JSON：" + Path.GetFileName(path),
-                        NotificationSeverity.Error);
-                    PostWebPilot("actionResult", new { status = "unavailable" }, requestId);
-                    return;
-                }
-                try
-                {
-                    script = new ArticleRepository().LoadScript(article.FilePath);
-                }
-                catch (Exception error) when (error is InvalidDataException or
-                    JsonException or IOException or UnauthorizedAccessException or ArgumentException)
-                {
-                    AppLogger.Default.Warning("WebPilotScriptLoadFailed", error);
-                    ViewModel.Notify("ScriptLoadFailed",
-                        "Script 切换失败或不可用，已保留原阅读模式。Script JSON 加载失败：" + error.Message,
-                        NotificationSeverity.Error);
-                    PostWebPilot("actionResult", new { status = "failed" }, requestId);
-                    return;
-                }
-            }
+                status = result == ReadingModePreparation.Unavailable ? "unavailable" : "failed"
+            }, requestId);
+            return;
         }
-        webPilotPendingModeRequest = requestId;
-        webPilotPendingModeIsScript = nextScript;
-        webPilotPendingScriptArticle = script;
+        webPilotPendingMode = new PendingReadingMode(requestId, nextScript, script);
         PostWebPilot("setReadingMode", new
         {
             mode = nextScript ? "script" : "passage",
@@ -575,57 +538,23 @@ public partial class MainWindow
         text = null;
         if (payload.ValueKind != JsonValueKind.Object ||
             !TryMessageString(payload, "mode", out string? mode) ||
-            mode != (webPilotScriptMode ? "script" : "passage") ||
+            mode is not ("passage" or "script") ||
             !payload.TryGetProperty("text", out var selectedText) ||
             selectedText.ValueKind != JsonValueKind.String ||
+            !payload.TryGetProperty("paragraphIndex", out var paragraph) ||
+            paragraph.ValueKind != JsonValueKind.Number || !paragraph.TryGetInt32(out int paragraphIndex) ||
+            !payload.TryGetProperty("sentenceIndex", out var sentence) ||
+            sentence.ValueKind != JsonValueKind.Number || !sentence.TryGetInt32(out int sentenceIndex) ||
             !payload.TryGetProperty("offset", out var offsetValue) ||
+            offsetValue.ValueKind != JsonValueKind.Number || !offsetValue.TryGetInt32(out int offset) ||
             !payload.TryGetProperty("length", out var lengthValue) ||
-            offsetValue.ValueKind != JsonValueKind.Number ||
-            lengthValue.ValueKind != JsonValueKind.Number ||
-            !offsetValue.TryGetInt32(out int offset) ||
-            !lengthValue.TryGetInt32(out int length) ||
-            offset < 0 || length <= 0 || length > 2048)
+            lengthValue.ValueKind != JsonValueKind.Number || !lengthValue.TryGetInt32(out int length))
             return false;
 
         string? candidate = selectedText.GetString();
-        if (string.IsNullOrWhiteSpace(candidate) || candidate.Length > 2048)
+        if (!ViewModel.ValidateReadingSelection(mode == "script", paragraphIndex, sentenceIndex,
+                offset, length, candidate))
             return false;
-        string original;
-
-        if (mode == "script")
-        {
-            if (webPilotScriptArticle is null ||
-                !payload.TryGetProperty("paragraphIndex", out var paragraph) ||
-                paragraph.ValueKind != JsonValueKind.Number ||
-                !paragraph.TryGetInt32(out int paragraphIndex) ||
-                paragraphIndex < 0 || paragraphIndex >= webPilotScriptArticle.Paragraphs.Count ||
-                !payload.TryGetProperty("sentenceIndex", out var sentence) ||
-                sentence.ValueKind != JsonValueKind.Number ||
-                !sentence.TryGetInt32(out int sentenceIndex) ||
-                sentenceIndex < 0 ||
-                sentenceIndex >= webPilotScriptArticle.Paragraphs[paragraphIndex].Sentences.Count)
-                return false;
-            original = webPilotScriptArticle.Paragraphs[paragraphIndex].Sentences[sentenceIndex].Text;
-        }
-        else
-        {
-            if (!payload.TryGetProperty("paragraphIndex", out var paragraph) ||
-                paragraph.ValueKind != JsonValueKind.Number ||
-                !paragraph.TryGetInt32(out int paragraphIndex) ||
-                !payload.TryGetProperty("sentenceIndex", out var sentence) ||
-                sentence.ValueKind != JsonValueKind.Number ||
-                !sentence.TryGetInt32(out int sentenceIndex) ||
-                paragraphIndex < 0 || sentenceIndex < 0 ||
-                ViewModel.Article is not { } current ||
-                paragraphIndex >= current.Paragraphs.Count ||
-                sentenceIndex >= current.Paragraphs[paragraphIndex].Length)
-                return false;
-            original = Regex.Replace(current.Paragraphs[paragraphIndex][sentenceIndex], @"\[\[(\d+)\]\]",
-                match => "____" + match.Groups[1].Value + "____");
-        }
-        if (offset > original.Length || length > original.Length - offset) return false;
-        string normalized = Regex.Replace(original.Substring(offset, length), @"\s+", " ").Trim();
-        if (!string.Equals(candidate, normalized, StringComparison.Ordinal)) return false;
         text = candidate;
         return true;
     }
@@ -643,12 +572,12 @@ public partial class MainWindow
         if (!webPilotReady) return;
         webPilotPendingSnapshotId = Guid.NewGuid().ToString("D");
         WebPilotOverlay.Visibility = Visibility.Collapsed;
-        object? passage = webPilotScriptMode && webPilotScriptArticle is not null
-            ? WebPilotScriptSnapshot(webPilotScriptArticle) : WebPilotPassageSnapshot();
+        object? passage = ViewModel.IsScriptMode && ViewModel.Script is { } script
+            ? WebPilotScriptSnapshot(script) : WebPilotPassageSnapshot();
         PostWebPilot("initialize", new
         {
             article = passage,
-            mode = webPilotScriptMode ? "script" : "passage",
+            mode = ViewModel.IsScriptMode ? "script" : "passage",
             canWriteVocabulary = ViewModel.CanWriteVocabulary,
             vocabulary = WebPilotVocabularyRows(),
             settings = WebPilotSettingsSnapshot(),
@@ -727,10 +656,7 @@ public partial class MainWindow
         // A previous display is never presented as the newly committed article.
         webPilotSessionId = Guid.NewGuid().ToString("N");
         webPilotVocabularyRevision = 0;
-        webPilotScriptMode = false;
-        webPilotScriptArticle = null;
-        webPilotPendingModeRequest = null;
-        webPilotPendingScriptArticle = null;
+        webPilotPendingMode = null;
         webPilotSeenRequests.Clear();
         if (webPilotReady)
         {
@@ -816,8 +742,7 @@ public partial class MainWindow
         webPilotReady = false;
         webPilotPageId = null;
         webPilotPendingSnapshotId = null;
-        webPilotPendingModeRequest = null;
-        webPilotPendingScriptArticle = null;
+        webPilotPendingMode = null;
         ViewModel.Stop();
         // Keep the native failure screen above every pane, including the tree.
         // The former WPF reader is not a runtime recovery path.
@@ -833,6 +758,7 @@ public partial class MainWindow
     private void CloseWebPilot()
     {
         webPilotClosed = true;
+        webPilotPendingMode = null;
         ViewModel.ArticleChanged -= WebPilotArticleChanged;
         ViewModel.VocabularyChanged -= WebPilotVocabularyChanged;
         ViewModel.PlaybackChanged -= SendWebPilotPlayback;

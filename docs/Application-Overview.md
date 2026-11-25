@@ -24,7 +24,9 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `MainWindow.Settings.cs`, `SettingsDialog.cs` | Apply native pane widths, native modal settings and preference persistence |
 | `Layout/PaneLayout.cs` | Session-only pane widths, shared width solver and right-divider drag rollback |
 | `ViewModels/MainViewModel.cs` | Shared state, notifications, and operation errors |
-| `ViewModels/MainViewModel.Library.cs` | Prepare and commit library/article changes |
+| `ViewModels/MainViewModel.Library.cs` | Coordinate library/article preparation and commits |
+| `Library/LibraryNavigation.cs` | Own library root, tree projection, async scans, cancellation and stale-result guards |
+| `ViewModels/MainViewModel.Reading.cs` | Prepare reading-mode changes, coordinate render-confirmed commits and selection validation |
 | `ViewModels/MainViewModel.Vocabulary.cs` | Prepare word commands and coordinate vocabulary edits and commits |
 | `ViewModels/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |
 | `ViewModels/VocabularyEntryViewModel.cs` | A word's display fields and pronunciation availability; edits are coordinated by the main view model |
@@ -32,7 +34,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `Services/LibraryRepository.cs` | Discover immediate book directories; scan one level and parse JSON for exact passage tags; defer full schema validation |
 | `Services/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` prepares the matching vocabulary and article snapshot; `LoadScript` reads the optional Script on demand |
 | `Services/VocabularyRepository.cs` | Validate vocabulary, derive audio stems, and save with external-change detection |
-| `Services/ReaderWorkspace.cs` | Commit prepared library/article state and replace vocabulary after successful persistence |
+| `Services/ReaderWorkspace.cs` | Own committed article, Script cache and mode; validate selected text and replace vocabulary after successful persistence |
 | `Services/AudioResources.cs` | List safe sibling M4A/MP3/WAV article candidates in priority/name order and resolve word MP3/WAV under `audio/` |
 | `Services/ReaderPlayback.cs` | Select audio targets, enforce article-only controls/progress, cancel pronunciation, and report audio errors |
 | `Services/PlaybackController.cs` / `IAudioPlayer.cs` | Playback state, pause/resume, completion, progress access, and stale-event rejection; player boundary |
@@ -53,7 +55,7 @@ The window and main view model each use partial files to group responsibilities 
 ### Library and article loading
 
 ```text
-Folder selection -> LibraryRepository -> navigation nodes -> collapsed tree
+Folder selection -> LibraryNavigation -> LibraryRepository -> navigation nodes -> collapsed tree
 Passage selection -> ArticleRepository -> prepared article and words
                   -> commit workspace -> WebView2 article/word snapshots -> DOM
 ```
@@ -123,4 +125,4 @@ See [Configuration](Configuration.md) for persisted defaults and [Library Layout
 
 `NotificationService` owns the FIFO queue, severity and error persistence. WebView2 displays at most three floating notification cards and owns their animation, hover and dismissal intents. Browser startup failure is shown on the native terminal screen.
 
-`LibraryRepository.Load` discovers only book directories at the library root, while `ScanDirectoryLevel` enumerates one level and parses direct JSON to identify passage-tagged objects. `MainViewModel` coordinates background scans and marshals collection updates to the WPF Dispatcher, guarded by library-session and node-generation tokens. Closing the window or collapsing a folder invalidates pending work.
+`LibraryRepository.Load` discovers only book directories at the library root, while `ScanDirectoryLevel` enumerates one level and parses direct JSON to identify passage-tagged objects. `LibraryNavigation` coordinates background scans and marshals collection updates to the WPF Dispatcher, guarded by library-session and node-generation tokens. Closing the window or collapsing a folder invalidates pending work.
