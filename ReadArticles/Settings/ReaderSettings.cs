@@ -124,13 +124,27 @@ public sealed class ReaderSettings
     {
         warning = null;
         if (!IsCurrentSchema(root)) throw new JsonException("配置不是当前结构。");
-        var settings = root.Deserialize<ReaderSettings>(JsonFiles.Options)
-            ?? throw new JsonException("配置内容不能为空。");
+        // Only this optional field is independently recoverable. Do not
+        // conceal structural errors in the other settings.
+        bool invalidType = root.TryGetProperty(nameof(ExcludedFolders), out var field) &&
+            field.ValueKind is not (JsonValueKind.String or JsonValueKind.Null);
+        ReaderSettings settings;
+        if (invalidType)
+        {
+            var copy = System.Text.Json.Nodes.JsonNode.Parse(root.GetRawText())!.AsObject();
+            copy.Remove(nameof(ExcludedFolders));
+            settings = copy.Deserialize<ReaderSettings>(JsonFiles.Options)
+                ?? throw new JsonException("配置内容不能为空。");
+        }
+        else
+            settings = root.Deserialize<ReaderSettings>(JsonFiles.Options)
+                ?? throw new JsonException("配置内容不能为空。");
         try { _ = ParseExcludedFolders(settings.ExcludedFolders); }
-        catch (ArgumentException)
+        catch (ArgumentException) { invalidType = true; }
+        if (invalidType)
         {
             settings.ExcludedFolders = DefaultExcludedFolders;
-            warning = "排除文件夹名称无效，已恢复该项默认设置；其他设置保持不变。";
+            warning = "排除文件夹设置无效，已恢复该项默认设置；其他设置保持不变。";
         }
         settings.NormalizeAppearanceAndAudio();
         return settings;

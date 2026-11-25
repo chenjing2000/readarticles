@@ -86,11 +86,11 @@ Native and embedded browser functional icons use maple-red `#D65B45` circles and
 
 ## Explicit library refresh
 
-Core/UI/Full exercise reopening the current root, collapsed fresh nodes, resetting the reading workspace, missing-root deselection, stale refresh rejection during a later library switch, and the actual refresh button. UI/Full also check immediate persistence of a null library path after missing-root refresh. Manually check button placement/disabled state and real playback interruption; use a disposable library.
+Core/UI/Full exercise reopening the current root, collapsed fresh nodes, resetting the reading workspace, missing-root and same-name-file deselection, a concurrent exclusion edit, stale refresh rejection during a later library switch, and the actual refresh button. UI/Full also check immediate persistence of a null library path after missing-root refresh. Manually check button placement/disabled state and real playback interruption; use a disposable library.
 
 ## Folder exclusion regression
 
-Core includes the pure exclusion parser checks. UI and Full also verify independent invalid-field recovery, invalid-source preservation during explicit backup restoration, rejection of obsolete/invalid backups, and the loaded Fluent template's collapsed clear button. The navigation regression schedules another filter edit during failure fallback before the root result commits. Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
+Core includes the pure exclusion parser checks. UI and Full also verify independent invalid-name and invalid-JSON-type field recovery, invalid-source preservation during explicit backup restoration, rejection of obsolete/invalid backups, and the loaded Fluent template's collapsed clear button. The navigation regression schedules another filter edit during failure fallback before the root result commits. Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
 
 ## Ownership and maintenance
 

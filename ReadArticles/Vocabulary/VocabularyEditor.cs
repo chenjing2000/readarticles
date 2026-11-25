@@ -56,8 +56,9 @@ public sealed class VocabularyEditor
     public VocabularySnapshot Import(string path, VocabularySnapshot current, string incomingPath)
     {
         EnsureWritable(current);
-        if (!File.Exists(incomingPath)) throw new FileNotFoundException("导入文件不存在。");
-        return Save(path, current, repository.Load(incomingPath).Data);
+        var incoming = repository.Load(incomingPath);
+        if (incoming.Fingerprint is null) throw new FileNotFoundException("导入文件不存在或无法访问。");
+        return Save(path, current, incoming.Data);
     }
 
     private VocabularySnapshot SaveWords(string path, VocabularySnapshot current, List<VocabularyEntry> entries) =>

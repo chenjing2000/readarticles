@@ -140,9 +140,12 @@ internal static class TreeNavigationChecks
                 Directory.Move(Path.Combine(temp, "Removed"), root);
                 Program.Check(vm.OpenLibrary(root) && vm.OpenArticle(passage));
                 Directory.Move(root, Path.Combine(temp, "Removed"));
+                File.WriteAllText(root, "not a directory");
                 refreshButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                WpfTestHelpers.Wait(() => vm.LibraryRoot is null && !refreshButton.IsEnabled &&
+                Task filter = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "video" });
+                WpfTestHelpers.Wait(() => filter.IsCompleted && vm.LibraryRoot is null && !refreshButton.IsEnabled &&
                     vm.Notifications.Messages.Any(n => n.Key == "LibraryOpenFailed"));
+                filter.GetAwaiter().GetResult();
                 Program.Check(vm.Books.Count == 0 && vm.Article is null && vm.Words.Count == 0 &&
                     !vm.Playback.IsArticleActive);
             }
