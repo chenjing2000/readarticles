@@ -518,9 +518,10 @@ internal static class WebReaderChecks
 
                     // Reverse direction: a right-divider intent may compress
                     // the native library, but the browser paints only C#'s result.
-                    var resizeRight = typeof(ReadArticles.MainWindow).GetMethod(
-                        "ResizeVocabularyPane", BindingFlags.Instance | BindingFlags.NonPublic)!;
-                    resizeRight.Invoke(window, [400d]);
+                    var bridge = (ReadArticles.Presentation.WebReaderBridge)typeof(ReadArticles.MainWindow)
+                        .GetField("webReaderBridge", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+                    using var widthIntent = JsonDocument.Parse("""{"payload":{"width":400}}""");
+                    bridge.HandlePaneWidth(widthIntent.RootElement, Guid.NewGuid().ToString("D"));
                     WaitFor(() => Math.Abs(Evaluate(browser, """
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
                         """).GetDouble() - paneLayout.RightWidth) < 2,

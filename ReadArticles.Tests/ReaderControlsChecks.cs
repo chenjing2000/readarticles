@@ -49,8 +49,14 @@ internal static class ReaderControlsChecks
                 var type = typeof(ReadArticles.MainWindow);
                 var dragLeft = type.GetMethod("ResizeLibraryPane",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
-                var dragRight = type.GetMethod("ResizeVocabularyPane",
-                    BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var bridge = (ReadArticles.Presentation.WebReaderBridge)type
+                    .GetField("webReaderBridge", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+                void DragRight(double width)
+                {
+                    using var data = System.Text.Json.JsonDocument.Parse(
+                        System.Text.Json.JsonSerializer.Serialize(new { payload = new { width } }));
+                    bridge.HandlePaneWidth(data.RootElement, Guid.NewGuid().ToString("D"));
+                }
                 double available = Math.Floor(Math.Max(606, grid.ActualWidth) - 6);
                 double initialRight = layout.RightWidth;
                 dragLeft.Invoke(window, [400d]);
@@ -64,14 +70,14 @@ internal static class ReaderControlsChecks
                 // Reversing this divider grows the article; right stays unchanged.
                 Program.Check(layout.LeftWidth == 200 &&
                     layout.RightWidth == compressedRight);
-                dragRight.Invoke(window, [400d]);
+                DragRight(400);
                 double maximumRight = Math.Min(400, available - 400);
                 double expectedRightAfterDrag = maximumRight;
                 Program.Check(layout.RightWidth == expectedRightAfterDrag &&
                     layout.LeftWidth >= 200 &&
                     available - layout.LeftWidth - layout.RightWidth >= 200);
                 double compressedLeft = layout.LeftWidth;
-                dragRight.Invoke(window, [200d]);
+                DragRight(200);
                 // Reversing the right divider grows only the article.
                 Program.Check(layout.RightWidth == 200 &&
                     layout.LeftWidth == compressedLeft);

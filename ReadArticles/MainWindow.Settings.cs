@@ -67,7 +67,7 @@ public partial class MainWindow
 
     private void SettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ViewModel.Accent) || e.PropertyName == nameof(ViewModel.LibraryRoot))
+        if (e.PropertyName == nameof(ViewModel.LibraryRoot))
             SaveSettings();
     }
 
@@ -89,9 +89,6 @@ public partial class MainWindow
 
     private void ResizeLibraryPane(double requestedLeft) =>
         ApplyPaneWidths(paneLayout.ResizeLibrary(requestedLeft, AvailablePaneWidth()));
-
-    private void ResizeVocabularyPane(double requestedRight) =>
-        ApplyPaneWidths(paneLayout.ResizeVocabulary(requestedRight, AvailablePaneWidth()));
 
     private void WorkspaceResized(object sender, SizeChangedEventArgs e) =>
         ApplyPaneWidths(paneLayout.Fit(AvailablePaneWidth()));

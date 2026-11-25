@@ -17,7 +17,7 @@
 
 ## 技术与运行环境
 
-- C# / WPF，.NET 10，Windows x64。单个 WebView2 承载阅读工作区，WPF 保留窗口、树、设置及故障退出界面。浏览器初始化、导航或进程失败时停止音频并显示原生故障提示，不启用第二套阅读器。
+- C# / WPF，.NET 10，Windows x64。单个 WebView2 承载阅读工作区，WPF 保留窗口、树、设置及故障退出界面。浏览器使用嵌入的原生 ES Modules，消息协议与资源访问限制由独立 Host/Bridge 管理；功能模块不增加新的程序集或运行时依赖。浏览器初始化、导航或进程失败时停止音频并显示原生故障提示，不启用第二套阅读器。
 - Framework-dependent 单文件发布，不启用 trimming；需要 .NET 10 Windows Desktop Runtime x64（最低补丁见 [README](../README.md)）及 WebView2 Evergreen Runtime。
 - 便携目录部署于用户有写权限的位置，不自动迁移至其他目录，不使用安装器、自包含运行时或在线更新器。
 

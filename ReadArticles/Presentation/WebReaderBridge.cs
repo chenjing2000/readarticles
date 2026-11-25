@@ -178,12 +178,7 @@ public sealed class WebReaderBridge : IDisposable
             }
             if (type == "dragPanelWidth")
             {
-                if (root.TryGetProperty("payload", out var drag) &&
-                    drag.ValueKind == JsonValueKind.Object &&
-                    drag.TryGetProperty("width", out var candidate) &&
-                    candidate.ValueKind == JsonValueKind.Number &&
-                    candidate.TryGetDouble(out double desired) && double.IsFinite(desired) &&
-                    desired >= 200 && desired <= 400)
+                if (TryPaneWidth(root, out double desired))
                 {
                     applyPaneWidths(paneLayout.DragVocabulary(desired, availablePaneWidth()));
                 }
@@ -328,14 +323,21 @@ public sealed class WebReaderBridge : IDisposable
         Post("actionResult", new { status, index }, requestId);
     }
 
+    private static bool TryPaneWidth(JsonElement root, out double value)
+    {
+        value = 0;
+        return root.ValueKind == JsonValueKind.Object &&
+            root.TryGetProperty("payload", out var payload) &&
+            payload.ValueKind == JsonValueKind.Object &&
+            payload.TryGetProperty("width", out var width) &&
+            width.ValueKind == JsonValueKind.Number &&
+            width.TryGetDouble(out value) && double.IsFinite(value) &&
+            value >= 200 && value <= 400;
+    }
+
     public void HandlePaneWidth(JsonElement root, string requestId)
     {
-        if (!root.TryGetProperty("payload", out var payload) ||
-            payload.ValueKind != JsonValueKind.Object ||
-            !payload.TryGetProperty("width", out var width) ||
-            width.ValueKind != JsonValueKind.Number ||
-            !width.TryGetDouble(out double value) || !double.IsFinite(value) ||
-            value < 200 || value > 400)
+        if (!TryPaneWidth(root, out double value))
         {
             Post("actionResult", new { status = "invalid" }, requestId);
             return;
@@ -619,11 +621,7 @@ public sealed class WebReaderBridge : IDisposable
         vocabularyRevision = 0;
         pendingMode = null;
         seenRequests.Clear();
-        if (ready)
-        {
-            setRendered(false);
-            SendInitialize();
-        }
+        SendInitialize();
     }
 
     private void VocabularyChanged()
@@ -640,7 +638,8 @@ public sealed class WebReaderBridge : IDisposable
 
     private void PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName is nameof(ViewModel.Accent) or nameof(ViewModel.HighlightsVisible))
+        // The native settings transaction publishes its complete snapshot once after apply.
+        if (args.PropertyName == nameof(ViewModel.HighlightsVisible))
             SendSettings();
     }
 

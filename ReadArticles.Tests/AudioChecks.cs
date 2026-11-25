@@ -173,7 +173,9 @@ internal static class AudioChecks
                 Program.Check(controller.Owner == "passage" && player.Played.Last().Path == first);
                 model.ToggleArticleAudio();
                 Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 1);
-                model.Accent = "us";
+                var edited = settings.Copy();
+                edited.Accent = "us";
+                model.ApplySettings(edited);
                 Program.Check(settings.Accent == "us" && controller.State == PlaybackState.Paused);
                 model.ToggleArticleAudio();
                 Program.Check(controller.State == PlaybackState.Playing && player.Resumes == 1);
@@ -182,7 +184,7 @@ internal static class AudioChecks
                 pronunciation.Play(new AudioItem(second), "word:uk:life");
                 model.StopArticleAudio();
                 Program.Check(pronunciation.State == PlaybackState.Playing);
-                var edited = settings.Copy();
+                edited = settings.Copy();
                 edited.Accent = "uk";
                 model.ApplySettings(edited);
                 Program.Check(settings.Accent == "uk" && model.Accent == "uk" && pronunciation.State == PlaybackState.Stopped);

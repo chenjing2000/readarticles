@@ -31,17 +31,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public string ArticleTitle => Article?.Title ?? "";
     public ReaderPlayback Playback => playback;
     public bool CanWriteVocabulary => Article?.Vocabulary.CanWrite == true;
-    public string Accent
-    {
-        get => settings.Accent;
-        set
-        {
-            if ((value != "uk" && value != "us") || value == settings.Accent) return;
-            playback.StopPronunciation();
-            settings.Accent = value;
-            Changed();
-        }
-    }
+    public string Accent => settings.Accent;
     public bool HighlightsVisible
     {
         get => highlightsVisible;

@@ -21,31 +21,31 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `MainWindow.xaml.cs` | Construct the state model and two independent media players; initialize modules and coordinate shutdown |
 | `MainWindow.Library.cs` | Folder selection, tree selection, library restoration and article selection |
 | `MainWindow.Playback.cs` | Native playback key interception and player cleanup |
-| `MainWindow.Settings.cs`, `SettingsDialog.cs` | Apply native pane widths, native modal settings and preference persistence |
+| `MainWindow.Settings.cs`, `Settings/SettingsDialog.cs` | Apply native pane widths, native modal settings and preference persistence |
 | `Layout/PaneLayout.cs` | Session-only pane widths, shared width solver and right-divider drag rollback |
-| `ViewModels/MainViewModel.cs` | Shared state, notifications, and operation errors |
-| `ViewModels/MainViewModel.Library.cs` | Coordinate library/article preparation and commits |
+| `Application/MainViewModel.cs` | Shared state, notifications, and operation errors |
+| `Application/MainViewModel.Library.cs` | Coordinate library/article preparation and commits |
 | `Library/LibraryNavigation.cs` | Own library root, tree projection, async scans, cancellation and stale-result guards |
-| `ViewModels/MainViewModel.Reading.cs` | Prepare reading-mode changes, coordinate render-confirmed commits and selection validation |
-| `ViewModels/MainViewModel.Vocabulary.cs` | Prepare word commands and coordinate vocabulary edits and commits |
-| `ViewModels/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |
-| `ViewModels/VocabularyEntryViewModel.cs` | A word's display fields and pronunciation availability; edits are coordinated by the main view model |
-| `Models/` | Passage sentence arrays, selection ranges, vocabulary entries, navigation nodes, and loaded snapshots |
-| `Services/LibraryRepository.cs` | Discover immediate book directories; scan one level and parse JSON for exact passage tags; defer full schema validation |
-| `Services/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` prepares the matching vocabulary and article snapshot; `LoadScript` reads the optional Script on demand |
+| `Application/MainViewModel.Reading.cs` | Prepare reading-mode changes, coordinate render-confirmed commits and selection validation |
+| `Application/MainViewModel.Vocabulary.cs` | Prepare word commands and coordinate vocabulary edits and commits |
+| `Application/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |
+| `Vocabulary/VocabularyEntryViewModel.cs` | A word's display fields and pronunciation availability; edits are coordinated by the main view model |
+| `Library/LibraryContent.cs`, `Reading/LoadedArticle.cs`, `Reading/ScriptContent.cs`, `Vocabulary/VocabularyContent.cs` | Feature-owned navigation nodes and loaded content records |
+| `Library/LibraryRepository.cs` | Discover immediate book directories; scan one level and parse JSON for exact passage tags; defer full schema validation |
+| `Reading/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` prepares the matching vocabulary and article snapshot; `LoadScript` reads the optional Script on demand |
 | `Vocabulary/VocabularyEditor.cs` | Prepare vocabulary edits, preserve metadata and return a saved snapshot |
-| `Services/VocabularyRepository.cs` | Validate vocabulary and save with external-change detection |
-| `Services/ReaderWorkspace.cs` | Own committed article, Script cache and mode; validate selected text and commit the saved vocabulary snapshot |
-| `Services/AudioResources.cs` | Derive audio stems, determine pronunciation ownership, list safe sibling M4A/MP3/WAV article candidates in priority/name order and resolve word MP3/WAV under `audio/` |
-| `Services/ReaderPlayback.cs` | Select audio targets, enforce article-only controls/progress, cancel pronunciation, and report audio errors |
-| `Services/PlaybackController.cs` / `IAudioPlayer.cs` | Playback state, pause/resume, completion, progress access, and stale-event rejection; player boundary |
+| `Vocabulary/VocabularyRepository.cs` | Validate vocabulary and save with external-change detection |
+| `Reading/ReaderWorkspace.cs` | Own committed article, Script cache and mode; validate selected text and commit the saved vocabulary snapshot |
+| `Audio/AudioResources.cs` | Derive audio stems, determine pronunciation ownership, list safe sibling M4A/MP3/WAV article candidates in priority/name order and resolve word MP3/WAV under `audio/` |
+| `Audio/ReaderPlayback.cs` | Select audio targets, enforce article-only controls/progress, cancel pronunciation, and report audio errors |
+| `Audio/PlaybackController.cs` / `Audio/IAudioPlayer.cs` | Playback state, pause/resume, completion, progress access, and stale-event rejection; player boundary |
 | `Infrastructure/JsonFiles.cs` | JSON helpers, SHA256 fingerprints, and temporary-file replacement |
 | `Infrastructure/ResourcePaths.cs` | Relative-path and reparse-point checks |
-| `Infrastructure/ReaderSettings.cs` | Load and save preferences under the portable `userdata/config/` directory |
+| `Settings/ReaderSettings.cs` | Load and save preferences under the portable `userdata/config/` directory |
 | `Infrastructure/UiIcons.cs` | Load native window/tree/settings icons, including Restore Defaults |
 | `Infrastructure/AppPaths.cs`, `BackupFiles.cs`, `AppLogger.cs` | Portable data paths, verified backup/recovery and bounded diagnostics |
-| `Infrastructure/NotificationService.cs` | Authoritative in-memory FIFO notification queue |
-| `Infrastructure/WpfAudioPlayer.cs` | Native audio playback adapter |
+| `Notifications/NotificationService.cs` | Authoritative in-memory FIFO notification queue |
+| `Audio/WpfAudioPlayer.cs` | Native audio playback adapter |
 | `MainWindow.WebView.cs` | Compose the browser modules, native import confirmation and terminal failure UI |
 | `Presentation/WebReaderHost.cs` | WebView2 lifecycle, restricted resource serving and transport |
 | `Presentation/WebReaderBridge.cs` | Protocol identity, validated commands, snapshots and progress timer |
@@ -56,7 +56,29 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 
 The window and main view model each use partial files to group responsibilities while sharing their existing state. `ReaderPlayback` is a concrete service with no window or view-model dependency. `PlaybackController` operates through `IAudioPlayer`, which includes media-open events and progress. The bridge sends playback snapshots to the page; the page sends validated seek/playback intents to `ReaderPlayback`. Repositories own validation and persistence, the workspace owns committed content, and the browser owns text/selection display. No additional service interfaces or generic frameworks are introduced.
 
+## Dependency direction and state ownership
+
+One WPF project and the existing test project are retained. Source directories group concrete features, not separate assemblies; existing C# namespaces stay stable to avoid a namespace-only change. Root window partials own native controls and module composition. `Application/MainViewModel*.cs` coordinates explicit operations. Host owns restricted WebView2 transport and lifecycle; Bridge adapts verified requests and publishes snapshots. Feature code does not depend on the window or browser. Reading loads matching vocabulary through VocabularyRepository; Audio consumes vocabulary entries and a directory, never the vocabulary repository. Infrastructure provides paths, logging, JSON, backups and icons. No service locator, DI container, event bus, generic repository or extra framework is required.
+
+| Authoritative state | Owner |
+| --- | --- |
+| Library root, navigation tree and scan generations | LibraryNavigation |
+| Committed article, vocabulary snapshot, Script cache and mode | ReaderWorkspace |
+| Candidate edits and safe save (no separate active vocabulary) | VocabularyEditor / VocabularyRepository |
+| Article/word media clock and controller ownership | ReaderPlayback / PlaybackController |
+| Persisted preferences including accent | Shared ReaderSettings |
+| Session-only pane widths and drag rollback | PaneLayout |
+| Admitted/queued notices | NotificationService |
+| Browser page/session/revision, pending requests and snapshots | WebReaderBridge |
+| DOM, selection, scroll, geometry and presentation copies | JavaScript feature modules |
+
+The browser entry `reader.js` composes direct functions without global mutable application state. Imports are acyclic; reading receives its cross-feature callbacks at composition. Host serves only explicit embedded HTML, CSS, ES modules and icon paths. Preserve CSP and protocol version 1 unless a new change explicitly requires otherwise.
+
 ## Important data flows
+
+### Startup and browser synchronization
+
+App starts logging, loads settings and composes the window, application and browser modules. Library restoration and browser initialization can complete independently. Scan results commit on the owning dispatcher only if current. The browser sends ready with a page identity; Bridge publishes the latest committed workspace/settings/playback/notices and reveals the reader after a correlated successful render acknowledgment. Reload invalidates prior page requests without discarding committed reading state. Terminal browser failure invalidates pending requests, stops progress publication and audio, and presents the native exit screen.
 
 ### Library and article loading
 
@@ -67,6 +89,10 @@ Passage selection -> ArticleRepository -> prepared article and words
 ```
 
 Library selection clears the active passage and words. Startup restores only a library directory, when available. Selecting an article loads its matching vocabulary. Preparation occurs before committing the article, so a failed switch retains the previous readable article.
+
+### Reading-mode switching
+
+Prepare the target mode and load the optional Script on demand without altering committed state. Bridge correlates the candidate with a request. Only a matching page/session/request success acknowledgment commits the mode and Script cache; render failure restores the previous DOM and mode, leaving the audio clock unchanged. Library/article switches invalidate pending mode requests. The browser paints timed units from C# playback snapshots.
 
 ### Vocabulary editing
 
@@ -95,11 +121,15 @@ Media event -> request-token check -> ReaderPlayback state/progress -> UI update
 
 The bottom play/pause and stop controls own only whole-article audio, selected by trying direct sibling M4A, MP3 and WAV candidates in format/name order until one opens. An opening failure can advance to the next candidate; successful opening ends that search. Whole-article playback uses its own player and controller, while word pronunciation uses a second independent player and controller. Starting or resuming whole-article audio stops pronunciation. Starting word pronunciation pauses whole-article audio without losing its position; finishing pronunciation leaves it paused. Old completion/failure callbacks cannot advance or stop a newer target. The bottom progress bar stays visible and accepts seeking only when whole-article audio is active and seekable; stopping article audio leaves the word channel untouched. Switching articles or closing the window stops both. No sentence playback path remains. Script timed-unit foreground progress is computed and painted in `web/reading.js` using playback snapshots from C#; `ScriptTimedUnit` retains alignment and color eligibility, not a separate C# progress calculation.
 
+### Settings and layout
+
+The native dialog edits a detached settings draft. Successful save precedes application to the shared ReaderSettings. Changed accent stops pronunciation; the complete settings snapshot is published once. Library root changes persist separately. PaneLayout computes both sides and owns the drag baseline; MainWindow applies native width and Bridge publishes right width. Browser pointer input requests width rather than owning final layout.
+
 ### Notifications and lifecycle
 
 Routine successful actions are quiet. Floating notifications appear over the middle reading pane without allocating a status row. Informational and warning messages expire automatically after approximately five seconds of active display time, paused while hovered; errors do not auto-expire. The service admits the first three queued messages, displays them newest-first within that group, and admits waiting messages FIFO when a card is dismissed. Switching to a successfully committed library or article clears the previous context's queue.
 
-On close, normal application windows save final settings during `Closing`, before the window is disposed; a failed final save shows a synchronous warning. During `Closed`, notifications and navigation are detached and playback resources are released. Test windows can disable settings persistence.
+On close, normal application windows save final settings during `Closing`, before the window is disposed; a failed final save shows a synchronous warning. During `Closed`, Bridge stops the publication timer and detaches subscriptions, Host releases browser resources, navigation invalidates and cancels scans, then both playback resources are stopped and disposed. Test windows can disable settings persistence.
 
 ## Display and settings
 
@@ -117,7 +147,7 @@ The application reads passages and vocabulary and plays existing audio. OCR, voc
 
 Matching is literal and case-insensitive for each `word` and its explicit optional `family` forms: `convict` matches `convicted` only when `"convicted"` is listed. Every hit belongs to the canonical `word`, with direct headwords preferred over another entry's family forms. No automatic morphological inference runs, and straight/curly apostrophes are not normalized. ASCII letters, apostrophes, and hyphens participate in word boundaries; digits deliberately do not. Among matches starting at the same position, the longest wins. These details matter when authoring canonical vocabulary entries.
 
-Each playback controller owns one active audio file at a time. Whole-article opening may advance across a fixed sorted list of candidate files; it is not a playback playlist. Playback state belongs to the controller, coordination and relative seeking belong to ReaderPlayback, and the publication timer belongs to WebReaderBridge and native input belongs to MainWindow.Playback. MainViewModel and MainWindow share one ReaderSettings instance; the accent is not separately stored in the view model. The existing concrete repositories and window partial classes remain together; small repeated UI operations do not require another abstraction layer.
+Each playback controller owns one active audio file at a time. Whole-article opening may advance across a fixed sorted list of candidate files; it is not a playback playlist. Playback state belongs to the controller, coordination and relative seeking belong to ReaderPlayback, and the publication timer belongs to WebReaderBridge and native input belongs to MainWindow.Playback. MainViewModel and MainWindow share one ReaderSettings instance; the accent is not separately stored in the view model. Concrete feature repositories and their models are grouped by responsibility; window partials remain with XAML. Small repeated UI operations do not require another abstraction layer.
 
 Tests exercise these production modules directly; the obsolete prototype application has been removed. See [Testing](Testing.md) for categories and their data ownership. Exercise authoring remains in the supplied skills, but there is no exercise runtime module on main.
 
