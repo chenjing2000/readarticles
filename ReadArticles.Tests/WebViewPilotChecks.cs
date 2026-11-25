@@ -254,6 +254,56 @@ internal static class WebViewPilotChecks
                 if (!validKeys)
                     throw new Exception("Unexpected progress keyboard outcome: " + seekKeys.GetRawText());
 
+                // Reserved keys must not reach any focused DOM control or reveal a focus outline.
+                JsonElement exclusiveKeys = Evaluate(browser, """
+                    (() => {
+                      const originalSend = send;
+                      const previousPlayback = currentPlayback;
+                      const targets = [
+                        document.querySelector('.word-row'),
+                        document.getElementById('highlight-toggle'),
+                        document.getElementById('reader-splitter'),
+                        document.getElementById('article-play')
+                      ];
+                      const calls = [];
+                      let delivered = 0;
+                      const listener = () => delivered++;
+                      try {
+                        send = (type, options = {}) => {
+                          calls.push(type + (options.payload?.direction ?? ''));
+                          return 'captured';
+                        };
+                        renderPlayback({ position: 120, duration: 300, canSeek: true,
+                          canPlay: true, isArticleActive: true, state: 'paused' });
+                        const results = targets.map(target => {
+                          target.focus();
+                          const focused = document.activeElement === target;
+                          target.addEventListener('keydown', listener);
+                          target.addEventListener('keyup', listener);
+                          const before = calls.length;
+                          const consumed = [' ', 'ArrowLeft', 'ArrowRight'].every(key =>
+                            ['keydown', 'keyup'].every(type => {
+                              const event = new KeyboardEvent(type, { key, bubbles: true, cancelable: true });
+                              target.dispatchEvent(event);
+                              return event.defaultPrevented;
+                            }));
+                          target.removeEventListener('keydown', listener);
+                          target.removeEventListener('keyup', listener);
+                          return focused && document.activeElement === target && consumed &&
+                            getComputedStyle(target).outlineStyle === 'none' &&
+                            calls.slice(before).join(',') === 'playArticle,seekArticlebackward,seekArticleforward';
+                        });
+                        return { all: results.every(Boolean), delivered, count: calls.length };
+                      } finally {
+                        send = originalSend;
+                        renderPlayback(previousPlayback);
+                      }
+                    })()
+                    """);
+                Program.Check(exclusiveKeys.GetProperty("all").GetBoolean() &&
+                    exclusiveKeys.GetProperty("delivered").GetInt32() == 0 &&
+                    exclusiveKeys.GetProperty("count").GetInt32() == 12);
+
                 // Time labels preserve 60:00 at one hour, then switch to hh:mm:ss.
                 JsonElement timeFormats = Evaluate(browser, """
                     (() => ({

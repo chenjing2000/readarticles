@@ -5,6 +5,8 @@
   background: #f3f3f3;
 }
 * { box-sizing: border-box; }
+/* The reader retains keyboard focus, but media shortcuts must not reveal focus outlines. */
+:focus-visible { outline: none; }
 html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
 .workspace {
   display: grid;
@@ -95,14 +97,13 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
   touch-action: none;
   z-index: 4;
 }
-.reader-splitter:hover, .reader-splitter.dragging, .reader-splitter:focus-visible {
+.reader-splitter:hover, .reader-splitter.dragging {
   background: #d1e3f2;
   outline: none;
 }
 body.splitter-dragging { user-select: none; cursor: col-resize; }
-.word-row { padding: 10px 12px; cursor: pointer; outline-offset: -2px; }
+.word-row { padding: 10px 12px; cursor: pointer; }
 .word-row.selected { box-shadow: inset 3px 0 #267fb7; }
-.word-row:focus-visible { outline: 2px solid #2b86bc; }
 .blank { color: #566b85; font-weight: 600; }
 /* Word backgrounds are measured from Range rectangles, never injected into
    the article's text nodes or the Script timed-unit DOM. */
@@ -146,7 +147,6 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 .toolbar button:disabled { opacity: .42; cursor: default; }
 .toolbar button:not(:disabled):hover { background: #e7f1f9; }
 .toolbar button:not(:disabled):active { background: #d8eafa; }
-.toolbar button:focus-visible { outline: 2px solid #8ebfe2; outline-offset: 0; }
 .selection-add { position: fixed; z-index: 30; width: 24px; height: 24px;
   font-size: var(--body-size, 15px);
   border: 0; background: transparent; padding: 0; cursor: pointer; }
