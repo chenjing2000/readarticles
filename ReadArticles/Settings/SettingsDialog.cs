@@ -40,8 +40,8 @@ internal sealed class SettingsDialog : Window
     ];
     private static readonly (string Value, string Name)[] ScriptColors =
     [
-        ("#E02020", "鲜红"), ("#0066E6", "亮蓝"), ("#008A48", "翠绿"),
-        ("#8A36D1", "亮紫"), ("#D65A00", "鲜橙")
+        ("#F6EDC2", "浅麦黄"), ("#F5E4D6", "浅杏色"), ("#E1EEDB", "浅绿色"),
+        ("#E0ECF4", "浅蓝色"), ("#ECE6F3", "浅紫色")
     ];
     private static readonly (string Value, string Name)[] BackgroundColors =
     [
@@ -381,8 +381,9 @@ internal sealed class SettingsDialog : Window
             var check = new TextBlock
             {
                 Text = "✓", FontSize = 13, FontWeight = FontWeights.Bold,
-                Foreground = colors == BackgroundColors || colors == SelectionBackgroundColors
-                    ? Brush("#344054") : Brushes.White,
+                Foreground = colors == ScriptColors ? Brush("#283747") :
+                    colors == BackgroundColors || colors == SelectionBackgroundColors
+                        ? Brush("#344054") : Brushes.White,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Visibility = hex.Equals(current, StringComparison.OrdinalIgnoreCase)
@@ -447,7 +448,7 @@ internal sealed class SettingsDialog : Window
             "文字颜色", ColorPalette(TextColors, a.Body.Color, v => a.Body.Color = v));
         Row(body, "背景颜色", ColorPalette(BackgroundColors, a.Body.Background,
             v => a.Body.Background = v),
-            "台词颜色", ColorPalette(ScriptColors, a.Body.ScriptColor,
+            "播放颜色", ColorPalette(ScriptColors, a.Body.ScriptColor,
                 v => a.Body.ScriptColor = v));
         Row(body, "选词加号", WithUnit(
             Dropdown(new[] { 0.65, 0.70, 0.75, 0.80 }, a.Body.SelectionAddSize,

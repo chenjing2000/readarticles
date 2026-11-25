@@ -126,6 +126,9 @@ internal static class WebReaderChecks
                       "paragraphs": [[{
                         "text": "It is a beautiful day.",
                         "timed_units": [["It is a",1.0,1.8],["beautiful",1.8,2.4],["day",2.4,2.8]]
+                      }], [{
+                        "text": "Alpha stays beta.",
+                        "timed_units": [["Alpha",3,4],["stays",null,null],["missing",4,4.5],["beta",4.5,5]]
                       }]]
                     }
                     """);
@@ -688,7 +691,7 @@ internal static class WebReaderChecks
                 draft.Appearance.Vocabulary.Font = "Nunito";
                 draft.Appearance.Body.SelectionAddSize = 0.80;
                 draft.Appearance.Body.SelectionBackground = "#E5EDE0";
-                draft.Appearance.Body.ScriptColor = "#8A36D1";
+                draft.Appearance.Body.ScriptColor = "#ECE6F3";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
                     "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 object?[] settingsArguments = [draft, null];
@@ -716,7 +719,7 @@ internal static class WebReaderChecks
                         .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--script-color')")
-                        .GetString() == "#8A36D1" &&
+                        .GetString() == "#ECE6F3" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--selection-background')")
                         .GetString() == "#E5EDE0" &&
@@ -741,49 +744,63 @@ internal static class WebReaderChecks
                 WaitFor(() => Evaluate(browser, """
                     (() => document.getElementById('script-toggle').getAttribute('aria-pressed') === 'true' &&
                       !document.getElementById('script-toggle').disabled &&
-                      document.querySelectorAll('#article-body .script-paragraph > .script-sentence .script-timed-unit').length === 3)()
+                      document.querySelectorAll('#article-body .script-paragraph > .script-sentence .script-timed-unit').length === 5)()
                     """).GetBoolean(), "Script DOM switch");
                 Program.Check(Evaluate(browser,
                     "document.getElementById('article-title').textContent").GetString() ==
                     "Script DOM fixture");
-                // Script timing has a real SVG clip geometry rather than only DOM text.
+                // One original text layer; SVG rectangles sit behind it.
                 WaitFor(() => Evaluate(browser, """
                     (() => {
                       const row = document.querySelector('#article-body .script-paragraph');
-                      const paint = row?.querySelector(':scope > .script-paint');
-                      const clip = row?.querySelector(':scope > .script-clips clipPath');
-                      const coloredUnit = paint?.querySelector('.script-timed-unit');
-                      // Chromium serializes CSS url(#id) as url("#id"). Compare the
-                      // referenced ID, not the browser-specific quoting style.
-                      const clipReference = paint?.style.clipPath.replace(/["']/g, '');
-                      return Boolean(paint && clip && clip.id.startsWith('script-clip-') &&
-                        clip.querySelectorAll('rect').length >= 3 &&
-                        clipReference === 'url(#' + clip.id + ')' &&
-                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(138, 54, 209)');
+                      const layer = row?.querySelector(':scope > svg.script-background');
+                      const rect = layer?.querySelector('rect');
+                      const unit = row?.querySelector('.script-timed-unit');
+                      return Boolean(rect && unit && row.textContent === 'It is a beautiful day.' &&
+                        !row.querySelector('.script-paint, clipPath') &&
+                        row.querySelectorAll('.script-timed-unit').length === 3 &&
+                        layer.getAttribute('aria-hidden') === 'true' &&
+                        getComputedStyle(row).isolation === 'isolate' &&
+                        getComputedStyle(layer).zIndex === '-1' &&
+                        getComputedStyle(layer).pointerEvents === 'none' &&
+                        getComputedStyle(unit).color === getComputedStyle(row).color &&
+                        getComputedStyle(rect).fill === 'rgb(236, 230, 243)' &&
+                        getComputedStyle(rect).shapeRendering.toLowerCase() === 'crispedges');
                     })()
-                    """).GetBoolean(), "Script SVG clipping and foreground");
-                // Exercise the actual SVG clipping update at 0%, 50%, 100%, and stop.
+                    """).GetBoolean(), "Script SVG background beneath unchanged text");
+                // Exercise the actual SVG background at 0%, 50%, 100%, and stop.
                 JsonElement sweep = EvaluateModule(browser, """
                     (() => {
                       const rect = document.querySelector(
-                        '#article-body .script-paragraph .script-clips clipPath rect');
+                        '#article-body .script-paragraph .script-background rect');
                       if (!rect || typeof paintScriptProgress !== 'function') return null;
                       const widthAt = (seconds, active = true) => {
                         paintScriptProgress({ isArticleActive: active,
                           canSeek: active, position: seconds });
                         return Number(rect.getAttribute('width'));
                       };
+                      const unit = document.querySelector('.script-paragraph .script-timed-unit');
+                      const next = unit.nextElementSibling;
+                      const range = document.createRange();
+                      range.selectNodeContents(unit);
+                      const original = range.getBoundingClientRect();
+                      const color = getComputedStyle(unit).color;
+                      const gap = next.getBoundingClientRect().left - original.right;
                       const start = widthAt(1.0), middle = widthAt(1.4), end = widthAt(1.8);
+                      const exact = gap > 0 && Math.abs(middle - original.width / 2) < 0.02 &&
+                        Math.abs(end - original.width - gap) < 0.02 &&
+                        getComputedStyle(unit).color === color;
                       const observer = new MutationObserver(() => {});
                       observer.observe(rect, { attributes: true });
                       widthAt(1.8);
                       const redundant = observer.takeRecords().length;
                       observer.disconnect();
                       const backward = widthAt(1.4), stopped = widthAt(1.8, false);
-                      return { start, middle, end, stopped, backward, redundant };
+                      return { start, middle, end, stopped, backward, redundant, exact };
                     })()
                     """);
                 if (sweep.ValueKind != JsonValueKind.Object ||
+                    !sweep.GetProperty("exact").GetBoolean() ||
                     sweep.GetProperty("start").GetDouble() != 0 ||
                     sweep.GetProperty("middle").GetDouble() <= 0 ||
                     sweep.GetProperty("end").GetDouble() <=
@@ -792,6 +809,141 @@ internal static class WebReaderChecks
                     sweep.GetProperty("backward").GetDouble() != sweep.GetProperty("middle").GetDouble() ||
                     sweep.GetProperty("redundant").GetInt32() != 0)
                     throw new Exception("Unexpected Script SVG sweep: " + sweep.GetRawText());
+                // Exercise real JSON admission, untimed/unaligned text, paragraph boundaries and
+                // glyph-height geometry in the actual reader rather than only in synthetic DOM.
+                Program.Check(EvaluateModule(browser, """
+                    (() => {
+                      const rows = [...document.querySelectorAll('#article-body > .script-paragraph')];
+                      const near = (a, b) => Math.abs(a - b) < 0.02;
+                      const width = rect => Number(rect.getAttribute('width'));
+                      if (rows.length !== 2 || rows[1].textContent !== 'Alpha stays beta.' ||
+                          [...rows[1].querySelectorAll('.script-timed-unit')].map(unit => unit.textContent).join('|') !== 'Alpha|beta')
+                        return false;
+                      const savedPlayback = getPlayback();
+                      try {
+                        paintScriptProgress({ position: 5, isArticleActive: true, canSeek: true });
+                        for (const [index, row] of rows.entries()) {
+                          const svg = row.querySelector(':scope > svg.script-background');
+                          const base = svg.getBoundingClientRect();
+                          const actual = [...svg.querySelectorAll(':scope > rect')];
+                          const units = [...row.querySelectorAll('.script-timed-unit')];
+                          const groups = units.map(unit => {
+                            const range = document.createRange();
+                            range.selectNodeContents(unit);
+                            return [...range.getClientRects()].filter(r => r.width > 0.25 && r.height > 0.25)
+                              .sort((a,b) => a.top-b.top || a.left-b.left);
+                          });
+                          const expected = groups.flat();
+                          if (expected.length !== actual.length || groups.some(group => !group.length)) return false;
+                          if (!expected.every((r,i) =>
+                            near(Number(actual[i].getAttribute('x')), r.left-base.left) &&
+                            near(Number(actual[i].getAttribute('y')), r.top-base.top-1) &&
+                            near(Number(actual[i].getAttribute('height')), r.height+2))) return false;
+                          // No extension past the last unit of either paragraph, including punctuation.
+                          if (!near(width(actual.at(-1)), expected.at(-1).width)) return false;
+                          // The real null/unaligned interval must not create rectangles or join the gap.
+                          if (index === 1 && !actual.every((rect,i) => near(width(rect),expected[i].width))) return false;
+                        }
+                        return true;
+                      } finally {
+                        paintScriptProgress(savedPlayback);
+                      }
+                    })()
+                    """).GetBoolean());
+                // Use actual browser geometry for same-line, cross-sentence and wrapped units.
+                Program.Check(EvaluateModule(browser, """
+                    (async () => {
+                      const body = document.getElementById('article-body');
+                      const saved = [...body.childNodes];
+                      const savedPlayback = getPlayback();
+                      const scroll = document.getElementById('article-scroll');
+                      const savedScroll = scroll.scrollTop;
+                      const word = (text, start) => '<span class="script-timed-unit" data-start="' +
+                        start + '" data-end="' + (start + 1) + '">' + text + '</span>';
+                      const sentence = text => '<span class="script-sentence">' + text + '</span>';
+                      const paragraph = (html, style) => {
+                        const row = document.createElement('p');
+                        row.className = 'article-paragraph script-paragraph';
+                        row.style.cssText = style;
+                        row.innerHTML = html + '<svg class="script-background" aria-hidden="true"></svg>';
+                        return row;
+                      };
+                      const near = (a, b) => Math.abs(a - b) < 0.02;
+                      const measure = async () => {
+                        scheduleScriptGeometry();
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                      };
+                      const paint = (position, active = true) => paintScriptProgress({
+                        position, isArticleActive: active, canSeek: active
+                      });
+                      const rects = row => [...row.querySelectorAll('svg rect')];
+                      const width = rect => Number(rect.getAttribute('width'));
+                      const x = rect => Number(rect.getAttribute('x'));
+                      const y = rect => Number(rect.getAttribute('y'));
+                      try {
+                        const row = paragraph(sentence(word('Alpha', 0) + ' ' + word('beta', 1)) + ' ' +
+                          sentence(word('gamma', 2) + ' untimed ' + word('delta', 3) + ', ' + word('epsilon', 4)),
+                          'width:1000px;white-space:nowrap;text-indent:0');
+                        const wrap = paragraph(sentence(word('Alpha', 5) + ' ' + word('Beta', 6)),
+                          'width:4em;text-indent:0');
+                        body.replaceChildren(row, wrap);
+                        await measure();
+                        if (rects(row).length !== 5 || rects(wrap).length !== 2) return false;
+                        const [a,b,c,d,e] = rects(row);
+                        const [f,g] = rects(wrap);
+                        const units = [...row.querySelectorAll('.script-timed-unit'), ...wrap.querySelectorAll('.script-timed-unit')];
+                        const widths = units.map(unit => unit.getBoundingClientRect().width);
+                        paint(0.5);
+                        if (!near(width(a), widths[0]/2) || width(b) !== 0) return false;
+                        paint(1);
+                        if (!near(x(a)+width(a), x(b)) || width(b) !== 0) return false;
+                        paint(2.5);
+                        if (!near(x(b)+width(b), x(c)) || !near(width(c), widths[2]/2)) return false;
+                        paint(7);
+                        if (![c,d,e,f,g].every((rect,i) => near(width(rect), widths[i+2])) || near(y(f),y(g))) return false;
+                        paint(0.5);
+                        if (!near(width(a),widths[0]/2) || [b,c,d,e,f,g].some(rect => width(rect)!==0)) return false;
+                        // A paused playback snapshot must be restored by geometry measurement itself.
+                        // No subsequent explicit paint or playback update may repair the new rectangles.
+                        renderPlayback({ ...savedPlayback, position:6, duration:7, state:'paused',
+                          isArticleActive:true, canSeek:true });
+                        if (!near(width(f),widths[5]) || width(g)!==0) return false;
+                        wrap.style.width = '1000px';
+                        await measure();
+                        const [left,right] = rects(wrap);
+                        if (rects(wrap).length !== 2 || getPlayback().position !== 6 ||
+                            getPlayback().state !== 'paused' || !near(y(left),y(right)) ||
+                            !near(x(left)+width(left),x(right)) || width(left)<=widths[5] || width(right)!==0)
+                          return false;
+                        wrap.style.cssText = 'font-family:monospace;width:8ch;text-indent:0';
+                        wrap.replaceChildren(...paragraph(sentence(word('ABCDEFGHIJK',5)+' '+word('xy',6)), '').childNodes);
+                        await measure();
+                        const [first,last,next] = rects(wrap);
+                        if (rects(wrap).length !== 3 || near(y(first),y(last)) || !near(y(last),y(next))) return false;
+                        const range = document.createRange();
+                        range.selectNodeContents(wrap.querySelector('.script-timed-unit'));
+                        const measured = [...range.getClientRects()].filter(r=>r.width>0.25&&r.height>0.25);
+                        const [w1,w2] = measured.map(r=>r.width);
+                        const total = w1+w2;
+                        paint(5+w1/(2*total));
+                        if (!near(width(first),w1/2) || width(last)!==0) return false;
+                        paint(5+(w1+w2/2)/total);
+                        if (!near(width(first),w1) || !near(width(last),w2/2)) return false;
+                        paint(6);
+                        if (!near(width(first),w1) || !near(x(last)+width(last),x(next)) || width(last)<=w2 || width(next)!==0) return false;
+                        paint(5+w1/(2*total));
+                        if (!near(width(first),w1/2) || width(last)!==0 || width(next)!==0) return false;
+                        paint(7); paint(0,false);
+                        return [...rects(row),...rects(wrap)].every(rect=>width(rect)===0);
+                      } finally {
+                        body.replaceChildren(...saved);
+                        refreshHighlights(true);
+                        renderPlayback(savedPlayback);
+                        await measure();
+                        scroll.scrollTop = savedScroll;
+                      }
+                    })()
+                    """).GetBoolean());
                 Evaluate(browser, "document.getElementById('script-toggle').click(); true");
                 WaitFor(() => Evaluate(browser, """
                     (() => document.getElementById('script-toggle').getAttribute('aria-pressed') === 'false' &&
@@ -853,6 +1005,36 @@ internal static class WebReaderChecks
                     """);
                 Program.Check(scriptForms.EnumerateArray()
                     .Select(x => x.GetString()).SequenceEqual(["went", "goes"]));
+                WaitFor(() => Evaluate(browser, """
+                    Boolean(document.querySelector('#word-highlight-layer .word-highlight-rect') &&
+                      document.querySelector('.script-background rect'))
+                    """).GetBoolean(), "Script vocabulary and playback layers coexist");
+                Program.Check(EvaluateModule(browser, """
+                    (() => {
+                      const body = document.getElementById('article-body');
+                      const layer = document.getElementById('word-highlight-layer');
+                      const row = body.querySelector('.script-paragraph');
+                      const background = row.querySelector('.script-background');
+                      const capsules = [...layer.children];
+                      const color = capsules.map(node => node.style.backgroundColor);
+                      const rectangles = [...background.querySelectorAll('rect')];
+                      if (getComputedStyle(body).isolation !== 'isolate' ||
+                          getComputedStyle(layer).zIndex !== '-1' ||
+                          getComputedStyle(row).isolation !== 'isolate' ||
+                          getComputedStyle(background).zIndex !== '-1') return false;
+                      const unchanged = () => capsules.length === layer.children.length &&
+                        capsules.every((node,i) => node === layer.children[i] && node.style.backgroundColor === color[i]);
+                      const paint = (position, active = true) => paintScriptProgress({
+                        position, isArticleActive: active, canSeek: active
+                      });
+                      paint(3);
+                      if (!rectangles.every(rect => Number(rect.getAttribute('width')) > 0) || !unchanged()) return false;
+                      paint(0.5);
+                      if (!unchanged() || Number(rectangles.at(-1).getAttribute('width')) !== 0) return false;
+                      paint(0,false);
+                      return unchanged() && rectangles.every(rect => Number(rect.getAttribute('width')) === 0);
+                    })()
+                    """).GetBoolean());
                 Program.Check(window.FindName("ParagraphHost") is null);
             }
             finally
@@ -873,9 +1055,9 @@ internal static class WebReaderChecks
             (async () => {
               const { getPlayback, isSeekDragging, renderPlayback, formatSeconds } = await import('https://readarticles.invalid/playback.js');
               const { matchVocabulary, positionSelectionAddButton, updateSelectionAdd,
-                selectionTracking, matchedTexts } = await import('https://readarticles.invalid/vocabulary.js');
+                selectionTracking, matchedTexts, refreshHighlights } = await import('https://readarticles.invalid/vocabulary.js');
               const { applyPaneWidth, getRightWidth } = await import('https://readarticles.invalid/layout.js');
-              const { paintScriptProgress } = await import('https://readarticles.invalid/reading.js');
+              const { paintScriptProgress, scheduleScriptGeometry } = await import('https://readarticles.invalid/reading.js');
               return (
             """ + script + """
               );

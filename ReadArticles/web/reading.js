@@ -1,5 +1,5 @@
 import { byId, element } from "./dom.js";
-import { pageId, hasSession, send } from "./bridge.js";
+import { hasSession, send } from "./bridge.js";
 
 let currentMode = "passage";
 let pendingModeRequest = null;
@@ -93,7 +93,6 @@ function renderArticle(article, mode = "passage", restoreScroll = false) {
 function renderScriptArticle(article, host) {
   (article.paragraphs ?? []).forEach((paragraph, paragraphIndex) => {
     const row = element("p", "article-paragraph script-paragraph");
-    row.dataset.paragraph = String(paragraphIndex);
     paragraph.forEach((sentence, sentenceIndex) => {
       const raw = String(sentence.text ?? "");
       if (sentenceIndex > 0) {
@@ -121,21 +120,10 @@ function renderScriptArticle(article, host) {
       row.append(span);
     });
 
-    // The red copy has identical text layout to the original and never
-    // receives pointer/selection events; only its foreground is revealed.
-    const paint = element("span", "script-paint");
-    paint.setAttribute("aria-hidden", "true");
-    for (const child of [...row.childNodes]) paint.append(child.cloneNode(true));
-    const clipId = "script-clip-" + pageId.replace(/-/g, "") + "-" + paragraphIndex;
     const svg = document.createElementNS(svgNamespace, "svg");
-    svg.setAttribute("class", "script-clips");
+    svg.setAttribute("class", "script-background");
     svg.setAttribute("aria-hidden", "true");
-    const clip = document.createElementNS(svgNamespace, "clipPath");
-    clip.setAttribute("id", clipId);
-    clip.setAttribute("clipPathUnits", "userSpaceOnUse");
-    svg.append(clip);
-    paint.style.clipPath = "url(#" + clipId + ")";
-    row.append(paint, svg);
+    row.append(svg);
     host.append(row);
   });
 }
@@ -152,19 +140,35 @@ function measureScriptGeometry() {
   if (currentMode !== "script") return;
   scriptGeometry = [];
   for (const row of byId("article-body").querySelectorAll(".script-paragraph")) {
-    const paint = row.querySelector(":scope > .script-paint");
-    const clip = row.querySelector(":scope > .script-clips clipPath");
-    if (!paint || !clip) continue;
-    clip.replaceChildren();
-    const base = paint.getBoundingClientRect();
+    const svg = row.querySelector(":scope > .script-background");
+    if (!svg) continue;
+    svg.replaceChildren();
+    const base = svg.getBoundingClientRect();
+    let previous = null;
     for (const unit of row.querySelectorAll(":scope > .script-sentence .script-timed-unit")) {
       const start = Number(unit.dataset.start), end = Number(unit.dataset.end);
-      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) continue;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+        previous = null;
+        continue;
+      }
       const range = document.createRange();
       range.selectNodeContents(unit);
       const lineRects = [...range.getClientRects()]
         .filter(rect => rect.width > 0.25 && rect.height > 0.25)
         .sort((a, b) => a.top - b.top || a.left - b.left);
+      if (!lineRects.length) {
+        previous = null;
+        continue;
+      }
+      // Extend only the last fragment across pure whitespace on the same visual line.
+      if (previous && Math.abs(previous.rect.top - lineRects[0].top) < 2) {
+        const gap = lineRects[0].left - previous.rect.right;
+        if (gap > 0) {
+          range.setStartAfter(previous.span);
+          range.setEndBefore(unit);
+          if (/^\s+$/u.test(range.toString())) previous.segment.trailingGap = gap;
+        }
+      }
       const segments = [];
       for (const line of lineRects) {
         const rect = document.createElementNS(svgNamespace, "rect");
@@ -172,12 +176,13 @@ function measureScriptGeometry() {
         rect.setAttribute("y", String(line.top - base.top - 1));
         rect.setAttribute("width", "0");
         rect.setAttribute("height", String(line.height + 2));
-        clip.append(rect);
-        segments.push({ element: rect, width: line.width, painted: 0 });
+        svg.append(rect);
+        segments.push({ element: rect, width: line.width, trailingGap: 0, painted: 0 });
       }
-      if (segments.length) scriptGeometry.push({
+      scriptGeometry.push({
         start, end, segments, width: segments.reduce((total, line) => total + line.width, 0)
       });
+      previous = { span: unit, rect: lineRects.at(-1), segment: segments.at(-1) };
     }
   }
   paintScriptProgress(getPlayback());
@@ -192,7 +197,8 @@ export function paintScriptProgress(playback) {
       ? Math.max(0, Math.min(1, (seconds - unit.start) / (unit.end - unit.start))) : 0;
     let remaining = progress * unit.width;
     for (const segment of unit.segments) {
-      const painted = Math.max(0, Math.min(segment.width, remaining));
+      const painted = Math.max(0, Math.min(segment.width, remaining))
+        + (progress === 1 ? segment.trailingGap : 0);
       if (segment.painted !== painted) {
         segment.element.setAttribute("width", String(painted));
         segment.painted = painted;
@@ -222,7 +228,6 @@ function updateReadingMode(next, content) {
   try {
     renderArticle(content, next, true);
     refreshHighlights(true);
-    if (next === "script") scheduleScriptGeometry();
   } catch (error) {
     if (scriptGeometryFrame) cancelAnimationFrame(scriptGeometryFrame);
     scriptGeometryFrame = 0;
