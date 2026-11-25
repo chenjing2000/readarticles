@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Input;
 using ReadArticles.Infrastructure;
 
 namespace ReadArticles;
@@ -127,13 +126,6 @@ public partial class MainWindow
     private void LibrarySplitterDragged(object sender, DragDeltaEventArgs e)
     {
         ResizeLibraryPane(settings.LeftWidth + e.HorizontalChange);
-    }
-
-    private void ColumnSplitterKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key is not (Key.Left or Key.Right)) return;
-        ResizeLibraryPane(settings.LeftWidth + (e.Key == Key.Right ? 16 : -16));
-        e.Handled = true;
     }
 
     private void SettingsClicked(object sender, RoutedEventArgs e)

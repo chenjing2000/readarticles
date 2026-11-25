@@ -5,6 +5,7 @@
         xmlns:icons="clr-namespace:ReadArticles.Infrastructure"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="ReadArticles" Width="1500" Height="920" MinHeight="620"
+        PreviewKeyDown="PlaybackShortcutKeyDown" PreviewKeyUp="PlaybackShortcutKeyUp"
         Background="#F3F3F3" FontFamily="Segoe UI" FontSize="11pt" Icon="{x:Static icons:UiIcons.AppIcon}">
   <Window.Resources>
     <Style x:Key="CircularIconButton" TargetType="Button">
@@ -104,7 +105,7 @@
       </TreeView>
     </DockPanel>
     <Thumb x:Name="LibrarySplitter" Grid.Column="1" Cursor="SizeWE" Focusable="True"
-           DragDelta="LibrarySplitterDragged" PreviewKeyDown="ColumnSplitterKeyDown">
+           DragDelta="LibrarySplitterDragged">
       <Thumb.Template>
         <ControlTemplate TargetType="Thumb"><Border Background="Transparent"/></ControlTemplate>
       </Thumb.Template>

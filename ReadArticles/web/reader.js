@@ -316,7 +316,7 @@ function renderVocabulary(words) {
     }
     row.addEventListener("click", () => focusVocabulary(word.word, index));
     row.addEventListener("keydown", event => {
-      if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
+      if (event.key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
         focusVocabulary(word.word, index);
@@ -981,41 +981,21 @@ function finishDivider(event, save) {
 }
 splitter.addEventListener("pointerup", event => finishDivider(event, true));
 splitter.addEventListener("pointercancel", event => finishDivider(event, false));
-splitter.addEventListener("keydown", event => {
-  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+// Reserve playback keys before focused controls receive them.
+function playbackShortcut(event) {
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ||
+      ![" ", "Spacebar", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
   event.preventDefault();
-  const current = Number(currentSettings.rightWidth) || 300;
-  const next = Math.round(Math.max(200, Math.min(400,
-    current + (event.key === "ArrowLeft" ? 16 : -16))));
-  send("setPanelWidth", { payload: { width: next } });
-});
-
-function seekByArrowKey(event) {
-  if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
-      (event.key !== "ArrowLeft" && event.key !== "ArrowRight") ||
-      currentPlayback.canSeek !== true)
-    return;
-  event.preventDefault();
-  // The C# player owns the current position; relative requests cannot lose
-  // rapid repeated key presses while a WebView2 playback snapshot is in flight.
-  const direction = event.key === "ArrowLeft" ? "backward" : "forward";
-  send("seekArticle", { payload: { direction } });
-}
-
-document.addEventListener("keydown", event => {
-  if (!sessionId || event.ctrlKey || event.metaKey || event.altKey ||
-      event.target?.closest("input, select, textarea, button, [role='button'], [contenteditable='true'], [role='separator']"))
-    return;
+  event.stopImmediatePropagation();
+  if (event.type !== "keydown" || !sessionId) return;
   if (event.key === " " || event.key === "Spacebar") {
-    if (currentPlayback.canPlay !== true || event.repeat) return;
-    event.preventDefault();
-    send("playArticle");
-  } else {
-    seekByArrowKey(event);
+    if (!event.repeat && currentPlayback.canPlay === true) send("playArticle");
+  } else if (currentPlayback.canSeek === true) {
+    send("seekArticle", { payload: { direction: event.key === "ArrowLeft" ? "backward" : "forward" } });
   }
-});
-
-byId("progress").addEventListener("keydown", seekByArrowKey);
+}
+document.addEventListener("keydown", playbackShortcut, true);
+document.addEventListener("keyup", playbackShortcut, true);
 
 byId("article-play").addEventListener("click", () => {
   if (!byId("article-play").disabled) send("playArticle");
