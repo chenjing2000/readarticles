@@ -78,7 +78,7 @@ This list is an interactive **release gate**, not proof of automated coverage. D
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps1
 ```
 
-`Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files.
+`Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files, including refusal of linked dist and release directories.
 
 ## Playback update efficiency
 
@@ -86,7 +86,7 @@ Live absolute divider drag frames do not accumulate in the request deduplication
 
 ## Functional icons
 
-Native and embedded browser functional icons use maple-red `#D65B45` circles and white glyphs; preserve distinct play/pause, Passage/Script and eye/crossed-eye states. Verify actual rendering at toolbar, pronunciation, selection-add and tree sizes, hover/pressed/disabled states, and unchanged app icon and keyboard behavior.
+Automated embedded SVG checks validate the Web icon viewBox, background circle and white foreground. Native and embedded browser functional icons use maple-red `#D65B45` circles and white glyphs; preserve distinct play/pause, Passage/Script and eye/crossed-eye states. Verify actual rendering at toolbar, pronunciation, selection-add and tree sizes, hover/pressed/disabled states, and unchanged app icon and keyboard behavior.
 
 ## Explicit library refresh
 

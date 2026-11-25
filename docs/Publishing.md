@@ -22,7 +22,7 @@ dist/
 
 ## Safe publishing
 
-1. Publish the new EXE into a unique `dist/.publish-*` staging directory.
+1. Reject reparse points in the destination and staging paths or their existing ancestors; do not traverse userdata. Publish the new EXE into a unique `dist/.publish-*` staging directory.
 2. Strip PDB/XML build artifacts and reject unexpected packaged files.
 3. Check the existing application EXE for incompatible file locks before making changes.
 4. Keep existing `dist/ReadArticles/userdata/` untouched. Old directory structures and sibling settings are not migrated.

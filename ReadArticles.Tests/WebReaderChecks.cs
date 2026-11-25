@@ -45,6 +45,20 @@ internal static class WebReaderChecks
             {
                 using Stream? stream = assembly.GetManifestResourceStream(name);
                 Program.Check(stream is not null && stream.Length > 0);
+                if (name.EndsWith(".svg", StringComparison.Ordinal))
+                {
+                    var svg = System.Xml.Linq.XDocument.Load(stream!).Root!;
+                    var ns = svg.Name.Namespace;
+                    var circle = svg.Elements(ns + "circle").First();
+                    Program.Check((string?)svg.Attribute("viewBox") == "0 0 1024 1024" &&
+                        (string?)circle.Attribute("cx") == "512" &&
+                        (string?)circle.Attribute("cy") == "512" &&
+                        (string?)circle.Attribute("r") == "480" &&
+                        (string?)circle.Attribute("fill") == "#D65B45" &&
+                        svg.Descendants().Any(element =>
+                            (string?)element.Attribute("fill") == "#FFFFFF" ||
+                            (string?)element.Attribute("stroke") == "#FFFFFF"));
+                }
             }
         });
         Program.Run("WebView2 failure shows native terminal screen instead of WPF fallback", () =>
