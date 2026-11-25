@@ -131,7 +131,7 @@ internal static class TreeNavigationChecks
                 Program.Check(!newBook.IsExpanded && newBook.LoadState == NodeLoadState.NotLoaded);
                 newBook.IsExpanded = true;
                 Task expand = vm.ExpandDirectoryAsync(newBook);
-                WpfTestHelpers.Wait(() => expand.IsCompleted);
+                WpfTestHelpers.Wait(() => expand.IsCompleted && newBook.LoadState == NodeLoadState.Loaded);
                 expand.GetAwaiter().GetResult();
                 Program.Check(newBook.Children.All(n => n.Name != "video"));
                 Task unchanged = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "CACHE, video, audio, video" });
@@ -142,7 +142,7 @@ internal static class TreeNavigationChecks
                 var restoredBook = vm.Books.Single();
                 restoredBook.IsExpanded = true;
                 Task scan = vm.ExpandDirectoryAsync(restoredBook);
-                WpfTestHelpers.Wait(() => scan.IsCompleted);
+                WpfTestHelpers.Wait(() => scan.IsCompleted && restoredBook.LoadState == NodeLoadState.Loaded);
                 scan.GetAwaiter().GetResult();
                 Program.Check(restoredBook.Children.Any(n => n.Name == "video") &&
                     ReferenceEquals(vm.Article, article));
