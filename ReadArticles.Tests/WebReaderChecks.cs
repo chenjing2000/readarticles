@@ -672,7 +672,11 @@ internal static class WebReaderChecks
                 draft.Appearance.Body.ScriptColor = "#856300";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
                     "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
-                Program.Check((bool)applyDialog.Invoke(window, [draft])!);
+                object?[] settingsArguments = [draft, null];
+                Program.Check((bool)applyDialog.Invoke(window, settingsArguments)!);
+                var settingsRefresh = (Task)settingsArguments[1]!;
+                WpfTestHelpers.Wait(() => settingsRefresh.IsCompleted);
+                settingsRefresh.GetAwaiter().GetResult();
                 WaitFor(() => Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--body-size')")
                     .GetString() == "16px", "native font-size setting roundtrip");
