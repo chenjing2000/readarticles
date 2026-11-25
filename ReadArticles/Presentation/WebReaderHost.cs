@@ -87,6 +87,14 @@ public sealed class WebReaderHost : IDisposable
             "/reader.html" => ("ReadArticles.web.reader.html", "text/html"),
             "/reader.css" => ("ReadArticles.web.reader.css", "text/css"),
             "/reader.js" => ("ReadArticles.web.reader.js", "text/javascript"),
+            "/dom.js" => ("ReadArticles.web.dom.js", "text/javascript"),
+            "/bridge.js" => ("ReadArticles.web.bridge.js", "text/javascript"),
+            "/reading.js" => ("ReadArticles.web.reading.js", "text/javascript"),
+            "/vocabulary.js" => ("ReadArticles.web.vocabulary.js", "text/javascript"),
+            "/playback.js" => ("ReadArticles.web.playback.js", "text/javascript"),
+            "/layout.js" => ("ReadArticles.web.layout.js", "text/javascript"),
+            "/settings.js" => ("ReadArticles.web.settings.js", "text/javascript"),
+            "/notifications.js" => ("ReadArticles.web.notifications.js", "text/javascript"),
             _ when Regex.IsMatch(path, @"^/icons/[a-z-]+\.svg$") =>
                 ("ReadArticles.web.icons." + Path.GetFileName(path), "image/svg+xml"),
             _ => (null, "text/plain")

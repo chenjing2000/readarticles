@@ -49,7 +49,10 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `MainWindow.WebView.cs` | Compose the browser modules, native import confirmation and terminal failure UI |
 | `Presentation/WebReaderHost.cs` | WebView2 lifecycle, restricted resource serving and transport |
 | `Presentation/WebReaderBridge.cs` | Protocol identity, validated commands, snapshots and progress timer |
-| `web/reader.html`, `reader.css`, `reader.js`, `web/icons/*.svg` | Article/Script DOM, matching, selection, playback visuals, embedded icon states, styles and notifications |
+| `web/reader.html`, `reader.css`, `reader.js`, `web/icons/*.svg` | Single local document, styles, module composition and embedded icons |
+| `web/bridge.js`, `dom.js` | Protocol identity and shared DOM helpers |
+| `web/reading.js`, `vocabulary.js` | Passage/Script rendering, matching, selection and vocabulary edit presentation |
+| `web/playback.js`, `layout.js`, `settings.js`, `notifications.js` | Playback controls, pane-width intents, appearance and Toast presentation |
 
 The window and main view model each use partial files to group responsibilities while sharing their existing state. `ReaderPlayback` is a concrete service with no window or view-model dependency. `PlaybackController` operates through `IAudioPlayer`, which includes media-open events and progress. The bridge sends playback snapshots to the page; the page sends validated seek/playback intents to `ReaderPlayback`. Repositories own validation and persistence, the workspace owns committed content, and the browser owns text/selection display. No additional service interfaces or generic frameworks are introduced.
 
@@ -90,7 +93,7 @@ UI request -> ReaderPlayback -> audio resource lookup -> PlaybackController -> I
 Media event -> request-token check -> ReaderPlayback state/progress -> UI update
 ```
 
-The bottom play/pause and stop controls own only whole-article audio, selected by trying direct sibling M4A, MP3 and WAV candidates in format/name order until one opens. An opening failure can advance to the next candidate; successful opening ends that search. Whole-article playback uses its own player and controller, while word pronunciation uses a second independent player and controller. Starting or resuming whole-article audio stops pronunciation. Starting word pronunciation pauses whole-article audio without losing its position; finishing pronunciation leaves it paused. Old completion/failure callbacks cannot advance or stop a newer target. The bottom progress bar stays visible and accepts seeking only when whole-article audio is active and seekable; stopping article audio leaves the word channel untouched. Switching articles or closing the window stops both. No sentence playback path remains. Script timed-unit foreground progress is computed and painted in `web/reader.js` using playback snapshots from C#; `ScriptTimedUnit` retains alignment and color eligibility, not a separate C# progress calculation.
+The bottom play/pause and stop controls own only whole-article audio, selected by trying direct sibling M4A, MP3 and WAV candidates in format/name order until one opens. An opening failure can advance to the next candidate; successful opening ends that search. Whole-article playback uses its own player and controller, while word pronunciation uses a second independent player and controller. Starting or resuming whole-article audio stops pronunciation. Starting word pronunciation pauses whole-article audio without losing its position; finishing pronunciation leaves it paused. Old completion/failure callbacks cannot advance or stop a newer target. The bottom progress bar stays visible and accepts seeking only when whole-article audio is active and seekable; stopping article audio leaves the word channel untouched. Switching articles or closing the window stops both. No sentence playback path remains. Script timed-unit foreground progress is computed and painted in `web/reading.js` using playback snapshots from C#; `ScriptTimedUnit` retains alignment and color eligibility, not a separate C# progress calculation.
 
 ### Notifications and lifecycle
 
