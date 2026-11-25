@@ -82,7 +82,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 ## Folder exclusion regression
 
-Core includes the pure exclusion parser checks. UI and Full also verify independent invalid-field recovery and the loaded Fluent template's collapsed clear button. Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
+Core includes the pure exclusion parser checks. UI and Full also verify independent invalid-field recovery, invalid-source preservation during explicit backup restoration, rejection of obsolete/invalid backups, and the loaded Fluent template's collapsed clear button. The navigation regression schedules another filter edit during failure fallback before the root result commits. Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
 
 ## Ownership and maintenance
 

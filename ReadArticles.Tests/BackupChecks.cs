@@ -124,6 +124,68 @@ internal static class BackupChecks
             }
         });
 
+        Program.Run("settings restore preserves invalid sources and rejects non-current backups", () =>
+        {
+            string path = ReaderSettings.PathName;
+            string backup = AppPaths.SettingsBackupFile;
+            byte[]? old = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            byte[]? oldBackup = File.Exists(backup) ? File.ReadAllBytes(backup) : null;
+            Directory.CreateDirectory(AppPaths.ConfigDirectory);
+            var priorCopies = Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt");
+            try
+            {
+                if (File.Exists(path)) File.Delete(path);
+                if (File.Exists(backup)) File.Delete(backup);
+                new ReaderSettings { Accent = "us", ExcludedFolders = "video" }.Save();
+                new ReaderSettings { Accent = "uk" }.Save();
+                byte[] validBackup = File.ReadAllBytes(backup);
+                string backupHash = JsonFiles.Fingerprint(backup);
+                foreach (string invalid in new[]
+                {
+                    "{ broken", "{}", """{"Appearance":{},"Audio":null}""",
+                    """{"Appearance":{},"Audio":{},"ExcludedFolders":"audio*"}"""
+                })
+                {
+                    File.WriteAllText(path, invalid);
+                    string invalidHash = JsonFiles.Fingerprint(path);
+                    ReaderSettings.RestoreLatestBackup();
+                    Program.Check(JsonFiles.Fingerprint(path) == backupHash &&
+                        JsonFiles.Fingerprint(backup) == backupHash &&
+                        Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt")
+                            .Except(priorCopies).Any(copy => JsonFiles.Fingerprint(copy) == invalidHash));
+                }
+
+                foreach (string invalid in new[]
+                {
+                    "{}", """{"Appearance":{},"Audio":null}""",
+                    """{"Appearance":{},"Audio":{},"ExcludedFolders":"audio*"}"""
+                })
+                {
+                    File.WriteAllText(backup, invalid);
+                    string invalidHash = JsonFiles.Fingerprint(backup);
+                    try { ReaderSettings.RestoreLatestBackup(); throw new Exception("Invalid backup was restored."); }
+                    catch (System.Text.Json.JsonException) { }
+                    Program.Check(JsonFiles.Fingerprint(path) == backupHash &&
+                        JsonFiles.Fingerprint(backup) == invalidHash);
+                }
+
+                File.WriteAllBytes(backup, validBackup);
+                File.WriteAllText(path, "{}");
+                string obsoleteHash = JsonFiles.Fingerprint(path);
+                try { new ReaderSettings().Save(); throw new Exception("Obsolete source was rotated."); }
+                catch (System.Text.Json.JsonException) { }
+                Program.Check(JsonFiles.Fingerprint(path) == obsoleteHash &&
+                    JsonFiles.Fingerprint(backup) == backupHash);
+            }
+            finally
+            {
+                RestoreFile(path, old);
+                RestoreFile(backup, oldBackup);
+                foreach (string copy in Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt").Except(priorCopies))
+                    File.Delete(copy);
+            }
+        });
+
         Program.Run("vocabulary keeps one verified backup per source and restores safely", () =>
         {
             string root = Path.Combine(Path.GetTempPath(), "ReadArticles-backup-tests-" + Guid.NewGuid().ToString("N"));

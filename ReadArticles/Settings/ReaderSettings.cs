@@ -64,11 +64,7 @@ public sealed class ReaderSettings
                 {
                     using var document = JsonDocument.Parse(File.ReadAllText(PathName));
                     var root = document.RootElement;
-                    if (root.ValueKind == JsonValueKind.Object &&
-                        root.TryGetProperty("Appearance", out var appearance) &&
-                        appearance.ValueKind == JsonValueKind.Object &&
-                        root.TryGetProperty("Audio", out var audio) &&
-                        audio.ValueKind == JsonValueKind.Object)
+                    if (IsCurrentSchema(root))
                         return Deserialize(root, out warning);
                     // Valid JSON but obsolete schema: deliberate breaking change.
                     warning = "检测到旧格式配置，已重新创建默认设置。";
@@ -115,11 +111,19 @@ public sealed class ReaderSettings
         }
     }
 
+    private static bool IsCurrentSchema(JsonElement root) =>
+        root.ValueKind == JsonValueKind.Object &&
+        root.TryGetProperty("Appearance", out var appearance) &&
+        appearance.ValueKind == JsonValueKind.Object &&
+        root.TryGetProperty("Audio", out var audio) &&
+        audio.ValueKind == JsonValueKind.Object;
+
     // A malformed field value is not structural JSON corruption. On load,
     // recover only that value; the original file remains untouched until Save.
     private static ReaderSettings Deserialize(JsonElement root, out string? warning)
     {
         warning = null;
+        if (!IsCurrentSchema(root)) throw new JsonException("配置不是当前结构。");
         var settings = root.Deserialize<ReaderSettings>(JsonFiles.Options)
             ?? throw new JsonException("配置内容不能为空。");
         try { _ = ParseExcludedFolders(settings.ExcludedFolders); }
@@ -154,17 +158,31 @@ public sealed class ReaderSettings
             // Preserve the original invalid field separately. Do not replace
             // the last valid normal backup with a configuration needing repair.
             string backup = warning is null ? AppPaths.SettingsBackupFile :
-                PathName + "." + Guid.NewGuid().ToString("N") + ".corrupt";
+                RecoveryCopyPath();
             BackupFiles.CreateVerifiedBackup(PathName, backup);
         }
         JsonFiles.WriteAtomicBytes(PathName, desired);
         return names;
     }
 
+    private static string RecoveryCopyPath() =>
+        PathName + "." + Guid.NewGuid().ToString("N") + ".corrupt";
+
     public static void RestoreLatestBackup()
     {
         _ = DeserializeBackup(AppPaths.SettingsBackupFile);
-        BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
+        bool keepBackup = false;
+        if (File.Exists(PathName))
+        {
+            try { _ = DeserializeBackup(PathName); }
+            catch (JsonException)
+            {
+                BackupFiles.CreateVerifiedBackup(PathName, RecoveryCopyPath());
+                keepBackup = true;
+            }
+        }
+        BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile,
+            keepExistingBackup: keepBackup);
     }
 
     private static double Allowed(double value, double fallback, params double[] choices) =>

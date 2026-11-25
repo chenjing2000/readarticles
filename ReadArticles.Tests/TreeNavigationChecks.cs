@@ -206,6 +206,34 @@ internal static class TreeNavigationChecks
                 Program.Check(vm.LibraryRoot == b && ReferenceEquals(vm.Article, article) &&
                     vm.Books.Select(n => n.Name).SequenceEqual(new[] { "Audio", "Keep" }));
 
+                // Schedule the second edit after the failure handler starts its
+                // fallback but before any Normal-priority scan result can commit.
+                vm.Notifications.Clear();
+                Task? lateFilter = null;
+                bool scheduled = false;
+                void OnFailure()
+                {
+                    if (scheduled || !vm.Notifications.Messages.Any(n => n.Key == "LibraryOpenFailed")) return;
+                    scheduled = true;
+                    window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send,
+                        new Action(() => lateFilter = vm.ApplySettings(
+                            new ReaderSettings { ExcludedFolders = "audio" })));
+                }
+                vm.Notifications.Changed += OnFailure;
+                try
+                {
+                    Task<bool> failedAgain = vm.OpenLibraryAsync(Path.Combine(temp, "missing-again"));
+                    Task firstFilter = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "audio, video" });
+                    WpfTestHelpers.Wait(() => failedAgain.IsCompleted && firstFilter.IsCompleted &&
+                        lateFilter is { IsCompleted: true });
+                    Program.Check(!failedAgain.GetAwaiter().GetResult());
+                    firstFilter.GetAwaiter().GetResult();
+                    lateFilter!.GetAwaiter().GetResult();
+                    Program.Check(vm.LibraryRoot == b && ReferenceEquals(vm.Article, article) &&
+                        vm.Books.Select(n => n.Name).SequenceEqual(new[] { "Keep", "Video" }));
+                }
+                finally { vm.Notifications.Changed -= OnFailure; }
+
                 Task refresh = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "" });
                 vm.CloseNavigation();
                 WpfTestHelpers.Wait(() => refresh.IsCompleted);
