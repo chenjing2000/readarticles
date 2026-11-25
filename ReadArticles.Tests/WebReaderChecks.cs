@@ -580,6 +580,11 @@ internal static class WebReaderChecks
                     boundary[0].GetProperty("start").GetInt32() == 27);
 
                 // Preserve Python-compatible numeric boundaries (digits are not letters).
+                JsonElement repeated = EvaluateModule(browser,
+                    "matchVocabulary('GO went Go goes İ go', [{word:'go',family:['went','goes']}])");
+                Program.Check(repeated.EnumerateArray().Select(hit => hit.GetProperty("start").GetInt32())
+                    .SequenceEqual(new[] { 0, 3, 8, 11, 18 }) &&
+                    repeated.EnumerateArray().All(hit => hit.GetProperty("key").GetString() == "go"));
                 JsonElement numericBoundary = EvaluateModule(browser,
                     "matchVocabulary('public2 2public', ['public'])");
                 Program.Check(numericBoundary.GetArrayLength() == 2 &&
@@ -672,7 +677,11 @@ internal static class WebReaderChecks
                 draft.Appearance.Body.ScriptColor = "#856300";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
                     "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
-                Program.Check((bool)applyDialog.Invoke(window, [draft])!);
+                object?[] settingsArguments = [draft, null];
+                Program.Check((bool)applyDialog.Invoke(window, settingsArguments)!);
+                var settingsRefresh = (Task)settingsArguments[1]!;
+                WpfTestHelpers.Wait(() => settingsRefresh.IsCompleted);
+                settingsRefresh.GetAwaiter().GetResult();
                 WaitFor(() => Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--body-size')")
                     .GetString() == "16px", "native font-size setting roundtrip");

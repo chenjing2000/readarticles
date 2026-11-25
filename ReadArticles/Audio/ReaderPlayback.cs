@@ -86,11 +86,14 @@ public sealed class ReaderPlayback
         });
     }
 
-    public bool CanPlayWord(string directory, IReadOnlyList<VocabularyEntry> words, VocabularyEntry entry, string accent)
+    public bool CanPlayWord(string directory, IReadOnlyList<VocabularyEntry> words, VocabularyEntry entry, string accent) =>
+        AudioResources.OwnsWordAudio(words, entry) && CanPlayStem(directory, AudioResources.AudioStem(entry.Word), accent);
+
+    internal bool CanPlayStem(string directory, string stem, string accent)
     {
         try
         {
-            return AudioResources.OwnsWordAudio(words, entry) && AudioResources.IsAvailable(resources.Vocabulary(directory, entry, accent));
+            return AudioResources.IsAvailable(resources.VocabularyByStem(directory, stem, accent));
         }
         catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
         {

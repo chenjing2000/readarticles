@@ -43,19 +43,23 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         }
     }
     // The caller persists the detached settings draft before applying it.
-    public void ApplySettings(ReaderSettings edited)
+    public Task ApplySettings(ReaderSettings edited) =>
+        ApplySettings(edited, ReaderSettings.ParseExcludedFolders(edited.ExcludedFolders));
+
+    internal Task ApplySettings(ReaderSettings edited, HashSet<string> excluded)
     {
         string previousAccent = settings.Accent;
         if (previousAccent != edited.Accent) playback.StopPronunciation();
         settings.Apply(edited);
         if (previousAccent != settings.Accent) Changed(nameof(Accent));
+        return navigation.UpdateExcludedFoldersAsync(excluded);
     }
 
     public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer,
         ReaderSettings? settings = null)
     {
         this.settings = settings ?? new ReaderSettings();
-        navigation = new LibraryNavigation(Notify);
+        navigation = new LibraryNavigation(Notify, this.settings.ExcludedFolders);
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
         playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);
         playback.Changed += () => PlaybackChanged?.Invoke();

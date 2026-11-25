@@ -1,5 +1,4 @@
 using System.IO;
-using System.Text.RegularExpressions;
 using ReadArticles.Models;
 using ReadArticles.Services;
 
@@ -12,7 +11,7 @@ public sealed class VocabularyEditor
 
     public static VocabularyEntry NewEntry(string text)
     {
-        string normalized = Regex.Replace(text, @"\s+", " ").Trim();
+        string normalized = VocabularyRepository.NormalizeWord(text);
         if (normalized.Length == 0) throw new InvalidDataException("选词不能为空。");
         return new VocabularyEntry { Word = normalized };
     }
@@ -22,7 +21,7 @@ public sealed class VocabularyEditor
         EnsureWritable(current);
         var entry = NewEntry(text);
         word = entry.Word;
-        if (current.Data.Words.Any(w => w.Word.Equals(entry.Word, StringComparison.OrdinalIgnoreCase)))
+        if (current.Data.Words.Any(w => VocabularyRepository.NormalizeWord(w.Word).Equals(entry.Word, StringComparison.OrdinalIgnoreCase)))
             return null;
         return SaveWords(path, current, new List<VocabularyEntry>(current.Data.Words) { entry });
     }

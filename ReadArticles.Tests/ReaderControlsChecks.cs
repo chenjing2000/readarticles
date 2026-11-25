@@ -262,7 +262,11 @@ internal static class ReaderControlsChecks
                 draft.Appearance.Body.Background = "#F7F1E6";
                 var apply = typeof(ReadArticles.MainWindow).GetMethod("ApplyDialogSettings",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
-                Program.Check((bool)apply.Invoke(window, [draft])!);
+                object?[] arguments = [draft, null];
+                Program.Check((bool)apply.Invoke(window, arguments)!);
+                var refresh = (Task)arguments[1]!;
+                WpfTestHelpers.Wait(() => refresh.IsCompleted);
+                refresh.GetAwaiter().GetResult();
                 Program.Check(window.ViewModel.Accent == "us");
                 var saved = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && saved.Appearance.Body.Size == 17 &&
@@ -312,6 +316,33 @@ internal static class ReaderControlsChecks
                 {
                     var heading = section.Children.OfType<TextBlock>().Single();
                     Program.Check(heading.FontSize == 15);
+                    if (heading.Text == "其它")
+                    {
+                        var row = section.Children.OfType<Grid>().Single();
+                        Program.Check(row.ColumnDefinitions.Select(c => c.Width.Value)
+                            .SequenceEqual(new[] { 112d, 332d }));
+                        Program.Check(row.Children.OfType<TextBlock>().Single().Text == "需排除的文件夹");
+                        var input = row.Children.OfType<TextBox>().Single();
+                        Program.Check(input.Text == ReaderSettings.DefaultExcludedFolders &&
+                            input.Width == 332 && input.Height == 30 && !input.AcceptsReturn);
+                        // Exercise the actual loaded Fluent template, not a synthetic Loaded event.
+                        dialog.Show();
+                        input.BringIntoView();
+                        input.Focus();
+                        WpfTestHelpers.Pump();
+                        dialog.UpdateLayout();
+                        Program.Check(input.IsLoaded);
+                        var template = input.Template ?? throw new Exception("Fluent TextBox template was not loaded.");
+                        var clearButton = template.FindName("DeleteButton", input) as UIElement;
+                        Program.Check(clearButton is not null &&
+                            clearButton.Visibility == Visibility.Collapsed &&
+                            Equals(clearButton.ReadLocalValue(UIElement.VisibilityProperty), Visibility.Collapsed));
+                        input.Text = "video, 结果";
+                        var edited = (ReaderSettings)type.GetField("draft",
+                            BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                        Program.Check(edited.ExcludedFolders == "video, 结果");
+                        continue;
+                    }
                     foreach (var row in section.Children.OfType<Grid>())
                     {
                         Program.Check(row.ColumnDefinitions.Select(c => c.Width.Value)
@@ -388,7 +419,8 @@ internal static class ReaderControlsChecks
                         .Select(item => item.Tag?.ToString())
                         .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",
                             "Nunito", "Segoe UI" }));
-                var audio = sections.Children.OfType<StackPanel>().Last();
+                var audio = sections.Children.OfType<StackPanel>().Single(section =>
+                    section.Children.OfType<TextBlock>().Single().Text == "音频");
                 Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
                     !audio.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<Grid>())
                         .Any(group => group.Children.OfType<Slider>().Any()));
@@ -411,7 +443,8 @@ internal static class ReaderControlsChecks
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
                 var selectors = (List<ComboBox>)type.GetField("englishFontSelectors",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
-                Program.Check(resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
+                Program.Check(resetDraft.ExcludedFolders == ReaderSettings.DefaultExcludedFolders &&
+                    resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Body.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Vocabulary.Font == "Microsoft YaHei UI" &&
                     selectors.Count == 3 &&

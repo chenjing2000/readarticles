@@ -19,10 +19,13 @@ public sealed partial class MainViewModel
     private List<VocabularyEntryViewModel> PrepareWords(LoadedArticle article)
     {
         var words = new List<VocabularyEntryViewModel>();
+        var stems = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in article.Vocabulary.Data.Words)
         {
-            bool uk = playback.CanPlayWord(article.Directory, article.Vocabulary.Data.Words, entry, "uk");
-            bool us = playback.CanPlayWord(article.Directory, article.Vocabulary.Data.Words, entry, "us");
+            string stem = AudioResources.AudioStem(entry.Word);
+            bool ownsAudio = stem.Length > 0 && stems.Add(stem);
+            bool uk = ownsAudio && playback.CanPlayStem(article.Directory, stem, "uk");
+            bool us = ownsAudio && playback.CanPlayStem(article.Directory, stem, "us");
             words.Add(new VocabularyEntryViewModel(entry, uk, us));
         }
         return words;

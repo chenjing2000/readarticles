@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.IO;
 using ReadArticles.Models;
+using ReadArticles.Infrastructure;
 
 internal static class TreeNavigationChecks
 {
@@ -95,6 +96,226 @@ internal static class TreeNavigationChecks
             {
                 window.Close();
                 WpfTestHelpers.Pump();
+                Directory.Delete(root, true);
+            }
+        });
+
+        Program.Run("changing folder exclusions refreshes only navigation and invalidates old scans", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-exclusions-" + Guid.NewGuid().ToString("N"));
+            string book = Path.Combine(root, "Book");
+            string folder = Path.Combine(book, "video");
+            Directory.CreateDirectory(folder);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                string passage = Path.Combine(folder, "Article.json");
+                File.Copy(TestData.ArticlePath, passage);
+                window.Show();
+                var vm = window.ViewModel;
+                Program.Check(vm.OpenLibrary(root) && vm.OpenArticle(passage));
+                var article = vm.Article;
+                var oldBook = vm.Books.Single();
+                oldBook.IsExpanded = true;
+                Task pending = vm.ExpandDirectoryAsync(oldBook);
+                var settings = new ReaderSettings { ExcludedFolders = "video; AUDIO, cache" };
+                Task refresh = vm.ApplySettings(settings);
+                WpfTestHelpers.Wait(() => pending.IsCompleted && refresh.IsCompleted);
+                pending.GetAwaiter().GetResult();
+                refresh.GetAwaiter().GetResult();
+                Program.Check(ReferenceEquals(article, vm.Article) && vm.LibraryRoot == root);
+                Program.Check(oldBook.LoadState != NodeLoadState.Loaded &&
+                    !ReferenceEquals(oldBook, vm.Books.Single()));
+                var newBook = vm.Books.Single();
+                Program.Check(!newBook.IsExpanded && newBook.LoadState == NodeLoadState.NotLoaded);
+                newBook.IsExpanded = true;
+                Task expand = vm.ExpandDirectoryAsync(newBook);
+                WpfTestHelpers.Wait(() => expand.IsCompleted && newBook.LoadState == NodeLoadState.Loaded);
+                expand.GetAwaiter().GetResult();
+                Program.Check(newBook.Children.All(n => n.Name != "video"));
+                Task unchanged = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "CACHE, video, audio, video" });
+                Program.Check(unchanged.IsCompleted && ReferenceEquals(newBook, vm.Books.Single()));
+                Task restored = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "" });
+                WpfTestHelpers.Wait(() => restored.IsCompleted);
+                restored.GetAwaiter().GetResult();
+                var restoredBook = vm.Books.Single();
+                restoredBook.IsExpanded = true;
+                Task scan = vm.ExpandDirectoryAsync(restoredBook);
+                WpfTestHelpers.Wait(() => scan.IsCompleted && restoredBook.LoadState == NodeLoadState.Loaded);
+                scan.GetAwaiter().GetResult();
+                Program.Check(restoredBook.Children.Any(n => n.Name == "video") &&
+                    ReferenceEquals(vm.Article, article));
+                Directory.Delete(root, true);
+                Task failed = vm.ApplySettings(settings);
+                WpfTestHelpers.Wait(() => failed.IsCompleted);
+                failed.GetAwaiter().GetResult();
+                Program.Check(vm.Books.Count == 0 && vm.LibraryRoot == root &&
+                    ReferenceEquals(vm.Article, article));
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        });
+
+        Program.Run("pending library switches preserve the latest filter and user selection", () =>
+        {
+            string temp = Path.Combine(Path.GetTempPath(), "ReadArticles-root-filter-" + Guid.NewGuid().ToString("N"));
+            string a = Path.Combine(temp, "A"), b = Path.Combine(temp, "B");
+            foreach (string root in new[] { a, b })
+                foreach (string name in new[] { "Keep", "Video", "Audio" })
+                {
+                    string book = Path.Combine(root, name);
+                    Directory.CreateDirectory(book);
+                    File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                }
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                var vm = window.ViewModel;
+                Task<bool> initial = vm.OpenLibraryAsync(a);
+                Task initialFilter = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "video" });
+                WpfTestHelpers.Wait(() => initial.IsCompleted && initialFilter.IsCompleted);
+                Program.Check(initial.GetAwaiter().GetResult());
+                initialFilter.GetAwaiter().GetResult();
+                Program.Check(vm.LibraryRoot == a && vm.Books.Count == 2 &&
+                    vm.Books.All(n => n.Name != "Video"));
+
+                // No dispatcher pump between the requests: no earlier root result can commit.
+                Task<bool> switched = vm.OpenLibraryAsync(b);
+                Task first = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "audio" });
+                Task latest = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "audio, video" });
+                WpfTestHelpers.Wait(() => switched.IsCompleted && first.IsCompleted && latest.IsCompleted);
+                Program.Check(switched.GetAwaiter().GetResult());
+                first.GetAwaiter().GetResult();
+                latest.GetAwaiter().GetResult();
+                Program.Check(vm.LibraryRoot == b && vm.Books.Single().Name == "Keep");
+
+                string passage = Path.Combine(b, "Keep", "Article.json");
+                File.Copy(TestData.ArticlePath, passage);
+                Program.Check(vm.OpenArticle(passage));
+                var article = vm.Article;
+                Task<bool> failed = vm.OpenLibraryAsync(Path.Combine(temp, "missing"));
+                Task fallback = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "video" });
+                WpfTestHelpers.Wait(() => failed.IsCompleted && fallback.IsCompleted);
+                Program.Check(!failed.GetAwaiter().GetResult());
+                fallback.GetAwaiter().GetResult();
+                Program.Check(vm.LibraryRoot == b && ReferenceEquals(vm.Article, article) &&
+                    vm.Books.Select(n => n.Name).SequenceEqual(new[] { "Audio", "Keep" }));
+
+                // Schedule the second edit after the failure handler starts its
+                // fallback but before any Normal-priority scan result can commit.
+                vm.Notifications.Clear();
+                Task? lateFilter = null;
+                bool scheduled = false;
+                void OnFailure()
+                {
+                    if (scheduled || !vm.Notifications.Messages.Any(n => n.Key == "LibraryOpenFailed")) return;
+                    scheduled = true;
+                    window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send,
+                        new Action(() => lateFilter = vm.ApplySettings(
+                            new ReaderSettings { ExcludedFolders = "audio" })));
+                }
+                vm.Notifications.Changed += OnFailure;
+                try
+                {
+                    Task<bool> failedAgain = vm.OpenLibraryAsync(Path.Combine(temp, "missing-again"));
+                    Task firstFilter = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "audio, video" });
+                    WpfTestHelpers.Wait(() => failedAgain.IsCompleted && firstFilter.IsCompleted &&
+                        lateFilter is { IsCompleted: true });
+                    Program.Check(!failedAgain.GetAwaiter().GetResult());
+                    firstFilter.GetAwaiter().GetResult();
+                    lateFilter!.GetAwaiter().GetResult();
+                    Program.Check(vm.LibraryRoot == b && ReferenceEquals(vm.Article, article) &&
+                        vm.Books.Select(n => n.Name).SequenceEqual(new[] { "Keep", "Video" }));
+                }
+                finally { vm.Notifications.Changed -= OnFailure; }
+
+                Task refresh = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "" });
+                vm.CloseNavigation();
+                WpfTestHelpers.Wait(() => refresh.IsCompleted);
+                refresh.GetAwaiter().GetResult();
+                Program.Check(vm.Books.Count == 0 && ReferenceEquals(vm.Article, article));
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                Directory.Delete(temp, true);
+            }
+        });
+
+        Program.Run("junction paths cannot bypass passage and companion safety checks", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-link-" + Guid.NewGuid().ToString("N"));
+            string library = Path.Combine(root, "Library");
+            string book = Path.Combine(library, "Book");
+            string outside = Path.Combine(root, "Outside");
+            Directory.CreateDirectory(book);
+            Directory.CreateDirectory(outside);
+            string link = Path.Combine(book, "Linked");
+            string passage = Path.Combine(book, "Reading.json");
+            string externalPassage = Path.Combine(outside, "Reading.json");
+            string externalVocabulary = Path.ChangeExtension(externalPassage, ".vocabulary.json");
+            string companionLink = Path.ChangeExtension(passage, ".vocabulary.json");
+            string scriptLink = Path.ChangeExtension(passage, ".script.json");
+            void Junction(string destination)
+            {
+                using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/d /c mklink /J \"{destination}\" \"{outside}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }) ?? throw new Exception("Could not create junction fixture.");
+                process.WaitForExit();
+                Program.Check(process.ExitCode == 0 &&
+                    (File.GetAttributes(destination) & FileAttributes.ReparsePoint) != 0);
+            }
+            void Reject(Action action)
+            {
+                try { action(); }
+                catch (ArgumentException) { return; }
+                throw new Exception("Reparse path was accepted.");
+            }
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                File.Copy(TestData.ArticlePath, passage);
+                File.Copy(TestData.ArticlePath, externalPassage);
+                File.WriteAllText(externalVocabulary, """{"filetype":"vocabulary","words":[]}""");
+                string original = JsonFiles.Fingerprint(externalVocabulary);
+                Junction(link);
+                Junction(companionLink);
+                Junction(scriptLink);
+                var vm = window.ViewModel;
+                Program.Check(vm.OpenLibrary(library) && window.SelectPassage(passage));
+                var article = vm.Article;
+                Program.Check(article is not null && !article.Vocabulary.CanWrite && article.Warnings.Count > 0);
+                Program.Check(!window.SelectPassage(Path.Combine(link, "Reading.json")) &&
+                    ReferenceEquals(vm.Article, article));
+                Program.Check(!vm.OpenArticle(Path.Combine(link, "Reading.json")));
+                Program.Check(vm.PrepareReadingMode(out _, out _) == ReadArticles.ViewModels.ReadingModePreparation.Failed &&
+                    !vm.IsScriptMode);
+                var repository = new ReadArticles.Services.VocabularyRepository();
+                string linkedVocabulary = Path.Combine(link, "Reading.vocabulary.json");
+                Reject(() => repository.Load(linkedVocabulary));
+                Reject(() => repository.Save(linkedVocabulary, new VocabularyData(), original));
+                Reject(() => repository.RestoreLatestBackup(linkedVocabulary, original));
+                Reject(() => repository.Save(companionLink, new VocabularyData(), null));
+                Program.Check(JsonFiles.Fingerprint(externalVocabulary) == original);
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                // Remove links themselves before recursive fixture cleanup.
+                foreach (string junction in new[] { link, companionLink, scriptLink })
+                    if (Directory.Exists(junction)) Directory.Delete(junction);
                 Directory.Delete(root, true);
             }
         });

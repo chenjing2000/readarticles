@@ -17,6 +17,7 @@ public sealed class VocabularyRepository
 
     public VocabularySnapshot Load(string path)
     {
+        path = ResourcePaths.RejectReparsePoints(path);
         if (!File.Exists(path)) return new VocabularySnapshot(new VocabularyData(), null, true);
         byte[] bytes = File.ReadAllBytes(path);
         string content = System.Text.Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF');
@@ -42,7 +43,7 @@ public sealed class VocabularyRepository
 
     public string Save(string path, VocabularyData data, string? expectedFingerprint)
     {
-        string absolute = Path.GetFullPath(path);
+        string absolute = ResourcePaths.RejectReparsePoints(path);
         // Serialize this application's writers before checking the expected file version.
         string lockName = @"Local\ReadArticles.Vocabulary." + JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(absolute.ToUpperInvariant()));
         using var mutex = new Mutex(false, lockName);
@@ -61,7 +62,7 @@ public sealed class VocabularyRepository
                 if (actual != expectedFingerprint) throw new InvalidOperationException("词汇表已被其他程序修改，请重新打开文章后再编辑。");
             }
             CheckCurrent();
-            string backupPath = backupPathResolver(absolute);
+            string backupPath = ResourcePaths.RejectReparsePoints(backupPathResolver(absolute));
             return JsonFiles.WriteAtomic(absolute, data, () =>
             {
                 CheckCurrent();
@@ -76,7 +77,7 @@ public sealed class VocabularyRepository
 
     public void RestoreLatestBackup(string path, string? expectedFingerprint)
     {
-        string absolute = Path.GetFullPath(path);
+        string absolute = ResourcePaths.RejectReparsePoints(path);
         string lockName = @"Local\ReadArticles.Vocabulary." + JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(absolute.ToUpperInvariant()));
         using var mutex = new Mutex(false, lockName);
         try { mutex.WaitOne(); }
@@ -84,7 +85,7 @@ public sealed class VocabularyRepository
 
         try
         {
-            string backupPath = backupPathResolver(absolute);
+            string backupPath = ResourcePaths.RejectReparsePoints(backupPathResolver(absolute));
             var backup = Load(backupPath);
             if (!backup.CanWrite)
                 throw new InvalidDataException("备份词汇表无效，不能恢复。");
@@ -134,22 +135,26 @@ public sealed class VocabularyRepository
         }
     }
 
+    internal static string NormalizeWord(string text) => Regex.Replace(text, @"\s+", " ").Trim();
+
     public static void Validate(VocabularyData data)
     {
         if (data.FileType != "vocabulary" || data.Words is null) throw new InvalidDataException("词汇表结构无效。");
         var words = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in data.Words)
         {
-            if (entry is null || string.IsNullOrWhiteSpace(entry.Word) || !words.Add(Regex.Replace(entry.Word, @"\s+", " ").Trim()))
+            if (entry is null || string.IsNullOrWhiteSpace(entry.Word))
+                throw new InvalidDataException("词条为空或重复。");
+            string headword = NormalizeWord(entry.Word);
+            if (!words.Add(headword))
                 throw new InvalidDataException("词条为空或重复。");
             if (entry.Meanings is null || entry.PhoneticUk is null || entry.PhoneticUs is null || entry.Meanings.Any(m => m is null || m.Pos is null || m.Text is null))
                 throw new InvalidDataException($"词条音标或释义无效：{entry.Word}");
             if (entry.Family is null) continue;
             var forms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            string headword = Regex.Replace(entry.Word, @"\s+", " ").Trim();
             foreach (string? form in entry.Family)
             {
-                string normalized = Regex.Replace(form ?? "", @"\s+", " ").Trim();
+                string normalized = NormalizeWord(form ?? "");
                 if (normalized.Length == 0 || form != normalized ||
                     normalized.Equals(headword, StringComparison.OrdinalIgnoreCase) || !forms.Add(normalized))
                     throw new InvalidDataException($"family 包含空值、词头或重复词形：{entry.Word}");

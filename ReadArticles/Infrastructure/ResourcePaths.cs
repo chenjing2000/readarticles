@@ -11,15 +11,24 @@ public static class ResourcePaths
         string path = Path.GetFullPath(Path.Combine(fullRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
         if (!path.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Resource path escapes the passage directory.");
-        // Do not follow junctions/symlinks out of the expected root.
-        string? current = path;
-        while (current is not null)
+        return RejectReparsePoints(path);
+    }
+
+    // Also used by JSON reads and writes. Missing final files are allowed,
+    // but existing ancestors (including dangling links) must be checked.
+    public static string RejectReparsePoints(string path)
+    {
+        string absolute = Path.GetFullPath(path);
+        for (string? current = absolute; current is not null; current = Path.GetDirectoryName(current))
         {
-            if ((File.Exists(current) || Directory.Exists(current)) &&
-                (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
-                throw new ArgumentException("Resource path traverses a reparse point.");
-            current = Path.GetDirectoryName(current);
+            try
+            {
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    throw new ArgumentException("Resource path traverses a reparse point.");
+            }
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
         }
-        return path;
+        return absolute;
     }
 }

@@ -187,6 +187,24 @@ internal static class ContentChecks
                 ExpectInvalid(() => repository.Load(path));
             }
         });
+        RunCopyTest("normalized duplicate headwords do not write or rewrite existing vocabulary", (root, passage) =>
+        {
+            string path = Path.ChangeExtension(passage, ".vocabulary.json");
+            var repository = new VocabularyRepository();
+            repository.Save(path, new VocabularyData
+            {
+                Words = [new VocabularyEntry { Word = "Take  care" }]
+            }, null);
+            var snapshot = repository.Load(path);
+            string before = JsonFiles.Fingerprint(path);
+            var editor = new VocabularyEditor();
+            Program.Check(editor.Add(path, snapshot, " take care ", out string word) is null &&
+                word == "take care" && JsonFiles.Fingerprint(path) == before &&
+                snapshot.Data.Words.Single().Word == "Take  care");
+            var saved = editor.Add(path, snapshot, "take care of", out _);
+            Program.Check(saved is not null && saved.Data.Words.Count == 2 &&
+                saved.Data.Words[0].Word == "Take  care");
+        });
         RunCopyTest("vocabulary copy-only roundtrip and external edit detection", (root, passage) =>
         {
             var repository = new VocabularyRepository();

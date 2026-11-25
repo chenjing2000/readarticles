@@ -1,11 +1,34 @@
 using System.IO;
 using ReadArticles.Models;
+using ReadArticles.Infrastructure;
 using ReadArticles.Services;
 
 internal static class LazyTreeChecks
 {
     internal static void Run()
     {
+        Program.Run("excluded folder names parse and validate without losing internal characters", () =>
+        {
+            var names = ReaderSettings.ParseExcludedFolders(" audio , video ; player-result ，结果 ； AUDIO ;; my audio (2) ");
+            Program.Check(names.SetEquals(new[] { "audio", "video", "player-result", "结果", "my audio (2)" }) &&
+                names.Count == 5 && names.Contains("AUDIO"));
+            Program.Check(ReaderSettings.ParseExcludedFolders(" ;，, ").Count == 0);
+            foreach (string invalid in new[] { "audio*", @"C:\audio", @"audio\video", "..", "name.", "NUL.txt", "COM¹", "a/b" })
+            {
+                bool rejected = false;
+                try { ReaderSettings.ParseExcludedFolders(invalid); }
+                catch (ArgumentException) { rejected = true; }
+                Program.Check(rejected);
+            }
+            var original = new ReaderSettings();
+            var draft = original.Copy();
+            draft.ExcludedFolders = "";
+            Program.Check(original.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
+            original.Apply(draft);
+            Program.Check(original.ExcludedFolders == "");
+            var legacy = System.Text.Json.JsonSerializer.Deserialize<ReaderSettings>("""{"Appearance":{},"Audio":{}}""")!;
+            Program.Check(legacy.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
+        });
         Program.Run("root discovery does not recurse into books or parse their JSON", () =>
         {
             InTemporaryLibrary(root =>
@@ -76,7 +99,7 @@ internal static class LazyTreeChecks
                 Program.Check(found.Entries.Count == 1 && found.Entries[0].Name == "Article");
             });
         });
-        Program.Run("directory filtering hides cache always and audio only beside JSON files", () =>
+        Program.Run("default directory exclusions match complete names regardless of JSON", () =>
         {
             InTemporaryLibrary(root =>
             {
@@ -104,10 +127,10 @@ internal static class LazyTreeChecks
                     jsonEntries.Single(n => n.IsPassage).Name == "metadata");
                 Program.Check(jsonEntries.Where(n => !n.IsPassage).Select(n => n.Name)
                     .OrderBy(n => n).SequenceEqual(
-                        new[] { "cache_backup", "images", "my_cache" }.OrderBy(n => n)));
+                        new[] { "audios", "audio_backup", "generated_audio", "myaudio", "cache_backup", "images", "my_cache" }.OrderBy(n => n)));
                 Program.Check(nonJsonEntries.Where(n => !n.IsPassage).Select(n => n.Name)
                     .OrderBy(n => n).SequenceEqual(
-                        new[] { "audio", "audios", "cache_backup", "images" }.OrderBy(n => n)));
+                        new[] { "audios", "cache_backup", "images" }.OrderBy(n => n)));
             });
         });
         Program.Run("only direct JSON objects tagged exactly passage become leaves", () =>
@@ -142,7 +165,7 @@ internal static class LazyTreeChecks
                     expanded.Entries[0].IsPassage);
             });
         });
-        Program.Run("root-level cache and audio folders are filtered when applicable", () =>
+        Program.Run("custom directory exclusions apply at root and every expanded level", () =>
         {
             InTemporaryLibrary(root =>
             {
@@ -154,8 +177,21 @@ internal static class LazyTreeChecks
                     File.WriteAllText(Path.Combine(book, "book.json"), "marker");
                 }
 
-                var result = new LibraryRepository().Load(root);
-                Program.Check(result.Books.Count == 1 && result.Books[0].Name == "NormalBook");
+                var repository = new LibraryRepository();
+                var filter = ReaderSettings.ParseExcludedFolders("audiobook ; 结果， video");
+                var result = repository.Load(root, filter);
+                Program.Check(result.Books.Select(n => n.Name).SequenceEqual(new[] { "Cache", "NormalBook" }));
+                var nested = Path.Combine(root, "NormalBook", "nested");
+                Directory.CreateDirectory(Path.Combine(nested, "Video"));
+                Directory.CreateDirectory(Path.Combine(nested, "结果"));
+                Directory.CreateDirectory(Path.Combine(nested, "video-files"));
+                Directory.CreateDirectory(Path.Combine(nested, "audio"));
+                Directory.CreateDirectory(Path.Combine(nested, "userdata"));
+                File.WriteAllText(Path.Combine(nested, "video.json"), """{"filetype":"passage"}""");
+                var entries = repository.ScanDirectoryLevel(nested, Path.Combine(root, "NormalBook"), filter).Entries;
+                Program.Check(entries.Count == 3 && entries.Any(n => n.Name == "audio") &&
+                    entries.Any(n => n.Name == "video-files") && entries.Any(n => n.Name == "video" && n.IsPassage));
+                Program.Check(repository.Load(root, ReaderSettings.ParseExcludedFolders("")).Books.Count == 3);
             });
         });
     }
