@@ -1,49 +1,34 @@
 # ReadArticles 项目契约卡
 
-## 关键行为与数据
+本文件定义必须保持的项目行为和数据边界。具体格式、操作及实现职责分别见[文件约定](Library-Layout.md)、[用户指南](User-Guide.md)和[架构说明](Application-Overview.md)。
 
-- 启动显示折叠文章库，选择文章后读取文章及配套词汇 JSON。编辑只写当前配套词汇文件。真实文章库由用户选择，必须使用工作副本进行破坏性测试。见[文件约定](Library-Layout.md)。
-- 文章全文音频与词汇发音使用两个播放通道并协调互斥；不提供句子级音频。全文音频仅搜索文章 JSON 同目录，按 M4A、MP3、WAV 优先级及同格式文件名升序依次尝试；打开失败继续下一候选，成功打开即停止搜索，全部失败才提示。词汇发音仍以 MP3 存在优先，解码失败不回退 WAV。
-- 文章 JSON 仅使用 filetype/title/paragraphs 三个属性名，paragraphs 是段落内句子字符串二维数组；title 必须存在但允许空字符串，正文显示标题仅来自 JSON，不从文件名回退。文章正文 JSON 和音频文件由 ReadArticles 只读；词汇伴随 JSON 是应用管理的用户数据，保存时必须保留现有格式、并发修改检测和原子写入保护。词汇可选 `family` 字符串数组记录文章中实际出现且与 `word` 不同的词形；匹配时归属于原词头，直接词头匹配优先，不推断词形，不影响音频或右侧词汇列表显示。
+## 阅读与数据
+
+- 启动仅恢复书库并显示折叠树，不恢复文章。根目录只发现直接包含 `book.json` 的书籍；展开时在后台扫描一级，解析直接 JSON 的 `filetype`，只显示精确标记为 `passage` 的对象。完整格式校验在打开文章时进行。折叠、切库和退出使旧扫描失效；折叠不影响阅读及播放。切换失败保留旧文章、词表和已提交的树选择。
+- Passage 生成格式为 `filetype/title/paragraphs` 三字段，标题必须为字符串，可为空，正文是非空二维句子字符串数组。可选 Script 同名伴随文件仅在切换阅读模式时加载，独立标题和文本、合法时间单元及 null 时间对规则见文件约定；失败保留原阅读状态和播放。
+- Passage、Script 和媒体只读；应用仅编辑当前配套词汇文件。保留词汇扩展元数据、外部修改检测、写入互斥、原子替换、验证备份与异常救援副本。词汇 `family` 是显式词形列表，匹配归属于词头，直接词头优先，不自动推断词形，不改变词汇列表显示和音频命名。真实库的破坏性测试必须使用隔离副本。
+- 不提供账户、练习作答、句子级音频或旧格式迁移。内容制作 Skills 是外部工作流，不代表运行时能力。
+
+## 播放与交互
+
+- 全文音频只搜索 Passage 同目录，按 M4A、MP3、WAV 优先级及同格式文件名顺序尝试；打开失败继续候选，成功打开即停止搜索，全部失败才提示。词汇发音依照词头 ASCII stem 及 UK/US 后缀推导，MP3 存在优先，解码失败不回退 WAV。两个播放通道独立并协调互斥，过期回调不得影响新目标。
+- 主窗口内无修饰键的 Space、Left、Right 独占全文播放控制，WPF 和 WebView2 均须拦截按下及释放事件，即使当前操作不可用；Space 每次物理按压只切换一次，方向键可重复，使用配置步长。保持焦点及暂停状态，不触发其他控件操作或额外浏览器焦点样式；保留鼠标、Tab、其他按键、修饰键组合和独立对话框的正常行为。
+- 通知为中间窗格浮动卡片，最多三条可见，其余 FIFO 排队；普通及警告自动过期，错误不自动消失。成功切换文章或书库清理旧上下文通知，失败切换不清理。
 
 ## 技术与运行环境
 
-- C# / WPF，.NET 10，Windows x64。
-- 正式启动以单个 WebView2 作为唯一阅读工作区；WPF 保留窗口和左侧目录树。WebView2 Evergreen Runtime 为运行依赖。
-- WebView2 初始化、导航或进程异常时，停止音频并显示最小原生故障提示及退出入口；不启用第二套 WPF 阅读器。
-- Framework-dependent 单文件发布，不启用 trimming。运行需要 .NET 10 Windows Desktop Runtime x64，补丁下限见 [README](../README.md)。
-- 采用便携式目录部署。程序目录必须位于当前用户有写权限的位置；不自动迁移用户数据到 `%LOCALAPPDATA%`。
+- C# / WPF，.NET 10，Windows x64。单个 WebView2 承载阅读工作区，WPF 保留窗口、树、设置及故障退出界面。浏览器初始化、导航或进程失败时停止音频并显示原生故障提示，不启用第二套阅读器。
+- Framework-dependent 单文件发布，不启用 trimming；需要 .NET 10 Windows Desktop Runtime x64（最低补丁见 [README](../README.md)）及 WebView2 Evergreen Runtime。
+- 便携目录部署于用户有写权限的位置，不自动迁移至其他目录，不使用安装器、自包含运行时或在线更新器。
 
-## 目录与用户数据
+## 用户数据与发布
 
-- 发布入口：`dist/ReadArticles/ReadArticles.exe`。
-- 用户数据根目录：可执行文件同级的 `userdata/`。
-- 设置：EXE 同级的 `userdata/config/settings.json`。旧配置不迁移，破坏性重置旧格式，账户功能及其专属代码已删除。
-- 设置备份位于 `userdata/backups/settings/`，每个设置文件只保留最近一个有效版本。
-- 词汇备份位于 `userdata/backups/vocabulary/`，每个源词汇文件只保留最近一个有效版本；备份标识由规范化完整源路径的 SHA-256 生成。
-- `userdata/logs/` 保存应用运行日志：按日写入，单文件上限 2 MiB，最多保留 14 天，日志目录总量上限 20 MiB。日志不得包含文章正文、词汇释义、词条文本或媒体绝对路径；日志写入失败不得影响主程序。
-- `userdata/cache/webview2/` 存放 WebView2 用户数据；不属于需备份的业务数据。其他应用级持久缓存尚未启用。
-- 外部文章库和音频仍由用户选择，绝不自动移动到程序目录或 userdata。
-- 旧格式不迁移；新版配置损坏时保留 `.corrupt` 副本，尝试恢复最近一个有效设置备份。
+- 发布入口 `dist/ReadArticles/ReadArticles.exe`；用户数据根目录为 EXE 同级 `userdata/`。设置、缓存、日志、备份各自职责见[配置](Configuration.md)及[日志](Logging.md)。
+- 设置路径 `userdata/config/settings.json`，旧格式不迁移，损坏当前配置保留 .corrupt 副本并尝试备份恢复。设置及每个源词汇文件保留最近一个正常验证备份；词汇备份由规范化完整源路径 SHA-256 标识。不得删除唯一有效版本或异常救援副本。
+- 日志按日写入，单文件 2 MiB、保留 14 天、总量 20 MiB（尽力而为）；不得记录学习内容或绝对媒体路径；日志故障不得影响业务。WebView2 缓存不属于业务备份。
+- 外部库不移动、不自动迁移。发布采用暂存验证及同卷替换，保留 userdata、已有 README 和旧 EXE 恢复副本；失败保护当前安装。旧 dist 布局既不迁移也不自动删除。见[发布](Publishing.md)。
 
-## 构建与交付
+## 验证与授权
 
-- `\.\tools\Publish.ps1` → `dist\ReadArticles\ReadArticles.exe`。更新仅替换程序文件；保留 `dist/ReadArticles/userdata/`，旧 `dist/userdata/` 仅验证复制、不自动删除。
-- 发布采用临时暂存、验证和同卷替换；失败时保留现有程序。
-- 不采用安装器、自包含运行时或在线更新器。
-
-## 验证
-
-- `\.\tools\Test.ps1 -Suite Core`、`-Suite UI` 或 `-Suite Full`，统一从 `tests/TestData/` 读取固定测试资源；临时副本位于系统临时目录，输出位于 `artifacts/`。
-- 发布后运行 `\.\tools\Test-PublishedApp.ps1`。
-- 业务和控件检查之外，用真实库验证媒体匹配、播放切换、词汇保存和实际声卡输出。见[测试说明](Testing.md)。
-
-[项目说明](../README.md) · [专属检查](../docs/skills/project-code-review/SKILL.md)
-
-## 导航与通知行为约束
-
-- The bottom status row is removed. Middle-pane floating Toasts classify Info, Warning and Error; only the first two auto-expire, while all unacknowledged errors remain accessible.
-- Library discovery is strictly one level at a time and directory enumeration occurs away from the WPF Dispatcher. Directory collapse invalidates pending work but must not interrupt reading or audio.
-- A failed article switch preserves the previously committed passage and vocabulary, and the UI must not display a false selected passage.
-- Failed backup restoration may retain exceptional rescue copies. Never delete the only valid version of a source, backup or staged recovery copy.
-- Unmodified Space, Left and Right are exclusively whole-article playback shortcuts throughout the active main window (WPF and WebView2). Consume them even when unavailable; Space toggles once per physical press, arrows repeat using configured intervals, seeking preserves focus and playback state. Separate dialogs and modified shortcuts retain normal behavior. See [architecture](Application-Overview.md).
+- 使用 [Testing](Testing.md) 中的 Core/UI/Full、Workflow 及发布产物检查入口；固定输入来自 `tests/TestData/`，临时副本隔离，输出在 `artifacts/`。真实 GUI、键盘与声卡验收不可由 hosted CI 替代。
+- 遵循 [AGENTS](../AGENTS.md) 和[项目专属审查](skills/project-code-review/SKILL.md)。以第一性原理和最小必要设计为先，保护已确认行为和数据。新开发先讨论范围，独立分支及 PR，合并须单独授权。

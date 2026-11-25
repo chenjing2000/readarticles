@@ -25,4 +25,4 @@ This index links to the **current** application contracts, developer guides, and
 - [Passage segmentation](skills/passage_segment/SKILL.md) — segment and validate passage JSON
 - [Vocabulary enrichment](skills/vocabulary_enrichment/SKILL.md) — enrich and normalize vocabulary JSON
 
-Use the project contract for behavioral rules, the relevant reference for details, and the existing Test/Publish scripts for validation. Avoid duplicating changing settings, test counts, or release instructions across documents.
+The project contract owns invariants; Library Layout owns file discovery and formats; Configuration owns settings values; User Guide owns operation; Application Overview owns implementation responsibilities; Testing and Publishing own verification and release instructions. HANDOFF records verified baselines and outstanding work only. Keep historical implementation details in Git/PRs. External authoring Skills define producer rules; they must not imply runtime support. Avoid duplicating changing settings, test counts or release instructions across documents.
