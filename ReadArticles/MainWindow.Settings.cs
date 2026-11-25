@@ -4,12 +4,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using ReadArticles.Infrastructure;
+using ReadArticles.Layout;
 
 namespace ReadArticles;
 
 public partial class MainWindow
 {
     private readonly ReaderSettings settings;
+    private readonly PaneLayout paneLayout = new();
     private readonly bool persistSettings;
 
     private void InitializeWindowSettings()
@@ -28,12 +30,11 @@ public partial class MainWindow
         Top = Math.Round(Math.Round(workArea.Top) + (Math.Round(workArea.Height) - Height) / 2);
 
         // Only the native library pane is sized in WPF; WebView2 owns the vocabulary divider.
-        LeftColumn.Width = new GridLength(settings.LeftWidth);
+        LeftColumn.Width = new GridLength(paneLayout.LeftWidth);
 
         // The reader owns no volume setting: both native players run at 100%.
         player.Volume = 1.0;
         pronunciationPlayer.Volume = 1.0;
-        ViewModel.Accent = settings.Accent;
     }
 
     private void WindowClosing(object? sender, CancelEventArgs e)
@@ -46,7 +47,6 @@ public partial class MainWindow
     {
         if (!persistSettings) return true;
 
-        settings.Accent = ViewModel.Accent;
         settings.Library = ViewModel.LibraryRoot;
         try
         {
@@ -67,7 +67,7 @@ public partial class MainWindow
 
     private void SettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ViewModel.Accent) || e.PropertyName == nameof(ViewModel.LibraryRoot))
+        if (e.PropertyName == nameof(ViewModel.LibraryRoot))
             SaveSettings();
     }
 
@@ -80,53 +80,21 @@ public partial class MainWindow
         return Math.Floor(Math.Max(606, width) - 6);
     }
 
-    private void SetPaneWidths(double left, double right, bool notifyBrowser)
+    private void ApplyPaneWidths(bool rightChanged)
     {
-        double available = AvailablePaneWidth();
-        left = Math.Clamp(Math.Round(left), 200, Math.Min(400, available - 400));
-        right = Math.Clamp(Math.Round(right), 200, Math.Min(400, available - left - 200));
-        bool rightChanged = Math.Abs(settings.RightWidth - right) >= 0.5;
-        settings.LeftWidth = left;
-        settings.RightWidth = right;
-        if (Math.Abs(LeftColumn.Width.Value - left) >= 0.5)
-            LeftColumn.Width = new GridLength(left);
-        if (rightChanged && notifyBrowser && webPilotReady)
-            PostWebPilot("setPaneWidth", new { rightWidth = right });
+        if (Math.Abs(LeftColumn.Width.Value - paneLayout.LeftWidth) >= 0.5)
+            LeftColumn.Width = new GridLength(paneLayout.LeftWidth);
+        if (rightChanged) webReaderBridge?.SendPaneWidth();
     }
 
-    private void ResizeLibraryPane(double requestedLeft)
-    {
-        double available = AvailablePaneWidth();
-        double left = Math.Clamp(Math.Round(requestedLeft), 200, Math.Min(400, available - 400));
-        double right = Math.Min(settings.RightWidth, available - left - 200);
-        SetPaneWidths(left, right, notifyBrowser: true);
-    }
+    private void ResizeLibraryPane(double requestedLeft) =>
+        ApplyPaneWidths(paneLayout.ResizeLibrary(requestedLeft, AvailablePaneWidth()));
 
-    private void ResizeVocabularyPane(double requestedRight)
-    {
-        double available = AvailablePaneWidth();
-        double right = Math.Clamp(Math.Round(requestedRight), 200, Math.Min(400, available - 400));
-        double left = Math.Min(settings.LeftWidth, available - right - 200);
-        // Only C# decides the applied width; the browser waits for the result.
-        SetPaneWidths(left, right, notifyBrowser: true);
-    }
+    private void WorkspaceResized(object sender, SizeChangedEventArgs e) =>
+        ApplyPaneWidths(paneLayout.Fit(AvailablePaneWidth()));
 
-    private void WorkspaceResized(object sender, SizeChangedEventArgs e)
-    {
-        double available = AvailablePaneWidth();
-        double left = settings.LeftWidth;
-        double right = settings.RightWidth;
-        double overflow = Math.Max(0, left + right + 200 - available);
-        double rightReduction = Math.Min(overflow, right - 200);
-        right -= rightReduction;
-        left -= overflow - rightReduction;
-        SetPaneWidths(left, right, notifyBrowser: true);
-    }
-
-    private void LibrarySplitterDragged(object sender, DragDeltaEventArgs e)
-    {
-        ResizeLibraryPane(settings.LeftWidth + e.HorizontalChange);
-    }
+    private void LibrarySplitterDragged(object sender, DragDeltaEventArgs e) =>
+        ResizeLibraryPane(paneLayout.LeftWidth + e.HorizontalChange);
 
     private void SettingsClicked(object sender, RoutedEventArgs e)
     {
@@ -137,8 +105,6 @@ public partial class MainWindow
     private bool ApplyDialogSettings(ReaderSettings edited)
     {
         edited.Library = ViewModel.LibraryRoot;
-        edited.LeftWidth = settings.LeftWidth;
-        edited.RightWidth = settings.RightWidth;
         try
         {
             if (persistSettings) edited.Save();
@@ -151,9 +117,8 @@ public partial class MainWindow
             return false;
         }
 
-        settings.Apply(edited);
-        ViewModel.Accent = settings.Accent;
-        SendWebPilotSettings();
+        ViewModel.ApplySettings(edited);
+        webReaderBridge?.SendSettings();
         return true;
     }
 }

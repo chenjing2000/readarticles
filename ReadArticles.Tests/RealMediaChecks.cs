@@ -1,3 +1,4 @@
+using ReadArticles.Vocabulary;
 using ReadArticles.Infrastructure;
 using ReadArticles.Services;
 using System.IO;
@@ -23,7 +24,7 @@ internal static class RealMediaChecks
                     for (int i = 0; i < frames; i++) writer.Write((short)0);
                 }
                 var resources = new AudioResources();
-                foreach (string path in new[] { resources.Vocabulary(root, VocabularyRepository.NewEntry("test"), "uk") })
+                foreach (string path in new[] { resources.Vocabulary(root, VocabularyEditor.NewEntry("test"), "uk") })
                 {
                     using var player = new WpfAudioPlayer { Volume = 0 };
                     var controller = new PlaybackController(player);

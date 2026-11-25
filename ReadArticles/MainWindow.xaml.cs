@@ -14,15 +14,14 @@ public partial class MainWindow : Window
         this.persistSettings = persistSettings;
         string? settingsWarning = null;
         settings = persistSettings ? ReaderSettings.Load(out settingsWarning) : new ReaderSettings();
-        ViewModel = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
+        ViewModel = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer), settings);
 
         InitializeComponent();
         DataContext = ViewModel;
         InitializeWindowSettings();
         ViewModel.HighlightsVisible = false;
-        InitializePlayback();
         ViewModel.PropertyChanged += SettingsChanged;
-        InitializeWebPilot();
+        InitializeWebReader();
         Closing += WindowClosing;
         Closed += WindowClosed;
 
@@ -35,7 +34,8 @@ public partial class MainWindow : Window
 
     private void WindowClosed(object? sender, EventArgs e)
     {
-        CloseWebPilot();
+        CloseWebReader();
+        ViewModel.PropertyChanged -= SettingsChanged;
         ViewModel.CloseNavigation();
         ClosePlayback();
     }

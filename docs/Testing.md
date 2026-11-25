@@ -82,6 +82,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 ## Ownership and maintenance
 
+Feature tests cover PaneLayout geometry/drag rollback, ReaderWorkspace committed modes, VocabularyEditor persistence before workspace commit, and WebReaderBridge request identity/revision guards. Browser tests exercise actual embedded ES modules via dynamic import and DOM events without exposing mutable application globals. Retain real DOM, native focus and media assertions when reorganizing source files. Hosted Core does not run all local UI/Full cases.
+
 Never edit `tests/TestData/` during a test run. When intentionally changing a fixture, update `tests/TestData/README.md` and the corresponding regression assertions in the same change. Do not commit generated screenshots, reports, logs, personal settings, or temporary media. Run tests sequentially because native WPF input and playback checks require exclusive desktop interaction.
 
 ## Targeted regression checks
@@ -95,7 +97,7 @@ dotnet run --project ReadArticles.Tests -c Release -- --webview-pilot-only
 dotnet run --project ReadArticles.Tests -c Release -- --script-only
 ```
 
-- `--webview-pilot-only` covers the embedded static assets, terminal native error screen, lack of legacy WPF reader, real Passage/word DOM and Script switching, exclusive reserved-key dispatch and focus-outline suppression, vocabulary matching boundaries and `family` mapping across Passage/Script timed units, independent scroll, font-setting roundtrip, notification dismissal and SVG clip/foreground progress.
+- `--webview-pilot-only` (retained command name) covers the embedded HTML/CSS/ES module/icon assets, terminal native error screen, lack of legacy WPF reader, real Passage/word DOM and Script switching, exclusive reserved-key dispatch and focus-outline suppression, vocabulary matching boundaries and `family` mapping across Passage/Script timed units, independent scroll, font-setting roundtrip, notification dismissal and SVG clip/foreground progress.
 - `--script-only` covers Script JSON validation, timed-unit offsets, null-time handling and bridge snapshot/selection contracts. Script unaligned units are allowed but not colored; single-null and zero-duration intervals must be rejected.
 - `--tree-only`, `--lazy-tree-only`, `--controls-only`, `--editing-only`, `--notifications-only` and `--backup-only` keep the native tree, business states and data-safety checks. `--rendering-only` checks the browser and Script bridge, **not** the deleted WPF `ParagraphReader`.
 - `--source-only` verifies that the active test article and vocabulary load without writes. It is **not** an independent browser-rendering test; real DOM assertions are in `--webview-pilot-only` / `--rendering-only`.

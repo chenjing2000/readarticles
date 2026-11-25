@@ -1,25 +1,34 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Threading;
 using ReadArticles.Infrastructure;
 using ReadArticles.Models;
 using ReadArticles.Services;
 
-namespace ReadArticles.ViewModels;
+namespace ReadArticles.Library;
 
-public sealed partial class MainViewModel
+// Owns library discovery, the committed root, tree projection and scan lifetime.
+// Collection changes and commit callbacks always execute on the owning dispatcher.
+public sealed class LibraryNavigation
 {
     private readonly LibraryRepository libraryRepository = new();
     private readonly Dictionary<NavigationNode, CancellationTokenSource> directoryScans = new();
     private long librarySession;
     private bool navigationClosed;
 
-    public bool OpenLibrary(string root) => Handle(() =>
-    {
-        var prepared = libraryRepository.Load(root);
-        CommitLibrary(prepared);
-    });
+    private readonly Action<string, string, NotificationSeverity> notify;
+    private LibrarySnapshot? library;
+    public string? Root => library?.Root;
+    public ObservableCollection<NavigationNode> Books { get; } = new();
 
-    public async Task<bool> OpenLibraryAsync(string root)
+    public LibraryNavigation(Action<string, string, NotificationSeverity> notify)
+    {
+        this.notify = notify;
+    }
+
+    public LibrarySnapshot PrepareLibrary(string root) => libraryRepository.Load(root);
+
+    public async Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot> commit)
     {
         Dispatcher ui = Dispatcher.CurrentDispatcher;
         long session = ++librarySession;
@@ -33,7 +42,7 @@ public sealed partial class MainViewModel
             return await ui.InvokeAsync(() =>
             {
                 if (navigationClosed || session != librarySession) return false;
-                CommitLibrary(prepared);
+                commit(prepared);
                 return true;
             });
         }
@@ -44,32 +53,26 @@ public sealed partial class MainViewModel
             {
                 if (session != librarySession || navigationClosed) return;
                 AppLogger.Default.Warning("LibraryOpenFailed", error);
-                Notify("LibraryOpenFailed", "无法打开图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
+                notify("LibraryOpenFailed", "无法打开图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
             });
             return false;
         }
     }
 
-    private void CommitLibrary(LibrarySnapshot prepared)
+    public void CommitLibrary(LibrarySnapshot prepared)
     {
         ++librarySession;
         CancelAllDirectoryScans();
-        workspace.CommitLibrary(prepared);
-        playback.Stop();
-        // Clear after stopping the previous audio, before reporting any
-        // warnings from the newly opened library.
-        Notifications.Clear();
+        library = prepared;
+    }
+
+    // Publish after the application has stopped the previous playback and
+    // cleared notifications, keeping the existing context-switch order.
+    public void RefreshBooks()
+    {
         Books.Clear();
-        foreach (var book in prepared.Books) Books.Add(book);
-        Words.Clear();
-        Changed(nameof(LibraryRoot));
-        Changed(nameof(ArticleTitle));
-        ArticleChanged?.Invoke();
-        if (prepared.Warnings.Count > 0)
-        {
-            AppLogger.Default.Warning("LibraryLoadedWithWarnings");
-            Notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);
-        }
+        if (library is not null)
+            foreach (var book in library.Books) Books.Add(book);
     }
 
     public async Task ExpandDirectoryAsync(NavigationNode node)
@@ -115,7 +118,7 @@ public sealed partial class MainViewModel
                 if (result.Warnings.Count != 0)
                 {
                     AppLogger.Default.Warning("DirectoryScanIncomplete");
-                    Notify("DirectoryScanIncomplete", "部分目录项无法读取，可折叠后重新展开重试。",
+                    notify("DirectoryScanIncomplete", "部分目录项无法读取，可折叠后重新展开重试。",
                         NotificationSeverity.Warning);
                 }
             });
@@ -131,7 +134,7 @@ public sealed partial class MainViewModel
                     if (node.LastSuccessfulSnapshot is not null)
                         node.ReplaceChildren(node.LastSuccessfulSnapshot, NodeLoadState.Failed);
                     AppLogger.Default.Warning("DirectoryScanFailed", error);
-                    Notify("DirectoryScanFailed", "目录扫描失败，可重新展开重试。", NotificationSeverity.Warning);
+                    notify("DirectoryScanFailed", "目录扫描失败，可重新展开重试。", NotificationSeverity.Warning);
                 }
             });
         }
@@ -185,27 +188,6 @@ public sealed partial class MainViewModel
         ++librarySession;
         CancelAllDirectoryScans();
     }
-
-    public bool OpenArticle(string path) => Handle(() =>
-    {
-        var prepared = new ArticleRepository().Load(path);
-        var words = PrepareWords(prepared);
-        workspace.CommitArticle(prepared);
-        playback.Stop();
-        // Discard the previous article's visible and queued messages after
-        // the new article has committed. Failed opens do not clear anything.
-        Notifications.Clear();
-        Words.Clear();
-        foreach (var word in words) Words.Add(word);
-        Changed(nameof(ArticleTitle));
-        ArticleChanged?.Invoke();
-        if (Article!.Warnings.Count > 0)
-        {
-            AppLogger.Default.Warning("ArticleLoadedWithWarnings");
-            Notify("ArticleLoadedWithWarnings", "文章已打开，但部分附属数据存在问题。",
-                NotificationSeverity.Warning);
-        }
-    });
 
     public static IEnumerable<NavigationNode> AllLeaves(IEnumerable<NavigationNode> nodes)
     {

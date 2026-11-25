@@ -1,6 +1,7 @@
 using ReadArticles.Models;
 using ReadArticles.Infrastructure;
 using System.IO;
+using System.Text.RegularExpressions;
 namespace ReadArticles.Services;
 public sealed class AudioResources
 {
@@ -25,17 +26,22 @@ public sealed class AudioResources
             .OfType<string>()
             .ToArray();
     }
+    public static string AudioStem(string word)
+    {
+        return Regex.Replace(word.Trim().ToLowerInvariant(), "[^a-z0-9]+", "_").Trim('_');
+    }
+
     public string Vocabulary(string root, VocabularyEntry entry, string accent)
     {
-        string stem = VocabularyRepository.AudioStem(entry.Word);
+        string stem = AudioStem(entry.Word);
         if (stem.Length == 0) throw new InvalidDataException("词条没有可用的音频文件名。");
         return FindFile(root, "audio", stem, accent);
     }
-    public static bool OwnsWordAudio(LoadedArticle article, VocabularyEntry entry)
+    public static bool OwnsWordAudio(IReadOnlyList<VocabularyEntry> words, VocabularyEntry entry)
     {
-        string stem = VocabularyRepository.AudioStem(entry.Word);
+        string stem = AudioStem(entry.Word);
         return stem.Length > 0 && ReferenceEquals(entry,
-            article.Vocabulary.Data.Words.FirstOrDefault(w => VocabularyRepository.AudioStem(w.Word) == stem));
+            words.FirstOrDefault(w => AudioStem(w.Word) == stem));
     }
     private static string FindFile(string root, string folder, string stem, string accent)
     {

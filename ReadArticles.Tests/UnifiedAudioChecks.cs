@@ -1,3 +1,4 @@
+using ReadArticles.Vocabulary;
 using System.IO;
 using System.Text.Json.Nodes;
 using ReadArticles.Models;
@@ -15,7 +16,7 @@ internal static class UnifiedAudioChecks
             Program.Run("unified ASCII stems collapse punctuation and preserve empty-stem words", () =>
             {
                 foreach (var pair in new[] { (" One's Own ", "one_s_own"), ("A / B", "a_b"), ("_A!", "a"), ("café", "caf"), ("!!!", "") })
-                    Program.Check(VocabularyRepository.AudioStem(pair.Item1) == pair.Item2);
+                    Program.Check(AudioResources.AudioStem(pair.Item1) == pair.Item2);
                 VocabularyRepository.Validate(new VocabularyData { Words = [new() { Word = "!!!" }, new() { Word = "well-being" }, new() { Word = "well being" }] });
             });
             Program.Run("legacy word audio is ignored and removed on save while other metadata survives", () =>
@@ -31,7 +32,7 @@ internal static class UnifiedAudioChecks
             Program.Run("word lookup uses audio MP3 before WAV and ignores old directory", () =>
             {
                 var resources = new AudioResources();
-                var entry = VocabularyRepository.NewEntry("One's Own");
+                var entry = VocabularyEditor.NewEntry("One's Own");
                 Directory.CreateDirectory(Path.Combine(root, "audio_vocabulary"));
                 File.WriteAllBytes(Path.Combine(root, "audio_vocabulary", "one_s_own_uk.mp3"), [1]);
                 Program.Check(!AudioResources.IsAvailable(resources.Vocabulary(root, entry, "uk")));
@@ -66,7 +67,7 @@ internal static class UnifiedAudioChecks
                 Program.Check(model.OpenArticle(path) && model.Words.Count == 3);
                 var entries = model.Article!.Vocabulary.Data.Words;
                 // The first reserves the stem before any file exists.
-                Program.Check(AudioResources.OwnsWordAudio(model.Article, entries[0]) && !AudioResources.OwnsWordAudio(model.Article, entries[1]));
+                Program.Check(AudioResources.OwnsWordAudio(model.Article!.Vocabulary.Data.Words, entries[0]) && !AudioResources.OwnsWordAudio(model.Article!.Vocabulary.Data.Words, entries[1]));
                 File.WriteAllBytes(Path.Combine(root, "audio", "well_being_uk.mp3"), [1]);
                 File.WriteAllBytes(Path.Combine(root, "audio", "well_being_us.wav"), [1]);
                 File.WriteAllBytes(Path.Combine(root, "audio", "_uk.mp3"), [1]);
@@ -82,10 +83,10 @@ internal static class UnifiedAudioChecks
                 model.PlayWord(formerFirst, "uk");
                 Program.Check(pronunciationController.State == PlaybackState.Playing);
                 Program.Check(model.TryMoveWord(formerSecond, -1) == VocabularyEditResult.Success);
-                Program.Check(AudioResources.OwnsWordAudio(model.Article!, formerSecond) && !AudioResources.OwnsWordAudio(model.Article!, formerFirst));
+                Program.Check(AudioResources.OwnsWordAudio(model.Article!.Vocabulary.Data.Words, formerSecond) && !AudioResources.OwnsWordAudio(model.Article!.Vocabulary.Data.Words, formerFirst));
                 Program.Check(pronunciationController.State == PlaybackState.Stopped && model.Words[0].CanPlayUk && !model.Words[1].CanPlayUk);
                 Program.Check(model.TryDeleteWord(formerSecond) == VocabularyEditResult.Success);
-                Program.Check(AudioResources.OwnsWordAudio(model.Article!, formerFirst));
+                Program.Check(AudioResources.OwnsWordAudio(model.Article!.Vocabulary.Data.Words, formerFirst));
             });
         }
         finally { Directory.Delete(root, true); }

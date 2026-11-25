@@ -1,3 +1,4 @@
+using ReadArticles.Vocabulary;
 using ReadArticles.Services;
 using System.IO;
 using ReadArticles.ViewModels;
@@ -47,7 +48,7 @@ internal static class AudioChecks
                 Program.Check(model.OpenArticle(passage));
                 var entry = model.Article!.Vocabulary.Data.Words[0];
                 Directory.CreateDirectory(Path.Combine(dualRoot, "audio"));
-                File.Copy(second, Path.Combine(dualRoot, "audio", VocabularyRepository.AudioStem(entry.Word) + "_uk.mp3"));
+                File.Copy(second, Path.Combine(dualRoot, "audio", AudioResources.AudioStem(entry.Word) + "_uk.mp3"));
                 model.ToggleArticleAudio();
                 articlePlayer.Position = TimeSpan.FromSeconds(4);
                 model.PlayWord(entry, "uk");
@@ -93,6 +94,12 @@ internal static class AudioChecks
                 controller.Pause();
                 playback.SeekArticle(4);
                 Program.Check(playback.IsArticlePaused && playback.ArticlePosition == 4);
+                playback.SeekArticleRelative(3);
+                Program.Check(playback.IsArticlePaused && playback.ArticlePosition == 7);
+                playback.SeekArticleRelative(-20);
+                Program.Check(playback.IsArticlePaused && playback.ArticlePosition == 0);
+                playback.SeekArticleRelative(20);
+                Program.Check(playback.IsArticlePaused && playback.ArticlePosition == 10);
                 controller.Stop();
                 foreach (string owner in new[] { "word:uk:life", "word:us:life" })
                 {
@@ -105,6 +112,7 @@ internal static class AudioChecks
                 }
                 controller.Stop();
                 playback.SeekArticle(5);
+                playback.SeekArticleRelative(3);
                 Program.Check(!playback.CanSeekArticle && player.Position == TimeSpan.Zero);
             });
             Program.Run("stale media-open callbacks do not refresh a newer target", () =>
@@ -132,7 +140,7 @@ internal static class AudioChecks
                 var controller = new PlaybackController(player);
                 var pronunciation = new PlaybackController(new FakePlayer());
                 var playback = new ReaderPlayback(controller, pronunciation);
-                var entry = VocabularyRepository.NewEntry("life");
+                var entry = VocabularyEditor.NewEntry("life");
                 foreach (string owner in new[] { "passage", "word:us:other", "word:uk:afterlife" })
                 {
                     var target = owner == "passage" ? controller : pronunciation;
@@ -155,7 +163,8 @@ internal static class AudioChecks
                 var controller = new PlaybackController(player);
                 var pronunciationPlayer = new FakePlayer();
                 var pronunciation = new PlaybackController(pronunciationPlayer);
-                var model = new MainViewModel(controller, pronunciation);
+                var settings = new ReadArticles.Infrastructure.ReaderSettings();
+                var model = new MainViewModel(controller, pronunciation, settings);
                 Program.Check(model.OpenArticle(passage));
                 pronunciation.Play(new AudioItem(second), "word:uk:life");
                 model.StopArticleAudio();
@@ -164,8 +173,10 @@ internal static class AudioChecks
                 Program.Check(controller.Owner == "passage" && player.Played.Last().Path == first);
                 model.ToggleArticleAudio();
                 Program.Check(controller.State == PlaybackState.Paused && player.Pauses == 1);
-                model.Accent = "us";
-                Program.Check(controller.State == PlaybackState.Paused);
+                var edited = settings.Copy();
+                edited.Accent = "us";
+                model.ApplySettings(edited);
+                Program.Check(settings.Accent == "us" && controller.State == PlaybackState.Paused);
                 model.ToggleArticleAudio();
                 Program.Check(controller.State == PlaybackState.Playing && player.Resumes == 1);
                 model.StopArticleAudio();
@@ -173,8 +184,10 @@ internal static class AudioChecks
                 pronunciation.Play(new AudioItem(second), "word:uk:life");
                 model.StopArticleAudio();
                 Program.Check(pronunciation.State == PlaybackState.Playing);
-                model.Accent = "uk";
-                Program.Check(pronunciation.State == PlaybackState.Stopped);
+                edited = settings.Copy();
+                edited.Accent = "uk";
+                model.ApplySettings(edited);
+                Program.Check(settings.Accent == "uk" && model.Accent == "uk" && pronunciation.State == PlaybackState.Stopped);
             });
             Program.Run("missing MP3 leaves the player stopped and reports a warning", () =>
             {
@@ -253,11 +266,11 @@ internal static class AudioChecks
                 var wordController = new PlaybackController(wordPlayer);
                 var reader = new ReaderPlayback(articleController, wordController);
                 wordController.Play(new AudioItem(first), "word:uk:test");
-                reader.ToggleArticle(new ArticleRepository().Load(articlePath));
+                reader.ToggleArticle(Path.GetDirectoryName(articlePath));
                 Program.Check(wordController.State == PlaybackState.Playing && articlePlayer.Played.Count == 1);
                 articlePlayer.Fail(articlePlayer.Played[0].Request);
                 Program.Check(wordController.State == PlaybackState.Playing && articleController.State == PlaybackState.Stopped);
-                reader.ToggleArticle(new ArticleRepository().Load(articlePath));
+                reader.ToggleArticle(Path.GetDirectoryName(articlePath));
                 articlePlayer.Open(articlePlayer.Played[1].Request);
                 Program.Check(wordController.State == PlaybackState.Stopped && articleController.State == PlaybackState.Playing);
             });

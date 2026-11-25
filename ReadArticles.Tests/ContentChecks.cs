@@ -1,3 +1,4 @@
+using ReadArticles.Vocabulary;
 using System.IO;
 using System.Text.Json;
 using ReadArticles.Services;
@@ -44,7 +45,7 @@ internal static class ContentChecks
             using var first = new WpfAudioPlayer();
             using var second = new WpfAudioPlayer();
             var model = new MainViewModel(new PlaybackController(first), new PlaybackController(second));
-            var stale = VocabularyRepository.NewEntry("stale word");
+            var stale = VocabularyEditor.NewEntry("stale word");
             Program.Check(model.TryDeleteWord(stale) == VocabularyEditResult.Unavailable);
             Program.Check(model.Article == null && model.Notifications.Messages.Count == 0);
             Program.Check(model.OpenArticle(TestData.ArticlePath));
@@ -192,7 +193,7 @@ internal static class ContentChecks
             string path = Path.Combine(root, "words.json");
             File.Copy(Path.ChangeExtension(TestData.ArticlePath, ".vocabulary.json"), path);
             var snapshot = repository.Load(path);
-            var added = VocabularyRepository.NewEntry("  testing   phrase  ");
+            var added = VocabularyEditor.NewEntry("  testing   phrase  ");
             var data = new VocabularyData { Words = [.. snapshot.Data.Words, added], Extra = snapshot.Data.Extra };
             var fingerprint = repository.Save(path, data, snapshot.Fingerprint);
             Program.Check(repository.Load(path).Data.Words[^1].Word == "testing phrase" && !File.ReadAllText(path).Contains("\"audio\"" ));
@@ -225,6 +226,28 @@ internal static class ContentChecks
             Program.Check(model.OpenArticle(Path.Combine(book, "Reading.json")));
             Program.Check(model.ArticleTitle == "When America walks away" && notifications == 1);
         });
+        RunCopyTest("vocabulary editor persists candidate before workspace commit and rejects stale fingerprint", (root, passage) =>
+        {
+            var workspace = new ReaderWorkspace();
+            workspace.CommitArticle(new ArticleRepository().Load(passage));
+            var current = workspace.Article!;
+            var editor = new VocabularyEditor();
+            var saved = editor.Add(current.VocabularyPath, current.Vocabulary, "  modular   test  ", out string word);
+            Program.Check(saved is not null && word == "modular test" &&
+                ReferenceEquals(workspace.Article, current));
+            var persisted = new VocabularyRepository().Load(current.VocabularyPath);
+            Program.Check(persisted.Fingerprint == saved!.Fingerprint &&
+                persisted.Data.Words.Any(w => w.Word == word));
+            bool rejected = false;
+            try { editor.Add(current.VocabularyPath, current.Vocabulary, "stale candidate", out _); }
+            catch (InvalidOperationException) { rejected = true; }
+            Program.Check(rejected && ReferenceEquals(workspace.Article, current));
+            workspace.CommitVocabulary(saved!);
+            Program.Check(ReferenceEquals(workspace.Article!.Vocabulary, saved) &&
+                workspace.Article.Vocabulary.Data.Words.Any(w => w.Word == word));
+            Program.Check(editor.Add(current.VocabularyPath, saved!, "MODULAR TEST", out _) is null);
+        });
+
         RunCopyTest("normal edits stay quiet and article switches clear previous notifications", (root, passage) =>
         {
             using var player = new WpfAudioPlayer();

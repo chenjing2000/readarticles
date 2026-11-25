@@ -6,6 +6,7 @@ using System.Text.Json;
 using ReadArticles.Models;
 using ReadArticles.Infrastructure;
 using ReadArticles.Services;
+using ReadArticles.Library;
 
 namespace ReadArticles.ViewModels;
 
@@ -13,33 +14,24 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
 {
     private readonly ReaderWorkspace workspace = new ReaderWorkspace();
     private readonly ReaderPlayback playback;
+    private readonly LibraryNavigation navigation;
     public NotificationService Notifications { get; } = new();
     public void Notify(string key, string message, NotificationSeverity severity) =>
         Notifications.Publish(key, message, severity);
-    private string accent = "uk";
+    private readonly ReaderSettings settings;
     private bool highlightsVisible;
     public event PropertyChangedEventHandler? PropertyChanged;
     public event Action? ArticleChanged;
     public event Action? VocabularyChanged;
     public event Action? PlaybackChanged;
-    public ObservableCollection<NavigationNode> Books { get; } = new ObservableCollection<NavigationNode>();
+    public ObservableCollection<NavigationNode> Books => navigation.Books;
     public ObservableCollection<VocabularyEntryViewModel> Words { get; } = new ObservableCollection<VocabularyEntryViewModel>();
     public LoadedArticle? Article => workspace.Article;
-    public string? LibraryRoot => workspace.Library?.Root;
+    public string? LibraryRoot => navigation.Root;
     public string ArticleTitle => Article?.Title ?? "";
     public ReaderPlayback Playback => playback;
     public bool CanWriteVocabulary => Article?.Vocabulary.CanWrite == true;
-    public string Accent
-    {
-        get => accent;
-        set
-        {
-            if ((value != "uk" && value != "us") || value == accent) return;
-            playback.StopPronunciation();
-            accent = value;
-            Changed();
-        }
-    }
+    public string Accent => settings.Accent;
     public bool HighlightsVisible
     {
         get => highlightsVisible;
@@ -50,8 +42,20 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
             Changed();
         }
     }
-    public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer)
+    // The caller persists the detached settings draft before applying it.
+    public void ApplySettings(ReaderSettings edited)
     {
+        string previousAccent = settings.Accent;
+        if (previousAccent != edited.Accent) playback.StopPronunciation();
+        settings.Apply(edited);
+        if (previousAccent != settings.Accent) Changed(nameof(Accent));
+    }
+
+    public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer,
+        ReaderSettings? settings = null)
+    {
+        this.settings = settings ?? new ReaderSettings();
+        navigation = new LibraryNavigation(Notify);
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
         playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);
         playback.Changed += () => PlaybackChanged?.Invoke();

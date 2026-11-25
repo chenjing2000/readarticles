@@ -8,11 +8,11 @@ using Microsoft.Web.WebView2.Wpf;
 using ReadArticles.Infrastructure;
 using ReadArticles.Services;
 
-internal static class WebViewPilotChecks
+internal static class WebReaderChecks
 {
     internal static void Run()
     {
-        Program.Run("WebView2 pilot assets embedded in application assembly", () =>
+        Program.Run("WebView2 reader assets embedded in application assembly", () =>
         {
             Assembly assembly = typeof(ReadArticles.MainWindow).Assembly;
             foreach (string name in new[]
@@ -20,6 +20,14 @@ internal static class WebViewPilotChecks
                 "ReadArticles.web.reader.html",
                 "ReadArticles.web.reader.css",
                 "ReadArticles.web.reader.js",
+                "ReadArticles.web.dom.js",
+                "ReadArticles.web.bridge.js",
+                "ReadArticles.web.reading.js",
+                "ReadArticles.web.vocabulary.js",
+                "ReadArticles.web.playback.js",
+                "ReadArticles.web.layout.js",
+                "ReadArticles.web.settings.js",
+                "ReadArticles.web.notifications.js",
                 "ReadArticles.web.icons.play.svg",
                 "ReadArticles.web.icons.pause.svg",
                 "ReadArticles.web.icons.stop.svg",
@@ -44,12 +52,12 @@ internal static class WebViewPilotChecks
             var window = new ReadArticles.MainWindow(persistSettings: false);
             try
             {
-                var fail = typeof(ReadArticles.MainWindow).GetMethod(
-                    "WebPilotFailure", BindingFlags.Instance | BindingFlags.NonPublic);
-                Program.Check(fail is not null);
-                fail!.Invoke(window, ["WebView2 initialization failed"]);
+                var host = (ReadArticles.Presentation.WebReaderHost)typeof(ReadArticles.MainWindow)
+                    .GetField("webReaderHost", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+                host.Fail("WebView2 initialization failed");
+                Program.Check(host.IsUnavailable);
                 var failurePanel = (Grid)window.FindName("WebFailurePanel");
-                var legacyOverlay = (Grid)window.FindName("WebPilotOverlay");
+                var legacyOverlay = (Grid)window.FindName("ReaderOverlay");
                 var failureMessage = (TextBlock)window.FindName("WebFailureMessage");
                 var exitButton = (Button)window.FindName("WebFailureExitButton");
                 Program.Check(failurePanel.Visibility == Visibility.Visible &&
@@ -111,7 +119,7 @@ internal static class WebViewPilotChecks
                 window.Show();
                 Program.Check(window.ViewModel.OpenArticle(article));
                 var browser = (WebView2)window.FindName("ReaderWebView");
-                var overlay = (System.Windows.Controls.Grid)window.FindName("WebPilotOverlay");
+                var overlay = (System.Windows.Controls.Grid)window.FindName("ReaderOverlay");
                 WaitFor(() => browser.CoreWebView2 is not null &&
                     overlay.Visibility == System.Windows.Visibility.Visible, "browser render handshake");
 
@@ -164,21 +172,19 @@ internal static class WebViewPilotChecks
 
                 // A focused progress slider must share the document's article-seek
                 // shortcuts, not Chromium's native 0.05-second arrow increments.
-                JsonElement seekKeys = Evaluate(browser, """
+                JsonElement seekKeys = EvaluateModule(browser, """
                     (() => {
                       const progress = document.getElementById('progress');
-                      const previousPlayback = currentPlayback;
-                      const previousSettings = currentSettings;
-                      const previousDragging = seekDragging;
-                      const originalSend = send;
+                      const previousPlayback = getPlayback();
+                      const previousDragging = isSeekDragging();
+                      const originalSend = window.chrome.webview.postMessage;
                       const calls = [];
                       try {
-                        send = (type, options = {}) => {
-                          calls.push({ type, direction: options.payload?.direction });
+                        window.chrome.webview.postMessage = ({ type, payload }) => {
+                          calls.push({ type, direction: payload?.direction });
                           return 'captured';
                         };
-                        currentSettings = { ...currentSettings, backwardStep: 11, forwardStep: 7 };
-                        seekDragging = false;
+                        progress.dispatchEvent(new Event('blur'));
                         renderPlayback({
                           position: 120, duration: 300, canSeek: true,
                           canPlay: true, isArticleActive: true, state: 'paused'
@@ -211,7 +217,7 @@ internal static class WebViewPilotChecks
                         });
                         const count = calls.length;
                         const stopped = fire(progress, 'ArrowRight');
-                        currentPlayback = { ...currentPlayback, canPlay: false };
+                        renderPlayback({ ...getPlayback(), canPlay: false });
                         const noArticleSpace = fire(button, ' ');
                         return {
                           focused, outline, left, right, global, stopped,
@@ -219,10 +225,9 @@ internal static class WebViewPilotChecks
                           repeatArrow, modified, retainedFocus, noArticleSpace
                         };
                       } finally {
-                        send = originalSend;
-                        currentSettings = previousSettings;
-                        seekDragging = previousDragging;
+                        window.chrome.webview.postMessage = originalSend;
                         renderPlayback(previousPlayback);
+                        if (previousDragging) progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
                       }
                     })()
                     """);
@@ -255,10 +260,10 @@ internal static class WebViewPilotChecks
                     throw new Exception("Unexpected progress keyboard outcome: " + seekKeys.GetRawText());
 
                 // Reserved keys must not reach any focused DOM control or reveal a focus outline.
-                JsonElement exclusiveKeys = Evaluate(browser, """
+                JsonElement exclusiveKeys = EvaluateModule(browser, """
                     (() => {
-                      const originalSend = send;
-                      const previousPlayback = currentPlayback;
+                      const originalSend = window.chrome.webview.postMessage;
+                      const previousPlayback = getPlayback();
                       const targets = [
                         document.querySelector('.word-row'),
                         document.getElementById('highlight-toggle'),
@@ -269,8 +274,8 @@ internal static class WebViewPilotChecks
                       let delivered = 0;
                       const listener = () => delivered++;
                       try {
-                        send = (type, options = {}) => {
-                          calls.push(type + (options.payload?.direction ?? ''));
+                        window.chrome.webview.postMessage = ({ type, payload }) => {
+                          calls.push(type + (payload?.direction ?? ''));
                           return 'captured';
                         };
                         renderPlayback({ position: 120, duration: 300, canSeek: true,
@@ -295,7 +300,7 @@ internal static class WebViewPilotChecks
                         });
                         return { all: results.every(Boolean), delivered, count: calls.length };
                       } finally {
-                        send = originalSend;
+                        window.chrome.webview.postMessage = originalSend;
                         renderPlayback(previousPlayback);
                       }
                     })()
@@ -305,7 +310,7 @@ internal static class WebViewPilotChecks
                     exclusiveKeys.GetProperty("count").GetInt32() == 12);
 
                 // Time labels preserve 60:00 at one hour, then switch to hh:mm:ss.
-                JsonElement timeFormats = Evaluate(browser, """
+                JsonElement timeFormats = EvaluateModule(browser, """
                     (() => ({
                       short: formatSeconds(625), exactHour: formatSeconds(3600),
                       overHour: formatSeconds(3601), long: formatSeconds(8100)
@@ -318,33 +323,33 @@ internal static class WebViewPilotChecks
 
                 // A pointer click without change, cancellation, blur or stop
                 // must not leave the range slider frozen in dragging mode.
-                JsonElement dragState = Evaluate(browser, """
+                JsonElement dragState = EvaluateModule(browser, """
                     (() => {
                       const progress = document.getElementById('progress');
-                      const previousPlayback = currentPlayback;
-                      const previousDragging = seekDragging;
+                      const previousPlayback = getPlayback();
+                      const previousDragging = isSeekDragging();
                       try {
                         const active = { position: 42, duration: 200, canSeek: true,
                           canPlay: true, isArticleActive: true, state: 'paused' };
                         renderPlayback(active);
                         progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-                        const held = seekDragging;
+                        const held = isSeekDragging();
                         document.dispatchEvent(new Event('pointerup'));
-                        const released = !seekDragging;
+                        const released = !isSeekDragging();
                         progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
                         document.dispatchEvent(new Event('pointercancel'));
-                        const cancelled = !seekDragging;
+                        const cancelled = !isSeekDragging();
                         progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
                         progress.dispatchEvent(new Event('blur'));
-                        const blurred = !seekDragging;
+                        const blurred = !isSeekDragging();
                         progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
                         renderPlayback({ ...active, position: 0, canSeek: false, state: 'stopped',
                           isArticleActive: false });
-                        const stopped = !seekDragging && progress.disabled && progress.value === '0';
+                        const stopped = !isSeekDragging() && progress.disabled && progress.value === '0';
                         return { held, released, cancelled, blurred, stopped };
                       } finally {
-                        seekDragging = previousDragging;
                         renderPlayback(previousPlayback);
+                        if (previousDragging) progress.dispatchEvent(new Event('pointerdown', { bubbles: true }));
                       }
                     })()
                     """);
@@ -356,7 +361,7 @@ internal static class WebViewPilotChecks
 
                 // Selection-add anchors to the final fragment at +1px horizontally
                 // and +0px vertically, with edge-safe left/above fallbacks.
-                JsonElement selectionAction = Evaluate(browser, """
+                JsonElement selectionAction = EvaluateModule(browser, """
                     (() => {
                       const button = document.getElementById('selection-add');
                       const hidden = button.hidden;
@@ -416,7 +421,7 @@ internal static class WebViewPilotChecks
 
                 // The frame-paced loop checks geometry at up to 60Hz, even
                 // without another selectionchange, and clears when selection ends.
-                JsonElement selectionTracking = Evaluate(browser, """
+                JsonElement selectionTracking = EvaluateModule(browser, """
                     (() => {
                       const sentence = document.querySelector('#article-body .sentence[data-sentence-index]');
                       sentence.scrollIntoView({ block: 'center' });
@@ -432,8 +437,8 @@ internal static class WebViewPilotChecks
                       selection.addRange(range);
                       updateSelectionAdd();
                       const button = document.getElementById('selection-add');
-                      const started = !button.hidden && selectionAddPositionFrame !== 0 &&
-                        selectionAddRefreshHz === 60;
+                      const started = !button.hidden && selectionTracking().tracking &&
+                        selectionTracking().refreshHz === 60;
                       const previousX = Number.parseInt(button.style.left);
                       sentence.parentElement.style.transform = 'translateX(12px)';
                       return { started, previousX };
@@ -451,19 +456,19 @@ internal static class WebViewPilotChecks
                       return true;
                     })()
                     """).GetBoolean());
-                WaitFor(() => Evaluate(browser, """
-                    selectionAddPositionFrame === 0 &&
+                WaitFor(() => EvaluateModule(browser, """
+                    !selectionTracking().tracking &&
                       document.getElementById('selection-add').hidden &&
-                      selectedPassage === null
+                      !selectionTracking().hasSelection
                     """).GetBoolean(), "selection-add disappears after selection ends without manual cleanup");
 
                 // Test actual browser bounds and the two word-divider drag limits.
-                JsonElement widths = Evaluate(browser, """
+                JsonElement widths = EvaluateModule(browser, """
                     (() => {
                       const article = document.getElementById('article-scroll');
                       const vocabulary = document.getElementById('vocabulary-scroll');
                       const splitter = document.getElementById('reader-splitter');
-                      const original = currentSettings.rightWidth;
+                      const original = getRightWidth();
                       applyPaneWidth(200);
                       const minimum = vocabulary.getBoundingClientRect().width;
                       const maximumAllowed = Math.max(200, Math.min(400,
@@ -493,35 +498,36 @@ internal static class WebViewPilotChecks
                 {
                     window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
                     WpfTestHelpers.Pump();
-                    var settingsField = typeof(ReadArticles.MainWindow).GetField("settings",
+                    var layoutField = typeof(ReadArticles.MainWindow).GetField("paneLayout",
                         BindingFlags.Instance | BindingFlags.NonPublic)!;
-                    var paneSettings = (ReaderSettings)settingsField.GetValue(window)!;
+                    var paneLayout = (ReadArticles.Layout.PaneLayout)layoutField.GetValue(window)!;
                     var resize = typeof(ReadArticles.MainWindow).GetMethod("ResizeLibraryPane",
                         BindingFlags.Instance | BindingFlags.NonPublic)!;
-                    double initialRight = paneSettings.RightWidth;
+                    double initialRight = paneLayout.RightWidth;
                     resize.Invoke(window, [400d]);
                     WaitFor(() => Math.Abs(Evaluate(browser, """
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
-                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        """).GetDouble() - paneLayout.RightWidth) < 2,
                         "coordinated vocabulary width after library resize");
-                    Program.Check(paneSettings.RightWidth <= initialRight);
+                    Program.Check(paneLayout.RightWidth <= initialRight);
                     resize.Invoke(window, [200d]);
                     WaitFor(() => Math.Abs(Evaluate(browser, """
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
-                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        """).GetDouble() - paneLayout.RightWidth) < 2,
                         "vocabulary stays steady when library shrinks");
 
                     // Reverse direction: a right-divider intent may compress
                     // the native library, but the browser paints only C#'s result.
-                    var resizeRight = typeof(ReadArticles.MainWindow).GetMethod(
-                        "ResizeVocabularyPane", BindingFlags.Instance | BindingFlags.NonPublic)!;
-                    resizeRight.Invoke(window, [400d]);
+                    var bridge = (ReadArticles.Presentation.WebReaderBridge)typeof(ReadArticles.MainWindow)
+                        .GetField("webReaderBridge", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+                    using var widthIntent = JsonDocument.Parse("""{"payload":{"width":400}}""");
+                    bridge.HandlePaneWidth(widthIntent.RootElement, Guid.NewGuid().ToString("D"));
                     WaitFor(() => Math.Abs(Evaluate(browser, """
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
-                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        """).GetDouble() - paneLayout.RightWidth) < 2,
                         "confirmed vocabulary width after right-divider resize");
                     var nativeLeft = (ColumnDefinition)window.FindName("LeftColumn");
-                    Program.Check(Math.Abs(nativeLeft.ActualWidth - paneSettings.LeftWidth) < 2);
+                    Program.Check(Math.Abs(nativeLeft.ActualWidth - paneLayout.LeftWidth) < 2);
                 }
                 finally
                 {
@@ -559,14 +565,14 @@ internal static class WebViewPilotChecks
                 // Check browser matching boundaries and longest-phrase preference.
                 string phrase = "public life. public's public-life2";
                 string[] words = ["public", "public life"];
-                JsonElement browserMatches = Evaluate(browser,
+                JsonElement browserMatches = EvaluateModule(browser,
                     "matchVocabulary(" + JsonSerializer.Serialize(phrase) + "," +
                     JsonSerializer.Serialize(words) + ")");
                 Program.Check(browserMatches.GetArrayLength() == 1 &&
                     browserMatches[0].GetProperty("start").GetInt32() == 0 &&
                     browserMatches[0].GetProperty("length").GetInt32() == 11 &&
                     browserMatches[0].GetProperty("key").GetString() == "public life");
-                JsonElement boundary = Evaluate(browser, "matchVocabulary(" +
+                JsonElement boundary = EvaluateModule(browser, "matchVocabulary(" +
                     JsonSerializer.Serialize("politician's politician’s 2public public-life") + "," +
                     JsonSerializer.Serialize(new[] { "politician", "public" }) + ")");
                 Program.Check(boundary.GetArrayLength() == 1 &&
@@ -574,7 +580,7 @@ internal static class WebViewPilotChecks
                     boundary[0].GetProperty("start").GetInt32() == 27);
 
                 // Preserve Python-compatible numeric boundaries (digits are not letters).
-                JsonElement numericBoundary = Evaluate(browser,
+                JsonElement numericBoundary = EvaluateModule(browser,
                     "matchVocabulary('public2 2public', ['public'])");
                 Program.Check(numericBoundary.GetArrayLength() == 2 &&
                     numericBoundary[0].GetProperty("start").GetInt32() == 0 &&
@@ -624,13 +630,13 @@ internal static class WebViewPilotChecks
                     .GetInt32() == 1);
 
                 // Space is reserved for article playback; Enter still activates a word row.
-                JsonElement wordKeys = Evaluate(browser, """
+                JsonElement wordKeys = EvaluateModule(browser, """
                     (() => {
                       const rows = [...document.querySelectorAll('#vocabulary-list .word-row')];
-                      const originalSend = send;
+                      const originalSend = window.chrome.webview.postMessage;
                       const calls = [];
                       try {
-                        send = type => { calls.push(type); return 'captured'; };
+                        window.chrome.webview.postMessage = ({type}) => { calls.push(type); };
                         const press = (row, key) => {
                           row.focus();
                           const event = new KeyboardEvent('keydown',
@@ -642,7 +648,7 @@ internal static class WebViewPilotChecks
                         const enter = press(rows[1], 'Enter') && rows[1].classList.contains('selected');
                         press(rows[0], 'Enter');
                         return { space, enter, playback: calls.filter(type => type === 'playArticle').length };
-                      } finally { send = originalSend; }
+                      } finally { window.chrome.webview.postMessage = originalSend; }
                     })()
                     """);
                 Program.Check(wordKeys.GetProperty("space").GetBoolean() &&
@@ -734,7 +740,7 @@ internal static class WebViewPilotChecks
                     })()
                     """).GetBoolean(), "Script SVG clipping and foreground");
                 // Exercise the actual SVG clipping update at 0%, 50%, 100%, and stop.
-                JsonElement sweep = Evaluate(browser, """
+                JsonElement sweep = EvaluateModule(browser, """
                     (() => {
                       const rect = document.querySelector(
                         '#article-body .script-paragraph .script-clips clipPath rect');
@@ -782,9 +788,9 @@ internal static class WebViewPilotChecks
                     document.getElementById('article-title').textContent === 'Family fixture' &&
                     document.querySelectorAll('#vocabulary-list .word-row').length === 1
                     """).GetBoolean(), "family Passage rendering");
-                JsonElement familyPassage = Evaluate(browser, """
+                JsonElement familyPassage = EvaluateModule(browser, """
                     (() => ({
-                      forms: matches.filter(m => m.word === 'go').map(m => m.range.toString()),
+                      forms: matchedTexts('go'),
                       headings: [...document.querySelectorAll('#vocabulary-list .word-head')]
                         .map(row => row.textContent)
                     }))()
@@ -798,7 +804,7 @@ internal static class WebViewPilotChecks
                     document.querySelectorAll('#vocabulary-list .word-row.selected').length === 1 &&
                     document.querySelectorAll('#word-highlight-layer .word-highlight-rect').length >= 2
                     """).GetBoolean(), "family forms highlighted and selected");
-                JsonElement collision = Evaluate(browser, """
+                JsonElement collision = EvaluateModule(browser, """
                     matchVocabulary('went goes', [
                       {word:'go',family:['went','goes']}, {word:'went',family:[]}
                     ])
@@ -811,8 +817,8 @@ internal static class WebViewPilotChecks
                     document.getElementById('article-title').textContent === 'Family script' &&
                     document.querySelectorAll('#article-body .script-paragraph > .script-sentence').length === 1
                     """).GetBoolean(), "family Script rendering");
-                JsonElement scriptForms = Evaluate(browser, """
-                    matches.filter(m => m.word === 'go').map(m => m.range.toString())
+                JsonElement scriptForms = EvaluateModule(browser, """
+                    matchedTexts('go')
                     """);
                 Program.Check(scriptForms.EnumerateArray()
                     .Select(x => x.GetString()).SequenceEqual(["went", "goes"]));
@@ -825,6 +831,37 @@ internal static class WebViewPilotChecks
                 if (Directory.Exists(directory)) Directory.Delete(directory, true);
             }
         });
+    }
+
+    // Execute real module exports in the live page without publishing application
+    // state on window. WebView2 ExecuteScriptAsync does not await JS promises.
+    private static JsonElement EvaluateModule(WebView2 browser, string script)
+    {
+        string attribute = "data-test-" + Guid.NewGuid().ToString("N");
+        string body = """
+            (async () => {
+              const { getPlayback, isSeekDragging, renderPlayback, formatSeconds } = await import('https://readarticles.invalid/playback.js');
+              const { matchVocabulary, positionSelectionAddButton, updateSelectionAdd,
+                selectionTracking, matchedTexts } = await import('https://readarticles.invalid/vocabulary.js');
+              const { applyPaneWidth, getRightWidth } = await import('https://readarticles.invalid/layout.js');
+              const { paintScriptProgress } = await import('https://readarticles.invalid/reading.js');
+              return (
+            """ + script + """
+              );
+            })()
+            """;
+        string name = JsonSerializer.Serialize(attribute);
+        Evaluate(browser, body + ".then(value => document.documentElement.setAttribute(" + name +
+            ", JSON.stringify({value})), error => document.documentElement.setAttribute(" + name +
+            ", JSON.stringify({error:String(error)}))); true");
+        WaitFor(() => Evaluate(browser, "document.documentElement.hasAttribute(" + name + ")")
+            .GetBoolean(), "module evaluation");
+        string result = Evaluate(browser, "document.documentElement.getAttribute(" + name + ")").GetString()!;
+        Evaluate(browser, "document.documentElement.removeAttribute(" + name + "); true");
+        using var json = JsonDocument.Parse(result);
+        if (json.RootElement.TryGetProperty("error", out var error))
+            throw new Exception("JavaScript module evaluation failed: " + error.GetString());
+        return json.RootElement.GetProperty("value").Clone();
     }
 
     private static JsonElement Evaluate(WebView2 browser, string script)
