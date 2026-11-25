@@ -759,7 +759,7 @@ internal static class WebReaderChecks
                       return Boolean(paint && clip && clip.id.startsWith('script-clip-') &&
                         clip.querySelectorAll('rect').length >= 3 &&
                         clipReference === 'url(#' + clip.id + ')' &&
-                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(133, 99, 0)');
+                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(138, 54, 209)');
                     })()
                     """).GetBoolean(), "Script SVG clipping and foreground");
                 // Exercise the actual SVG clipping update at 0%, 50%, 100%, and stop.
