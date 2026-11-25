@@ -1,71 +1,43 @@
 # ReadArticles
 
-ReadArticles is a local C# / WPF application for English reading, vocabulary editing, and playback of existing M4A, MP3 and WAV files. It uses a directory tree, passage pane, and vocabulary pane backed by ordinary JSON files.
+ReadArticles is a local Windows application for English reading, vocabulary editing and listening to existing recordings. A native WPF library tree and one WebView2 reader display Passage/Script text, vocabulary, highlighting and whole-article playback from ordinary JSON and audio files.
 
 ## Run
 
-On Windows with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch) and the Microsoft Edge WebView2 Evergreen Runtime, launch `dist/ReadArticles/ReadArticles.exe`. User settings are stored in `dist/ReadArticles/userdata/config/settings.json` (with backups under `userdata/`); keep the entire application folder together and place it in a location where the current user has write permission. Use the folder-selection button to open a library, or pass `--library` on the command line. Publish first if the runtime folder is absent; generated binaries are not tracked by Git.
+Use Windows x64 with the .NET 10 Windows Desktop Runtime (10.0.11 or a later compatible patch) and Microsoft Edge WebView2 Evergreen Runtime. Launch `dist/ReadArticles/ReadArticles.exe` from a writable portable folder; generated binaries are not tracked by Git.
 
-Startup loads only a collapsed library tree. It does not restore a passage or vocabulary. Routine successful actions are quiet; informational and warning notifications expire automatically, while unacknowledged errors remain accessible until dismissed. The former bottom status row is removed.
+Select the parent library containing book directories marked by `book.json`, or pass `--library` with the library path. Startup restores only the library, not a previous article. Keep the executable's adjacent `userdata/` directory during updates; the external library remains in its original location.
 
-The whole-article player tries sibling M4A, MP3, then WAV recordings in filename order within each format until one opens successfully. There is no sentence-level audio. Word pronunciation uses derived MP3/WAV filenames under `audio/`, with MP3 preferred by existence and WAV used only when MP3 is absent; decoding failure does not retry WAV. JSON audio path fields are ignored on load. Vocabulary saves remove its old fields; passage JSON is not saved by the application, so external preparation tools remove its fields when regenerating content. No old-directory, naming, or index fallback or resource migration is provided. These pronunciations share a second player: starting pronunciation pauses the article, and starting or resuming the article stops pronunciation. Vocabulary editing writes the active companion JSON, so use working copies for experiments.
+The reader supports Passage JSON, optional same-stem Script and vocabulary companions, existing M4A/MP3/WAV whole-article recordings, and UK/US word pronunciation. Unmodified Space, Left and Right exclusively control whole-article playback throughout the main window. Vocabulary edits save the active companion; use a working copy for experiments. OCR, vocabulary enrichment and audio generation are external workflows. No account, exercise-answering or sentence-audio interface is implemented.
 
-## Script reading mode
+See the [User Guide](docs/User-Guide.md) for operation and [Library Layout](docs/Library-Layout.md) for supported files.
 
-A passage `<name>.json` can optionally have a read-only `<name>.script.json` in the same directory. The music button to the left of the vocabulary-highlighting button loads that companion only when clicked, then toggles between Passage and Script views. Script files do not appear separately in the library tree. Missing or invalid Script companions leave Passage and article audio untouched.
+## Build, test and publish
 
-Script JSON requires `"filetype": "script"`, a string `"title"` (empty is allowed), and `"paragraphs"` of sentences containing `"text"` and `"timed_units"`. Each timed unit is `[text, startSeconds, endSeconds]`; a pair of null times means no coloring. No cross-file text matching is required. The script view has no sentence pronunciation, but retains word selection, vocabulary highlights, and whole-article audio. Its configurable foreground (default `#B64550`) follows the absolute article playback position; Seek/rewind updates it, and stop/end clears it. Source Script and Passage JSON are never rewritten.
+From the repository root on Windows with an SDK compatible with [global.json](global.json):
 
-## Documentation
+```powershell
+dotnet build ReadArticles -c Release
+.\tools\Test.ps1 -Suite Full
+# Close the running application before publishing.
+.\tools\Publish.ps1
+.\tools\Test-PublishedApp.ps1
+```
 
-Start with the [documentation index](docs/README.md):
-
-- [Library layout and file requirements](docs/Library-Layout.md)
-- [Design goals, framework, and modules](docs/Application-Overview.md)
-- [Image-to-passage conversion skill](docs/skills/image_to_passage/SKILL.md)
-- [Passage organization and segmentation skill](docs/skills/passage_segment/SKILL.md)
-- [Vocabulary preparation from structured or plain input](docs/Vocabulary-Preparation.md)
-- [Running and troubleshooting](docs/User-Guide.md) and [publishing](docs/Publishing.md)
-- [Regression categories and manual acceptance](docs/Testing.md)
-- [Runtime logging and retention](docs/Logging.md)
-- [Project contract and review rules](docs/project-contract.md)
-
-Usage and technical references are maintained here; the project contract and code-review skill are also available in Chinese. Conversion skills prepare content externally; they are not built-in OCR, enrichment, or speech-generation features.
+Follow [Testing](docs/Testing.md) and [Publishing](docs/Publishing.md) for isolated fixtures, other test suites, manual acceptance and recovery safeguards.
 
 ## Repository structure
 
 | Path | Purpose |
 | --- | --- |
-| `ReadArticles/` | Published application's source and embedded UI resources |
-| `ReadArticles.Tests/` | Categorized checks of production services and controls |
-| `tests/TestData/` | Single source of fixed article, vocabulary, and audio test resources |
-| `artifacts/` | Test screenshots, reports, and logs |
-| `dist/` | Portable application output, including the executable and its `userdata/` directory |
-| `docs/` | Current documentation and conversion skills |
+| `ReadArticles/` | Application source and embedded UI assets |
+| `ReadArticles.Tests/` | Production-service and control regression checks |
+| `tests/TestData/` | Fixed article, vocabulary and audio test resources |
+| `tools/` | Build verification, test and publishing scripts |
+| `artifacts/` | Local test outputs |
+| `dist/` | Local portable release and its userdata |
+| `docs/` | Current documentation and external content-preparation skills |
 
-## Build and test
+## Documentation
 
-Run from the repository root with an SDK compatible with `global.json`:
-
-```powershell
-dotnet build ReadArticles -c Release
-.\tools\Test.ps1 -Suite Full
-```
-
-See the testing guide for the unified test-data layout and Core/UI/Full suites. The current main branch does not implement account registration/login or exercise answering. The supplied authoring skills may still produce exercise companions; the reader excludes those files from navigation and does not render them.
-
-## Unified publishing
-
-Run `.\tools\Publish.ps1` from this repository root. The application uses Portable.pubxml and staged validation. The single EXE and its `userdata/` directory are under `dist/ReadArticles/`. Publication preserves existing userdata without importing obsolete `dist/userdata/` or sibling settings. See [Publishing](docs/Publishing.md) for the current release process and [Testing](docs/Testing.md) for current verification requirements.
-
-
-## Unified testing and acceptance
-
-Use `.\tools\Test.ps1 -Suite Core`, `-Suite UI`, or `-Suite Full`. All fixed test inputs come from `tests/TestData/`; temporary copies are isolated under the OS temporary directory. After publishing, run `.\tools\Test-PublishedApp.ps1`. See the [documentation index](docs/README.md) and [test guide](docs/Testing.md). PowerShell source is English-only.
-
-
-## Reader navigation and notifications
-
-- Reader messages appear as floating notifications at the bottom of the middle reading pane instead of a bottom status row. Errors remain until dismissed, and old errors can be opened through the overflow indicator.
-- The left book tree is lazy: opening a library discovers only its immediate book folders; expanding a folder reads only its direct children. Empty intermediary folders remain navigable.
-- Collapsing and re-expanding a folder refreshes that level without stopping current reading or playback.
+Start at the [documentation index](docs/README.md). Developers should read [AGENTS.md](AGENTS.md), the [project contract](docs/project-contract.md) and the [current handoff](docs/HANDOFF.md) before making changes.

@@ -2,7 +2,7 @@
 
 ## Requirements and launch
 
-Run ReadArticles on Windows with the .NET 10 Windows Desktop Runtime, version `10.0.11` or a later compatible patch. Building also requires a .NET SDK compatible with `global.json`, currently SDK `10.0.400` with `latestPatch` roll-forward. Both the application and its tests target `net10.0-windows`.
+Run ReadArticles on Windows with the .NET 10 Windows Desktop Runtime, x64, version `10.0.11` or a later compatible patch, and Microsoft Edge WebView2 Evergreen Runtime. Building also requires a .NET SDK compatible with `global.json`, currently SDK `10.0.400` with `latestPatch` roll-forward. Both the application and its tests target `net10.0-windows`.
 
 The published application lives in `dist/ReadArticles/`. Distribute the portable folder containing `ReadArticles.exe` and retain its `userdata/` directory during updates. The EXE contains the application assemblies, UI assets, and runtime configuration, but not the .NET runtime. On first startup it creates `userdata/config/settings.json` in the portable application directory. Old settings formats are not migrated.
 
@@ -19,21 +19,37 @@ Select the parent directory of marked book directories. Startup and folder selec
 
 1. Open a library and expand its tree one level at a time.
 2. Select a passage leaf to load its text and matching vocabulary.
-3. Select passage text within one sentence to reveal the small circle-plus action. Click it to save that selection to the word list. Cross-sentence selections are not addable.
-4. Select a vocabulary entry to show move-up, move-down, and delete. These actions write the active companion JSON immediately.
+3. Select Passage or Script text within one sentence to reveal the small circle-plus action. Click it to save that selection to the word list. Cross-sentence selections are not addable.
+4. Select a vocabulary entry to enable the applicable move-up, move-down and delete buttons. These actions write the active companion JSON immediately.
 5. Use the highlight toggle to display or hide case-insensitive literal matches for each `word` and its explicitly listed `family` forms. Highlighting begins off.
 6. Use the import button beside the highlight toggle to replace the active vocabulary with a selected structured JSON file after confirmation.
 7. Click the cog icon next to 选择图书馆 to open the centered 设置 dialog. Adjust title, body, word, IPA, meanings, background colors, default accent and seek steps; click 保存 to commit all changes, 取消 to discard, or 恢复默认 to reset the entire draft.
+
+## Passage and Script
+
+Use the music icon immediately left of the highlight toggle to switch to an optional same-stem `<name>.script.json` and back. The companion is loaded on demand, not at startup. Missing or invalid Script leaves Passage and article playback unchanged. The Script may have different text and title from Passage; its timestamped foreground follows article audio, including seeks, and clears on Stop or natural completion. Untimed or unaligned units remain readable without progress coloring. Vocabulary and article-audio lookup remain tied to the original Passage. See [Library Layout](Library-Layout.md) for the format.
+
+## Vocabulary and playback
 
 A vocabulary entry may have an optional `family` list containing inflected spellings actually found in the article (for example, `"word": "go", "family": ["went", "goes"]`). Selecting `go` also highlights and locates `went` and `goes` when present. The right pane displays only the canonical `word`, not its family forms; pronunciation also continues to use the canonical word. The reader does not automatically infer missing forms. See [Vocabulary Preparation](Vocabulary-Preparation.md) for authoring rules.
 
 Right-clicking anywhere in the vocabulary pane has no action or popup menu. Use the bottom buttons to move or delete the selected word.
 
-The bottom play/pause and stop buttons control the first successfully opened sibling recording, trying M4A, MP3, then WAV in filename order within each format. Stop is enabled while the whole-article audio file is active and does not interrupt word pronunciation. Use each word's pronunciation buttons for word playback; sentence playback has been removed. The progress slider remains visible at all times, but permits dragging only during playback or pause, and seeks only within that audio file. The sibling audio file uses its own player; word pronunciation uses a second player. Starting word playback pauses the sibling audio file and preserves its position, progress bar, and time label. Starting or resuming the sibling audio file stops the second player. Finishing pronunciation does not automatically resume the sibling audio file. If the sibling audio file has not been started or has been stopped, the slider remains visible but disabled at zero. Unmodified Left and Right seek in the sibling audio file from any focused control in the active main window; the slider remains keyboard-focusable without displaying an outer focus frame. On the slider, these keys use the configured audio seek seconds rather than the native slider increment. The native settings dialog provides Forward (4, 7, 10, 15 seconds) and Backward (5, 8, 11, 16 seconds), with the first option selected by default. Left moves backward by the selected Backward value and Right moves forward by the selected Forward value. Each numeric option explicitly displays its unit in seconds. The native settings dialog stages all changes until Save; the choices are saved between sessions. Space takes priority over other controls and toggles only the sibling audio file playback/pause; holding Space does not repeatedly toggle playback. All three keys are consumed even when playback is unavailable, without moving keyboard focus or activating other controls. Separate dialogs and modified key combinations retain normal behavior. Splitters remain mouse-draggable; Left and Right no longer resize them. When no sibling audio file is active, Left and Right do nothing and cannot seek word audio. Dotted keyboard focus outlines are hidden for all controls, including popup menus.
+The bottom play/pause and stop buttons control only the whole-article recording, selected as described in [Library Layout](Library-Layout.md). The progress slider is always visible, enabled only when article audio is seekable. Starting pronunciation pauses article playback without losing position; resuming article playback stops pronunciation. Finishing pronunciation leaves the article paused. Stop affects only the article channel and resets its progress.
+
+### Main-window keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| Space | Start, pause or resume the article; holding the key toggles only once |
+| Left | Seek backward by the configured interval |
+| Right | Seek forward by the configured interval |
+
+These unmodified keys are reserved throughout the active main window, regardless of focus in the native tree or WebView2. They are consumed even when the action is unavailable. Repeated arrows accumulate; seeking while paused leaves audio paused. Other controls do not activate or resize, and browser focus outlines and keyboard-only splitter coloring are suppressed. Focus stays in place, the selected-word marker remains, and mouse operations still work. Tab and non-reserved input remain available; Enter activates a vocabulary row. Separate dialogs and modified key combinations keep their normal behavior. Set intervals in [Configuration](Configuration.md).
 
 A time label between the progress bar and play button displays current time/total duration; no 文章音频 caption is shown. Each value uses mm:ss through one hour (including 60:00 at exactly one hour) and hh:mm:ss beyond one hour. The label updates during playback and seeking, stays visible while paused, and resets to zero on Stop.
 
-Successful ordinary actions are quiet. Floating informational and warning notifications expire after approximately five seconds of active display time, with expiry paused on hover. Errors remain until dismissed; no status row is added or removed. Missing physical audio does not prevent passage reading.
+Successful ordinary actions are quiet. Missing physical audio does not prevent passage reading. See Floating messages below for notification behavior.
 
 Use a separate working copy of a library for interactive editing experiments. Do not alter `tests/TestData/` directly while tests are running; deterministic tests use this fixed source data and operate on temporary copies.
 
@@ -46,7 +62,10 @@ Use [Testing](Testing.md) for test and acceptance commands, [Publishing](Publish
 | Symptom | Check |
 | --- | --- |
 | Library has no books | Select the parent library; confirm `book.json` exists in each immediate child book directory |
-| A leaf fails to open | Discovery checks filenames only; confirm that JSON is a valid passage, not unrelated metadata or standalone vocabulary |
+| An article is missing from the tree | Confirm readable, syntactically valid JSON with a top-level exact `filetype: "passage"`; collapse and re-expand its folder |
+| A leaf fails to open | Check the complete Passage schema, including title, sentence arrays and placeholders; a passage-tagged JSON can still fail full validation |
+| Script cannot be opened | Check the same-stem Script companion and timestamp format; correct the file and retry the music toggle |
+| Reader shows a native failure screen | Check WebView2 Evergreen Runtime and portable directory write permission; restart |
 | Words do not load automatically | Confirm the exact sibling `<title>.vocabulary.json` name, JSON structure; audio paths are inferred and old declarations are ignored |
 | Vocabulary is unreadable and cannot be overwritten | Repair the companion, then reopen the article; the reader protects damaged vocabulary from replacement |
 | Saving reports an external edit | Reopen the article to load the current fingerprint before editing again |
@@ -59,10 +78,10 @@ Use [Testing](Testing.md) for test and acceptance commands, [Publishing](Publish
 
 For content authoring, use [Image to Passage](skills/image_to_passage/SKILL.md), [Passage Segmentation](skills/passage_segment/SKILL.md), and [Vocabulary Preparation](Vocabulary-Preparation.md), then follow [Library Layout](Library-Layout.md).
 
-The Portable profile places temporary compiled output inside obj/publish-build instead of creating a separate release copy under bin. Only dist is the release directory; artifacts and old staging releases can be removed. Building or running tests can still create bin and obj caches. Do not delete dist or its settings while cleaning caches. Left and right pane widths are session-only (defaults 250/300 DIP; limits 200–400 DIP) and are not saved in configuration; the article has a 200-DIP minimum and each splitter is 3 DIP. Typography settings are stored under the structured Appearance JSON object, using px for browser font sizes.
+For generated build folders, recovery EXEs and safe cleanup, see [Publishing](Publishing.md). Pane-width and typography options are described in [Configuration](Configuration.md).
 
 ## Floating messages and lazy navigation
 
-Messages appear above the middle pane's playback bar. Informational and warning notices fade away after approximately five seconds, with the timer paused while hovered. Errors remain until closed. Each message has a close button; an overflow indicator retains additional unacknowledged errors.
+Messages appear above the middle pane's playback bar. Informational and warning notices fade away after approximately five seconds, with the timer paused while hovered. Errors do not auto-expire. Each message has a close button; long messages can be expanded. At most three messages are visible, with additional messages queued until slots free up. A successful article or library switch clears the old context's notifications.
 
 Opening a library lists only books. Use the plus button to expand one level at a time; clicking folder text merely selects it. A folder may be expandable even when it contains no direct JSON file. Collapse and re-expand to refresh added, deleted or renamed files. Collapsing a directory does not unload the current passage or stop audio.
