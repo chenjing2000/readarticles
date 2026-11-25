@@ -759,8 +759,14 @@ internal static class WebReaderChecks
                           canSeek: active, position: seconds });
                         return Number(rect.getAttribute('width'));
                       };
-                      return { start: widthAt(1.0), middle: widthAt(1.4),
-                        end: widthAt(1.8), stopped: widthAt(1.8, false) };
+                      const start = widthAt(1.0), middle = widthAt(1.4), end = widthAt(1.8);
+                      const observer = new MutationObserver(() => {});
+                      observer.observe(rect, { attributes: true });
+                      widthAt(1.8);
+                      const redundant = observer.takeRecords().length;
+                      observer.disconnect();
+                      const backward = widthAt(1.4), stopped = widthAt(1.8, false);
+                      return { start, middle, end, stopped, backward, redundant };
                     })()
                     """);
                 if (sweep.ValueKind != JsonValueKind.Object ||
@@ -768,7 +774,9 @@ internal static class WebReaderChecks
                     sweep.GetProperty("middle").GetDouble() <= 0 ||
                     sweep.GetProperty("end").GetDouble() <=
                         sweep.GetProperty("middle").GetDouble() ||
-                    sweep.GetProperty("stopped").GetDouble() != 0)
+                    sweep.GetProperty("stopped").GetDouble() != 0 ||
+                    sweep.GetProperty("backward").GetDouble() != sweep.GetProperty("middle").GetDouble() ||
+                    sweep.GetProperty("redundant").GetInt32() != 0)
                     throw new Exception("Unexpected Script SVG sweep: " + sweep.GetRawText());
                 Evaluate(browser, "document.getElementById('script-toggle').click(); true");
                 WaitFor(() => Evaluate(browser, """

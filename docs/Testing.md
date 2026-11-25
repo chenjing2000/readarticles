@@ -80,6 +80,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 `Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files.
 
+## Playback update efficiency
+
+Live absolute divider drag frames do not accumulate in the request deduplication set; durable actions and drag completion retain request checks. Script geometry caches segment widths and skips unchanged clip writes, including during reverse seeks and stop. The progress timer runs only while article playback is playing; native and browser seek handlers explicitly publish the new position, even when paused. Manually verify paused forward/backward seeks, pointer seek, resume and Script progress.
+
 ## Functional icons
 
 Native and embedded browser functional icons use maple-red `#D65B45` circles and white glyphs; preserve distinct play/pause, Passage/Script and eye/crossed-eye states. Verify actual rendering at toolbar, pronunciation, selection-add and tree sizes, hover/pressed/disabled states, and unchanged app icon and keyboard behavior.

@@ -173,9 +173,11 @@ function measureScriptGeometry() {
         rect.setAttribute("width", "0");
         rect.setAttribute("height", String(line.height + 2));
         clip.append(rect);
-        segments.push({ element: rect, width: line.width });
+        segments.push({ element: rect, width: line.width, painted: 0 });
       }
-      if (segments.length) scriptGeometry.push({ start, end, segments });
+      if (segments.length) scriptGeometry.push({
+        start, end, segments, width: segments.reduce((total, line) => total + line.width, 0)
+      });
     }
   }
   paintScriptProgress(getPlayback());
@@ -188,10 +190,13 @@ export function paintScriptProgress(playback) {
   for (const unit of scriptGeometry) {
     const progress = active && Number.isFinite(seconds)
       ? Math.max(0, Math.min(1, (seconds - unit.start) / (unit.end - unit.start))) : 0;
-    let remaining = progress * unit.segments.reduce((total, line) => total + line.width, 0);
+    let remaining = progress * unit.width;
     for (const segment of unit.segments) {
       const painted = Math.max(0, Math.min(segment.width, remaining));
-      segment.element.setAttribute("width", String(painted));
+      if (segment.painted !== painted) {
+        segment.element.setAttribute("width", String(painted));
+        segment.painted = painted;
+      }
       remaining -= segment.width;
     }
   }

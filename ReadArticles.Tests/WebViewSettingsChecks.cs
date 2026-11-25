@@ -65,6 +65,17 @@ internal static class WebViewSettingsChecks
                 Program.Check(window.ViewModel.HighlightsVisible); // duplicate request
                 Highlight(false, page, session, Guid.NewGuid().ToString("D"));
                 Program.Check(!window.ViewModel.HighlightsVisible);
+                var seen = (HashSet<string>)typeof(WebReaderBridge)
+                    .GetField("seenRequests", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(bridge)!;
+                int count = seen.Count;
+                for (int i = 0; i < 100; i++)
+                    bridge.Receive(JsonSerializer.Serialize(new
+                    {
+                        version = 1, type = "dragPanelWidth", pageId = page, sessionId = session,
+                        requestId = Guid.NewGuid().ToString("D"), vocabularyRevision = 0,
+                        payload = new { width = 300 }
+                    }));
+                Program.Check(seen.Count == count);
                 host.Fail("test failure");
                 Highlight(true, page, session, Guid.NewGuid().ToString("D"));
                 Program.Check(!window.ViewModel.HighlightsVisible && host.IsUnavailable);
