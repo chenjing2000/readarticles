@@ -45,6 +45,20 @@ internal static class WebReaderChecks
             {
                 using Stream? stream = assembly.GetManifestResourceStream(name);
                 Program.Check(stream is not null && stream.Length > 0);
+                if (name.EndsWith(".svg", StringComparison.Ordinal))
+                {
+                    var svg = System.Xml.Linq.XDocument.Load(stream!).Root!;
+                    var ns = svg.Name.Namespace;
+                    var circle = svg.Elements(ns + "circle").First();
+                    Program.Check((string?)svg.Attribute("viewBox") == "0 0 1024 1024" &&
+                        (string?)circle.Attribute("cx") == "512" &&
+                        (string?)circle.Attribute("cy") == "512" &&
+                        (string?)circle.Attribute("r") == "480" &&
+                        (string?)circle.Attribute("fill") == "#D65B45" &&
+                        svg.Descendants().Any(element =>
+                            (string?)element.Attribute("fill") == "#FFFFFF" ||
+                            (string?)element.Attribute("stroke") == "#FFFFFF"));
+                }
             }
         });
         Program.Run("WebView2 failure shows native terminal screen instead of WPF fallback", () =>
@@ -674,7 +688,7 @@ internal static class WebReaderChecks
                 draft.Appearance.Vocabulary.Font = "Nunito";
                 draft.Appearance.Body.SelectionAddSize = 0.80;
                 draft.Appearance.Body.SelectionBackground = "#E5EDE0";
-                draft.Appearance.Body.ScriptColor = "#856300";
+                draft.Appearance.Body.ScriptColor = "#8A36D1";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
                     "ApplyDialogSettings", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 object?[] settingsArguments = [draft, null];
@@ -702,7 +716,7 @@ internal static class WebReaderChecks
                         .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--script-color')")
-                        .GetString() == "#856300" &&
+                        .GetString() == "#8A36D1" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--selection-background')")
                         .GetString() == "#E5EDE0" &&
@@ -745,7 +759,7 @@ internal static class WebReaderChecks
                       return Boolean(paint && clip && clip.id.startsWith('script-clip-') &&
                         clip.querySelectorAll('rect').length >= 3 &&
                         clipReference === 'url(#' + clip.id + ')' &&
-                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(133, 99, 0)');
+                        coloredUnit && getComputedStyle(coloredUnit).color === 'rgb(138, 54, 209)');
                     })()
                     """).GetBoolean(), "Script SVG clipping and foreground");
                 // Exercise the actual SVG clipping update at 0%, 50%, 100%, and stop.
@@ -759,8 +773,14 @@ internal static class WebReaderChecks
                           canSeek: active, position: seconds });
                         return Number(rect.getAttribute('width'));
                       };
-                      return { start: widthAt(1.0), middle: widthAt(1.4),
-                        end: widthAt(1.8), stopped: widthAt(1.8, false) };
+                      const start = widthAt(1.0), middle = widthAt(1.4), end = widthAt(1.8);
+                      const observer = new MutationObserver(() => {});
+                      observer.observe(rect, { attributes: true });
+                      widthAt(1.8);
+                      const redundant = observer.takeRecords().length;
+                      observer.disconnect();
+                      const backward = widthAt(1.4), stopped = widthAt(1.8, false);
+                      return { start, middle, end, stopped, backward, redundant };
                     })()
                     """);
                 if (sweep.ValueKind != JsonValueKind.Object ||
@@ -768,7 +788,9 @@ internal static class WebReaderChecks
                     sweep.GetProperty("middle").GetDouble() <= 0 ||
                     sweep.GetProperty("end").GetDouble() <=
                         sweep.GetProperty("middle").GetDouble() ||
-                    sweep.GetProperty("stopped").GetDouble() != 0)
+                    sweep.GetProperty("stopped").GetDouble() != 0 ||
+                    sweep.GetProperty("backward").GetDouble() != sweep.GetProperty("middle").GetDouble() ||
+                    sweep.GetProperty("redundant").GetInt32() != 0)
                     throw new Exception("Unexpected Script SVG sweep: " + sweep.GetRawText());
                 Evaluate(browser, "document.getElementById('script-toggle').click(); true");
                 WaitFor(() => Evaluate(browser, """

@@ -100,6 +100,63 @@ internal static class TreeNavigationChecks
             }
         });
 
+        Program.Run("explicit library refresh reopens current root and deselects a missing root", () =>
+        {
+            string temp = Path.Combine(Path.GetTempPath(), "ReadArticles-refresh-" + Guid.NewGuid().ToString("N"));
+            string root = Path.Combine(temp, "Library");
+            string book = Path.Combine(root, "Book");
+            Directory.CreateDirectory(book);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                string passage = Path.Combine(book, "Article.json");
+                File.Copy(TestData.ArticlePath, passage);
+                window.Show();
+                var vm = window.ViewModel;
+                var refreshButton = (Button)window.FindName("RefreshButton");
+                Program.Check(!refreshButton.IsEnabled && !vm.RefreshLibraryAsync().GetAwaiter().GetResult());
+                Program.Check(vm.OpenLibrary(root) && vm.OpenArticle(passage));
+                WpfTestHelpers.Wait(() => refreshButton.IsEnabled);
+                var oldBook = vm.Books.Single();
+                oldBook.IsExpanded = true;
+                Task scan = vm.ExpandDirectoryAsync(oldBook);
+                string added = Path.Combine(root, "Added");
+                Directory.CreateDirectory(added);
+                File.WriteAllText(Path.Combine(added, "book.json"), "{}");
+                refreshButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                WpfTestHelpers.Wait(() => scan.IsCompleted && vm.Article is null && vm.Books.Count == 2);
+                scan.GetAwaiter().GetResult();
+                Program.Check(vm.LibraryRoot == root && vm.Words.Count == 0 &&
+                    !vm.Playback.IsArticleActive && vm.Books.All(n => !n.IsExpanded) &&
+                    !vm.Books.Contains(oldBook));
+                Program.Check(vm.OpenArticle(passage));
+                Directory.Move(root, Path.Combine(temp, "Removed"));
+                Task<bool> staleRefresh = vm.RefreshLibraryAsync();
+                Task<bool> replacement = vm.OpenLibraryAsync(TestData.LibraryRoot);
+                WpfTestHelpers.Wait(() => staleRefresh.IsCompleted && replacement.IsCompleted);
+                Program.Check(!staleRefresh.GetAwaiter().GetResult() && replacement.GetAwaiter().GetResult() &&
+                    vm.LibraryRoot == TestData.LibraryRoot);
+                Directory.Move(Path.Combine(temp, "Removed"), root);
+                Program.Check(vm.OpenLibrary(root) && vm.OpenArticle(passage));
+                Directory.Move(root, Path.Combine(temp, "Removed"));
+                File.WriteAllText(root, "not a directory");
+                refreshButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Task filter = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "video" });
+                WpfTestHelpers.Wait(() => filter.IsCompleted && vm.LibraryRoot is null && !refreshButton.IsEnabled &&
+                    vm.Notifications.Messages.Any(n => n.Key == "LibraryOpenFailed"));
+                filter.GetAwaiter().GetResult();
+                Program.Check(vm.Books.Count == 0 && vm.Article is null && vm.Words.Count == 0 &&
+                    !vm.Playback.IsArticleActive);
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                Directory.Delete(temp, true);
+            }
+        });
+
         Program.Run("changing folder exclusions refreshes only navigation and invalidates old scans", () =>
         {
             string root = Path.Combine(Path.GetTempPath(), "ReadArticles-exclusions-" + Guid.NewGuid().ToString("N"));

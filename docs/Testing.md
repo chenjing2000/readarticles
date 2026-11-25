@@ -78,11 +78,27 @@ This list is an interactive **release gate**, not proof of automated coverage. D
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps1
 ```
 
-`Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files.
+`Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files, including refusal of linked dist and release directories.
+
+## Script progress color palette
+
+Verify all five colors are accepted and appear in the native settings and browser Script progress. Former palette colors normalize to the new red default without changing other preferences. Manually inspect the colored text on the five available reading backgrounds.
+
+## Playback update efficiency
+
+Live absolute divider drag frames do not accumulate in the request deduplication set; durable actions and drag completion retain request checks. Script geometry caches segment widths and skips unchanged clip writes, including during reverse seeks and stop. The progress timer runs only while article playback is playing; native and browser seek handlers explicitly publish the new position, even when paused. Manually verify paused forward/backward seeks, pointer seek, resume and Script progress.
+
+## Functional icons
+
+Automated embedded SVG checks validate the Web icon viewBox, background circle and white foreground. Native and embedded browser functional icons use maple-red `#D65B45` circles and white glyphs; preserve distinct play/pause, Passage/Script and eye/crossed-eye states. Verify actual rendering at toolbar, pronunciation, selection-add and tree sizes, hover/pressed/disabled states, and unchanged app icon and keyboard behavior.
+
+## Explicit library refresh
+
+Core/UI/Full exercise reopening the current root, collapsed fresh nodes, resetting the reading workspace, missing-root and same-name-file deselection, a concurrent exclusion edit, stale refresh rejection during a later library switch, and the actual refresh button. UI/Full also check immediate persistence of a null library path after missing-root refresh. Manually check button placement/disabled state and real playback interruption; use a disposable library.
 
 ## Folder exclusion regression
 
-Core includes the pure exclusion parser checks. UI and Full also verify independent invalid-field recovery, invalid-source preservation during explicit backup restoration, rejection of obsolete/invalid backups, and the loaded Fluent template's collapsed clear button. The navigation regression schedules another filter edit during failure fallback before the root result commits. Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
+Core includes the pure exclusion parser checks. UI and Full also verify independent invalid-name and invalid-JSON-type field recovery, invalid-source preservation during explicit backup restoration, rejection of obsolete/invalid backups, and the loaded Fluent template's collapsed clear button. The navigation regression schedules another filter edit during failure fallback before the root result commits. Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
 
 ## Ownership and maintenance
 

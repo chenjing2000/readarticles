@@ -330,6 +330,16 @@ internal static class ContentChecks
             var saved = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.ChangeExtension(passage, ".vocabulary.json")))!;
             Program.Check((string?)saved["provider"] == "imported metadata");
             Program.Check((string?)saved["words"]![0]!["word"] == "be stuck in");
+            string target = Path.ChangeExtension(passage, ".vocabulary.json");
+            string fingerprint = JsonFiles.Fingerprint(target);
+            File.Delete(incoming);
+            Program.Check(model.TryImportVocabulary(incoming) == VocabularyEditResult.Failed &&
+                notifications == 2 && model.Words.Count == 121 &&
+                JsonFiles.Fingerprint(target) == fingerprint);
+            // A real, explicitly empty vocabulary remains a valid import.
+            File.WriteAllText(incoming, """{"filetype":"vocabulary","words":[]}""");
+            Program.Check(model.TryImportVocabulary(incoming) == VocabularyEditResult.Success &&
+                notifications == 3 && model.Words.Count == 0);
         });
     }
     private static void RunCopyTest(string name, Action<string, string> test)

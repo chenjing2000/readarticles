@@ -54,7 +54,7 @@ public sealed class LibraryNavigation
         {
             CommitLibrary(prepared);
             RefreshBooks();
-            if (prepared.Warnings.Count > 0)
+            if (prepared is { Warnings.Count: > 0 })
             {
                 AppLogger.Default.Warning("LibraryLoadedWithWarnings");
                 notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);
@@ -62,56 +62,69 @@ public sealed class LibraryNavigation
         })
         : Task.CompletedTask;
 
-    public Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot> commit) =>
-        pendingSwitch = LoadRootAsync(root, commit, isSwitch: true);
+    public Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot?> commit, bool isRefresh = false) =>
+        pendingSwitch = LoadRootAsync(root, commit, isSwitch: true, isRefresh: isRefresh);
 
-    private async Task<bool> LoadRootAsync(string root, Action<LibrarySnapshot> commit, bool isSwitch = false)
+    private async Task<bool> LoadRootAsync(string root, Action<LibrarySnapshot?> commit,
+        bool isSwitch = false, bool isRefresh = false)
     {
         if (navigationClosed) return false;
         Dispatcher ui = Dispatcher.CurrentDispatcher;
         long session = ++librarySession;
         CancelAllDirectoryScans();
-        try
+        // Catch only discovery failures. A commit may already have changed
+        // application state and must not be treated as a filesystem failure.
+        var filter = excludedFolders;
+        while (true)
         {
-            // Only filesystem discovery runs on the worker thread. Binding and
-            // collection updates always return to the owning UI Dispatcher,
-            // including under the STA test runner without a SynchronizationContext.
-            var filter = excludedFolders;
-            while (true)
+            var snapshot = filter;
+            LibrarySnapshot prepared;
+            try
             {
-                var snapshot = filter;
-                var prepared = await Task.Run(() => libraryRepository.Load(root, snapshot));
-                bool? result = await ui.InvokeAsync<bool?>(() =>
+                prepared = await Task.Run(() => libraryRepository.Load(root, snapshot));
+            }
+            catch (Exception error) when (error is ArgumentException or IOException or
+                InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                Task? fallback = await ui.InvokeAsync<Task?>(() =>
                 {
-                    if (navigationClosed || session != librarySession) return false;
-                    if (!ReferenceEquals(snapshot, excludedFolders))
+                    if (session != librarySession || navigationClosed) return null;
+                    AppLogger.Default.Warning("LibraryOpenFailed", error);
+                    if (isRefresh)
                     {
-                        filter = excludedFolders;
+                        // Only an explicit refresh discards an inaccessible current library.
+                        // A missing root is deselected; other failures retain the path for retry.
+                        bool missing = error is DirectoryNotFoundException;
+                        commit(missing ? null : new LibrarySnapshot(root,
+                            Array.Empty<NavigationNode>(), Array.Empty<string>()));
+                        notify("LibraryOpenFailed", missing
+                            ? "当前图书馆文件夹不存在，请重新选择图书馆。"
+                            : "无法刷新图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
                         return null;
                     }
-                    commit(prepared);
-                    return true;
+                    notify("LibraryOpenFailed", "无法打开图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
+                    // A failed switch still owes the committed library its new filter.
+                    return isSwitch && refreshRequired ? RefreshCurrentAsync() : null;
                 });
-                if (result.HasValue) return result.Value;
+                if (fallback is not null) await fallback;
+                return false;
             }
-        }
-        catch (Exception error) when (error is ArgumentException or IOException or
-            InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
-        {
-            Task? fallback = await ui.InvokeAsync<Task?>(() =>
+            bool? result = await ui.InvokeAsync<bool?>(() =>
             {
-                if (session != librarySession || navigationClosed) return null;
-                AppLogger.Default.Warning("LibraryOpenFailed", error);
-                notify("LibraryOpenFailed", "无法打开图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
-                // A failed switch still owes the committed library its new filter.
-                return isSwitch && refreshRequired ? RefreshCurrentAsync() : null;
+                if (navigationClosed || session != librarySession) return false;
+                if (!ReferenceEquals(snapshot, excludedFolders))
+                {
+                    filter = excludedFolders;
+                    return null;
+                }
+                commit(prepared);
+                return true;
             });
-            if (fallback is not null) await fallback;
-            return false;
+            if (result.HasValue) return result.Value;
         }
     }
 
-    public void CommitLibrary(LibrarySnapshot prepared)
+    public void CommitLibrary(LibrarySnapshot? prepared)
     {
         ++librarySession;
         CancelAllDirectoryScans();

@@ -103,6 +103,8 @@ Images, PDFs and other source materials may be prepared externally using the ski
 
 The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's immediate files and subdirectories and parses direct JSON to check the passage tag. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Full Passage schema validation and companion loading occur only when a leaf is opened; whole-article audio candidates are checked only when playback is requested.
 
+The explicit Refresh Library button reopens the committed root using the current exclusions, resets the reading workspace and both audio channels, and starts with a collapsed tree. A missing root clears the persisted library selection and disables refresh; other root access failures clear the tree and reading workspace but retain the path for retry. Failed selection of a different library still retains the previous workspace.
+
 Collapsing invalidates pending scans; reopening refreshes that directory. When a refresh fails, the last successful snapshot is retained where available and a warning is shown. Navigation excludes the files and folders described in [Excluded branches and safe paths](#5-excluded-branches-and-safe-paths); there is no recursive pre-scan.
 
 ## Optional Script reading companion
@@ -113,4 +115,4 @@ The Script JSON root must have `"filetype": "script"`, `"title": ""` (or another
 
 The application uses `text` as the displayed source; timed-unit text is located in original sentence order when rendering, but its alignment is not an admission check. Unlocatable units are not colored. Script and Passage text need not match. A nonempty Script title uses the regular Passage title styling; an empty title hides the title. Script has timed sentence units and does not interpret fill-in-the-blank placeholders; Passage also has no sentence pronunciation. The original Passage file determines the directory used for whole-article audio and the companion vocabulary file; Script never changes those lookup rules.
 
-The music icon is dark grey for Passage and colored for Script. Vocabulary highlighting independently controls the background in both views. The audio clock controls Script foreground progress, which is cleared when article playback stops or naturally ends. Neither source JSON is modified.
+The reading-mode toggle shows the Script code-page symbol in Passage mode and the Passage text-page symbol in Script mode; both use the same maple-red background. Vocabulary highlighting independently controls the background in both views. The audio clock controls Script foreground progress, which is cleared when article playback stops or naturally ends. Neither source JSON is modified.

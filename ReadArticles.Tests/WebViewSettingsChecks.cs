@@ -65,6 +65,17 @@ internal static class WebViewSettingsChecks
                 Program.Check(window.ViewModel.HighlightsVisible); // duplicate request
                 Highlight(false, page, session, Guid.NewGuid().ToString("D"));
                 Program.Check(!window.ViewModel.HighlightsVisible);
+                var seen = (HashSet<string>)typeof(WebReaderBridge)
+                    .GetField("seenRequests", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(bridge)!;
+                int count = seen.Count;
+                for (int i = 0; i < 100; i++)
+                    bridge.Receive(JsonSerializer.Serialize(new
+                    {
+                        version = 1, type = "dragPanelWidth", pageId = page, sessionId = session,
+                        requestId = Guid.NewGuid().ToString("D"), vocabularyRevision = 0,
+                        payload = new { width = 300 }
+                    }));
+                Program.Check(seen.Count == count);
                 host.Fail("test failure");
                 Highlight(true, page, session, Guid.NewGuid().ToString("D"));
                 Program.Check(!window.ViewModel.HighlightsVisible && host.IsUnavailable);
@@ -114,7 +125,7 @@ internal static class WebViewSettingsChecks
                     root.GetProperty("appearance").GetProperty("title").GetProperty("size").GetDouble() == 18 &&
                     root.GetProperty("appearance").GetProperty("title").GetProperty("lineHeight").GetDouble() == 1.7 &&
                     root.GetProperty("appearance").GetProperty("body").GetProperty("lineHeight").GetDouble() == 1.7 &&
-                    root.GetProperty("appearance").GetProperty("body").GetProperty("scriptColor").GetString() == "#B64550" &&
+                    root.GetProperty("appearance").GetProperty("body").GetProperty("scriptColor").GetString() == "#E02020" &&
                     root.GetProperty("appearance").GetProperty("body").GetProperty("selectionAddSize").GetDouble() == 0.65 &&
                     root.GetProperty("appearance").GetProperty("body").GetProperty("selectionBackground").GetString() == "#DDE8F2" &&
                     root.GetProperty("appearance").GetProperty("meanings").GetProperty("lineHeight").GetDouble() == 1.5 &&

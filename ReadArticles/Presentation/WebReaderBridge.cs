@@ -76,14 +76,14 @@ public sealed class WebReaderBridge : IDisposable
 
     private void ProgressTimerTick(object? sender, EventArgs e)
     {
-        if (!host.IsUnavailable && ViewModel.Playback.IsArticleActive) SendPlayback();
+        if (!host.IsUnavailable && ViewModel.Playback.IsArticlePlaying) SendPlayback();
     }
 
     private void RefreshPlayback()
     {
         progressTimer.Interval = ViewModel.IsScriptMode && ViewModel.Playback.IsArticlePlaying
             ? TimeSpan.FromMilliseconds(33) : TimeSpan.FromMilliseconds(100);
-        if (!disposed && !host.IsUnavailable && ViewModel.Playback.IsArticleActive) progressTimer.Start();
+        if (!disposed && !host.IsUnavailable && ViewModel.Playback.IsArticlePlaying) progressTimer.Start();
         else progressTimer.Stop();
     }
 
@@ -164,7 +164,8 @@ public sealed class WebReaderBridge : IDisposable
             if (!TryMessageString(root, "requestId", out string? requestId) ||
                 !Guid.TryParse(requestId, out _))
                 return;
-            if (!seenRequests.Add(requestId)) return;
+            // Live drag frames carry absolute widths and are not durable edits.
+            if (type != "dragPanelWidth" && !seenRequests.Add(requestId)) return;
 
             bool currentSession = TryMessageString(root, "sessionId", out string? actionSession) &&
                 actionSession == currentSessionId;

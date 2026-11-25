@@ -13,6 +13,25 @@ function Assert-NoReparsePoints([string]$path) {
     }
 }
 
+function Assert-SafePublishPath([string]$path) {
+    $current = [IO.Path]::GetFullPath($path)
+    while ($current) {
+        try {
+            $item = Get-Item -LiteralPath $current -Force -ErrorAction Stop
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                throw "Refusing to publish through a reparse point: $current"
+            }
+        }
+        catch [System.Management.Automation.ItemNotFoundException] {
+            # A not-yet-created leaf is allowed; its ancestors still require checks.
+        }
+        $current = [IO.Path]::GetDirectoryName($current)
+    }
+}
+
+# Refuse linked ancestors before any build or cleanup can touch the target.
+Assert-SafePublishPath $destination
+Assert-SafePublishPath $stagingDirectory
 Push-Location $workspace
 try {
     dotnet publish $projectPath -p:PublishProfile=Portable -o $stagingDirectory --nologo
@@ -28,6 +47,10 @@ try {
     if ($output.Count -ne 1 -or $output[0].Name -ne $exeName -or $output[0].PSIsContainer) {
         throw 'Expected exactly one EXE in staging; the installed program was preserved.'
     }
+
+    Assert-SafePublishPath $destination
+    Assert-SafePublishPath $stagingDirectory
+    Assert-NoReparsePoints $stagingDirectory
 
     if (Test-Path -LiteralPath $destination -PathType Leaf) {
         $handle = [IO.File]::Open($destination, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
@@ -69,6 +92,7 @@ finally {
         throw 'Staging directory escaped dist; cleanup refused.'
     }
     try {
+        Assert-SafePublishPath $resolvedStaging
         if (Test-Path -LiteralPath $resolvedStaging) {
             Assert-NoReparsePoints $resolvedStaging
             Remove-Item -LiteralPath $resolvedStaging -Recurse -Force

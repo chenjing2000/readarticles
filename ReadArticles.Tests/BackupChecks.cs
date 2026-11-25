@@ -108,6 +108,21 @@ internal static class BackupChecks
                 Program.Check(warning is null && repaired.ExcludedFolders == ReaderSettings.DefaultExcludedFolders &&
                     repaired.Accent == "us" && repaired.Appearance.Body.Size == 17);
 
+                foreach (string invalidValue in new[] { "42", "[]", "{}" })
+                {
+                    var document = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+                    document["ExcludedFolders"] = System.Text.Json.Nodes.JsonNode.Parse(invalidValue);
+                    File.WriteAllText(path, document.ToJsonString());
+                    string badHash = JsonFiles.Fingerprint(path);
+                    repaired = ReaderSettings.Load(out warning);
+                    Program.Check(warning is not null && repaired.ExcludedFolders == ReaderSettings.DefaultExcludedFolders &&
+                        repaired.Accent == "us" && repaired.ForwardStep == 10 && repaired.Library == @"C:\Library" &&
+                        repaired.Appearance.Body.Size == 17 && JsonFiles.Fingerprint(path) == badHash);
+                    repaired.Save();
+                    Program.Check(JsonFiles.Fingerprint(backup) == backupHash &&
+                        Directory.GetFiles(AppPaths.ConfigDirectory, "settings.json.*.corrupt")
+                            .Except(priorCopies).Any(copy => JsonFiles.Fingerprint(copy) == badHash));
+                }
                 repaired.ExcludedFolders = "audio*";
                 string currentHash = JsonFiles.Fingerprint(path);
                 try { repaired.Save(); throw new Exception("Invalid settings were saved."); }
@@ -143,7 +158,8 @@ internal static class BackupChecks
                 foreach (string invalid in new[]
                 {
                     "{ broken", "{}", """{"Appearance":{},"Audio":null}""",
-                    """{"Appearance":{},"Audio":{},"ExcludedFolders":"audio*"}"""
+                    """{"Appearance":{},"Audio":{},"ExcludedFolders":"audio*"}""",
+                    """{"Appearance":{},"Audio":{},"ExcludedFolders":[]}"""
                 })
                 {
                     File.WriteAllText(path, invalid);
@@ -158,7 +174,8 @@ internal static class BackupChecks
                 foreach (string invalid in new[]
                 {
                     "{}", """{"Appearance":{},"Audio":null}""",
-                    """{"Appearance":{},"Audio":{},"ExcludedFolders":"audio*"}"""
+                    """{"Appearance":{},"Audio":{},"ExcludedFolders":"audio*"}""",
+                    """{"Appearance":{},"Audio":{},"ExcludedFolders":[]}"""
                 })
                 {
                     File.WriteAllText(backup, invalid);

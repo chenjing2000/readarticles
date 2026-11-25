@@ -13,7 +13,13 @@ public sealed partial class MainViewModel
     public Task<bool> OpenLibraryAsync(string root) =>
         navigation.OpenLibraryAsync(root, CommitLibrary);
 
-    private void CommitLibrary(LibrarySnapshot prepared)
+    public bool CanRefreshLibrary => LibraryRoot is not null;
+
+    public Task<bool> RefreshLibraryAsync() => LibraryRoot is { } root
+        ? navigation.OpenLibraryAsync(root, CommitLibrary, isRefresh: true)
+        : Task.FromResult(false);
+
+    private void CommitLibrary(LibrarySnapshot? prepared)
     {
         navigation.CommitLibrary(prepared);
         workspace.ClearArticle();
@@ -24,9 +30,10 @@ public sealed partial class MainViewModel
         navigation.RefreshBooks();
         Words.Clear();
         Changed(nameof(LibraryRoot));
+        Changed(nameof(CanRefreshLibrary));
         Changed(nameof(ArticleTitle));
         ArticleChanged?.Invoke();
-        if (prepared.Warnings.Count > 0)
+        if (prepared is { Warnings.Count: > 0 })
         {
             AppLogger.Default.Warning("LibraryLoadedWithWarnings");
             Notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);

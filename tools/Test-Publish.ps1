@@ -129,6 +129,43 @@ try {
         Check ((Get-Content -LiteralPath (Join-Path $oldData 'old-data.txt') -Raw) -eq 'do-not-import') 'Legacy source was altered.'
         Check ((Get-Content -LiteralPath $legacySettings -Raw) -eq 'legacy-source') 'Legacy settings were altered.'
     }
+    Run-Case 'junction release directory is rejected without writing through it' {
+        $outside = Join-Path $caseRoot 'outside-release'
+        Move-Item -LiteralPath $app -Destination $outside
+        New-Item -ItemType Junction -Path $app -Target $outside | Out-Null
+        try {
+            $rejected = $false
+            try { & (Join-Path $tools 'Publish.ps1') }
+            catch { $rejected = $_.Exception.Message -like '*reparse point*' }
+            Check $rejected 'Junction release was not rejected.'
+            Check ((Get-Content -LiteralPath (Join-Path $outside $exeName) -Raw) -eq 'old-release') 'Linked release changed.'
+            Check (-not (Test-Path -LiteralPath (Join-Path $outside 'README.txt'))) 'Linked release received a README.'
+            Check-UserData
+        }
+        finally {
+            # Remove only the junction, not its target.
+            [IO.Directory]::Delete($app)
+            Move-Item -LiteralPath $outside -Destination $app
+        }
+    }
+    Run-Case 'junction dist ancestor is rejected before staging' {
+        $outside = Join-Path $caseRoot 'outside-dist'
+        Move-Item -LiteralPath $dist -Destination $outside
+        New-Item -ItemType Junction -Path $dist -Target $outside | Out-Null
+        try {
+            $rejected = $false
+            try { & (Join-Path $tools 'Publish.ps1') }
+            catch { $rejected = $_.Exception.Message -like '*reparse point*' }
+            Check $rejected 'Junction dist was not rejected.'
+            Check ((Get-Content -LiteralPath $release -Raw) -eq 'old-release') 'Linked release changed.'
+            Check (@(Get-ChildItem -LiteralPath $outside -Directory -Filter '.publish-*').Count -eq 0) 'Staging touched linked dist.'
+            Check-UserData
+        }
+        finally {
+            [IO.Directory]::Delete($dist)
+            Move-Item -LiteralPath $outside -Destination $dist
+        }
+    }
     Run-Case 'existing portable readme is never replaced' {
         $readme = Join-Path $app 'README.txt'
         [IO.File]::WriteAllText($readme, 'my portable notes')

@@ -23,11 +23,11 @@ Select the parent directory of marked book directories. Startup and folder selec
 4. Select a vocabulary entry to enable the applicable move-up, move-down and delete buttons. These actions write the active companion JSON immediately.
 5. Use the highlight toggle to display or hide case-insensitive literal matches for each `word` and its explicitly listed `family` forms. Highlighting begins off.
 6. Use the import button beside the highlight toggle to replace the active vocabulary with a selected structured JSON file after confirmation.
-7. Click the cog icon next to 选择图书馆 to open the centered 设置 dialog. Adjust title, body, word, IPA, meanings, background colors, default accent and seek steps; click 保存 to commit all changes, 取消 to discard, or 恢复默认 to reset the entire draft.
+7. Click the refresh icon between 选择图书馆 and the cog to reopen the current library; this stops audio and clears reading/selection. If the root no longer exists, select a new library. Click the cog icon to open the centered 设置 dialog. Adjust title, body, word, IPA, meanings, background colors, default accent and seek steps; click 保存 to commit all changes, 取消 to discard, or 恢复默认 to reset the entire draft.
 
 ## Passage and Script
 
-Use the music icon immediately left of the highlight toggle to switch to an optional same-stem `<name>.script.json` and back. The companion is loaded on demand, not at startup. Missing or invalid Script leaves Passage and article playback unchanged. The Script may have different text and title from Passage; its timestamped foreground follows article audio, including seeks, and clears on Stop or natural completion. Untimed or unaligned units remain readable without progress coloring. Vocabulary and article-audio lookup remain tied to the original Passage. See [Library Layout](Library-Layout.md) for the format.
+Use the document/code icon immediately left of the highlight toggle to switch to an optional same-stem `<name>.script.json` and back. The companion is loaded on demand, not at startup. Missing or invalid Script leaves Passage and article playback unchanged. The Script may have different text and title from Passage; its timestamped foreground follows article audio, including seeks, and clears on Stop or natural completion. Untimed or unaligned units remain readable without progress coloring. Vocabulary and article-audio lookup remain tied to the original Passage. See [Library Layout](Library-Layout.md) for the format.
 
 ## Vocabulary and playback
 

@@ -155,7 +155,7 @@ internal static class ReaderControlsChecks
                 Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
                     loaded.Appearance.Title.LineHeight == 1.7 &&
                     loaded.Appearance.Body.LineHeight == 1.7 &&
-                    loaded.Appearance.Body.ScriptColor == "#B64550" &&
+                    loaded.Appearance.Body.ScriptColor == "#E02020" &&
                     loaded.Appearance.Body.SelectionAddSize == 0.65 &&
                     loaded.Appearance.Title.Font == "Georgia" &&
                     loaded.Appearance.Body.Font == "Georgia" &&
@@ -242,7 +242,7 @@ internal static class ReaderControlsChecks
                     defaults.Appearance.Meanings.LineHeight == 1.5 &&
                     defaults.Appearance.Body.SelectionAddSize == 0.65 &&
                     defaults.Appearance.Body.SelectionBackground == "#DDE8F2" &&
-                    defaults.Appearance.Body.ScriptColor == "#B64550" &&
+                    defaults.Appearance.Body.ScriptColor == "#E02020" &&
                     defaults.Appearance.Title.Font == "Georgia" &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
                     defaults.Appearance.Phonetics.Size == 14);
@@ -273,6 +273,18 @@ internal static class ReaderControlsChecks
                     saved.ForwardStep == 7 && saved.Accent == "us" &&
                     saved.Library == TestData.LibraryRoot &&
                     saved.Appearance.Body.Background == "#F7F1E6");
+                string missingRoot = Path.Combine(Path.GetTempPath(), "ReadArticles-refresh-settings-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(missingRoot);
+                try
+                {
+                    Program.Check(window.ViewModel.OpenLibrary(missingRoot));
+                    Directory.Delete(missingRoot);
+                    Task<bool> missing = window.ViewModel.RefreshLibraryAsync();
+                    WpfTestHelpers.Wait(() => missing.IsCompleted);
+                    Program.Check(!missing.GetAwaiter().GetResult() &&
+                        window.ViewModel.LibraryRoot is null && ReaderSettings.Load(out _).Library is null);
+                }
+                finally { if (Directory.Exists(missingRoot)) Directory.Delete(missingRoot); }
                 window.Close();
                 window = null;
                 string raw = File.ReadAllText(path);

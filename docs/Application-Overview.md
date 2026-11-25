@@ -19,7 +19,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `App.xaml` / `App.xaml.cs` | Shared brushes and button styles; startup, command-line library selection, and main-window creation |
 | `MainWindow.xaml` | Native left navigation and one WebView2 reader host, with a native failure/exit overlay |
 | `MainWindow.xaml.cs` | Construct the state model and two independent media players; initialize modules and coordinate shutdown |
-| `MainWindow.Library.cs` | Folder selection, tree selection, library restoration and article selection |
+| `MainWindow.Library.cs` | Folder selection, explicit library refresh, tree selection, library restoration and article selection |
 | `MainWindow.Playback.cs` | Native playback key interception and player cleanup |
 | `MainWindow.Settings.cs`, `Settings/SettingsDialog.cs` | Apply native pane widths, native modal settings and preference persistence |
 | `Layout/PaneLayout.cs` | Session-only pane widths, shared width solver and right-divider drag rollback |
@@ -42,7 +42,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `Infrastructure/JsonFiles.cs` | JSON helpers, SHA256 fingerprints, and temporary-file replacement |
 | `Infrastructure/ResourcePaths.cs` | Relative-path and reparse-point checks |
 | `Settings/ReaderSettings.cs` | Load and save preferences under the portable `userdata/config/` directory |
-| `Infrastructure/UiIcons.cs` | Load native window/tree/settings icons, including Restore Defaults |
+| `Infrastructure/UiIcons.cs` | Load native window/tree/refresh/settings icons, including Restore Defaults |
 | `Infrastructure/AppPaths.cs`, `BackupFiles.cs`, `AppLogger.cs` | Portable data paths, verified backup/recovery and bounded diagnostics |
 | `Notifications/NotificationService.cs` | Authoritative in-memory FIFO notification queue |
 | `Audio/WpfAudioPlayer.cs` | Native audio playback adapter |
@@ -88,7 +88,7 @@ Passage selection -> ArticleRepository -> prepared article and words
                   -> commit workspace -> WebView2 article/word snapshots -> DOM
 ```
 
-Library selection clears the active passage and words. Startup restores only a library directory, when available. Selecting an article loads its matching vocabulary. Preparation occurs before committing the article, so a failed switch retains the previous readable article.
+Library selection or explicit refresh clears the active passage and words and stops both audio channels. Missing-root refresh clears the persisted library path; other refresh failures retain it for retry. Exclusion changes still refresh navigation only. Startup restores only a library directory, when available. Selecting an article loads its matching vocabulary. Preparation occurs before committing the article, so a failed switch retains the previous readable article.
 
 ### Reading-mode switching
 
@@ -137,7 +137,8 @@ On close, normal application windows save final settings during `Closing`, befor
 - The native tree uses 11 pt. The native modal edits a detached settings draft; all typography, palettes, seek options and persistence rules are specified in [Configuration](Configuration.md).
 - Paragraph indentation follows the body setting (default two em). All panes scroll independently. Library width defaults to 250 DIP (200–400), vocabulary width to 300 DIP (200–400), the article width has a 200-DIP minimum, and both splitters are 3 DIP. The native WebView2 host has a fixed 403-DIP minimum. One C# PaneLayout solver coordinates both splitters: moving either edge changes article width first (minimum 200 DIP), then shrinks the opposite outer pane (minimum 200 DIP), and stops when all three reach their minima. WebView2 sends live right-divider requests with screen-anchored pointer coordinates and renders only C#-confirmed width values. CSS has minimum article/host safeguards but no competing dynamic vocabulary-width clamp.
 - The two reading-workspace toolbars live in WebView2. Playback controls remain present when disabled.
-- Highlighting starts off (gray toggle icon); turning it on shows a magenta toggle icon and rounded word backgrounds painted from Range rectangles in a non-interactive layer, without changing article or Script text nodes. The selection-add control follows valid text selection.
+- Functional SVG icons share the AudioPlayer-style flat circular design: 1024-square viewBox, radius 480, maple-red `#D65B45` background, white foreground, transparent outer margin. Native and browser display sizes remain unchanged; toolbar hover/pressed colors are `#FBECE8`/`#F4D8D0`. Application maple-leaf PNG/ICO are unchanged.
+- Highlighting starts off (crossed-eye toggle icon); turning it on shows an eye icon and rounded word backgrounds painted from Range rectangles in a non-interactive layer, without changing article or Script text nodes. The selection-add control follows valid text selection.
 - Unmodified Space, Left and Right are exclusive whole-article playback shortcuts throughout the active main window, including WPF and WebView2 controls. They are consumed even when playback is unavailable; Space ignores auto-repeat, arrows repeat, focus and paused state are preserved, and separate dialogs retain normal keyboard behavior. WPF intercepts PreviewKeyDown/PreviewKeyUp; WebView2 intercepts keydown/keyup in the document capture phase, before target controls. Both use existing C# play/pause and relative-seek commands. CSS suppresses browser focus-visible outlines and keyboard-only splitter coloring without moving focus.
 - Appearance styles, accent, progress steps and library are persisted; both media players use fixed 100% volume. Pane widths can change during a session but reset to their defaults on restart; window dimensions, active passage and highlighting are not saved. Legacy width fields in settings JSON are ignored.
 
