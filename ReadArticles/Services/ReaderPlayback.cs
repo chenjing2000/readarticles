@@ -50,12 +50,12 @@ public sealed class ReaderPlayback
     public double ArticleDuration => CanSeekArticle ? articlePlayer.Duration.TotalSeconds : 0;
     public double ArticlePosition => CanSeekArticle ? articlePlayer.Position.TotalSeconds : 0;
 
-    public void ToggleArticle(LoadedArticle? article)
+    public void ToggleArticle(string? directory)
     {
         Handle(() =>
         {
             if (articlePlayer.ToggleCurrent(ArticleOwner)) return;
-            var files = resources.ArticleFiles(RequireArticle(article).Directory);
+            var files = resources.ArticleFiles(RequireDirectory(directory));
             articlePlayer.PlayCandidates(files, ArticleOwner);
         }, false);
     }
@@ -70,22 +70,27 @@ public sealed class ReaderPlayback
         if (CanSeekArticle) articlePlayer.Seek(seconds);
     }
 
-    public void PlayWord(LoadedArticle? article, VocabularyEntry entry, string accent)
+    public void SeekArticleRelative(double offsetSeconds)
+    {
+        if (CanSeekArticle) SeekArticle(ArticlePosition + offsetSeconds);
+    }
+
+    public void PlayWord(string? directory, IReadOnlyList<VocabularyEntry> words, VocabularyEntry entry, string accent)
     {
         Handle(() =>
         {
-            var current = RequireArticle(article);
-            if (!AudioResources.OwnsWordAudio(current, entry)) throw new InvalidOperationException("词条没有音频资格。");
-            string path = resources.Vocabulary(current.Directory, entry, accent);
+            string root = RequireDirectory(directory);
+            if (!AudioResources.OwnsWordAudio(words, entry)) throw new InvalidOperationException("词条没有音频资格。");
+            string path = resources.Vocabulary(root, entry, accent);
             pronunciationPlayer.Play(new AudioItem(path), "word:" + accent + ":" + entry.Word);
         });
     }
 
-    public bool CanPlayWord(LoadedArticle article, VocabularyEntry entry, string accent)
+    public bool CanPlayWord(string directory, IReadOnlyList<VocabularyEntry> words, VocabularyEntry entry, string accent)
     {
         try
         {
-            return AudioResources.OwnsWordAudio(article, entry) && AudioResources.IsAvailable(resources.Vocabulary(article.Directory, entry, accent));
+            return AudioResources.OwnsWordAudio(words, entry) && AudioResources.IsAvailable(resources.Vocabulary(directory, entry, accent));
         }
         catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException)
         {
@@ -98,12 +103,12 @@ public sealed class ReaderPlayback
         if (pronunciationPlayer.Owner == "word:uk:" + entry.Word || pronunciationPlayer.Owner == "word:us:" + entry.Word) pronunciationPlayer.Stop();
     }
 
-    public void RefreshVocabulary(LoadedArticle article)
+    public void RefreshVocabulary(IReadOnlyList<VocabularyEntry> words)
     {
         if (!pronunciationPlayer.Owner.StartsWith("word:", StringComparison.Ordinal)) return;
-        var entry = article.Vocabulary.Data.Words.FirstOrDefault(w =>
+        var entry = words.FirstOrDefault(w =>
             pronunciationPlayer.Owner == "word:uk:" + w.Word || pronunciationPlayer.Owner == "word:us:" + w.Word);
-        if (entry is null || !AudioResources.OwnsWordAudio(article, entry)) pronunciationPlayer.Stop();
+        if (entry is null || !AudioResources.OwnsWordAudio(words, entry)) pronunciationPlayer.Stop();
     }
 
     public void StopPronunciation()
@@ -117,8 +122,8 @@ public sealed class ReaderPlayback
         articlePlayer.Stop();
     }
 
-    private static LoadedArticle RequireArticle(LoadedArticle? article) =>
-        article ?? throw new InvalidOperationException("请先打开文章。");
+    private static string RequireDirectory(string? directory) =>
+        directory ?? throw new InvalidOperationException("请先打开文章。");
 
     private void Handle(Action action, bool stopOnFailure = true)
     {

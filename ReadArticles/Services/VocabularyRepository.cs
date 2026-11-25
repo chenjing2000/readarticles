@@ -134,18 +134,6 @@ public sealed class VocabularyRepository
         }
     }
 
-    public static VocabularyEntry NewEntry(string text)
-    {
-        string normalized = Regex.Replace(text, @"\s+", " ").Trim();
-        if (normalized.Length == 0) throw new InvalidDataException("选词不能为空。");
-        return new VocabularyEntry { Word = normalized };
-    }
-
-    public static string AudioStem(string word)
-    {
-        return Regex.Replace(word.Trim().ToLowerInvariant(), "[^a-z0-9]+", "_").Trim('_');
-    }
-
     public static void Validate(VocabularyData data)
     {
         if (data.FileType != "vocabulary" || data.Words is null) throw new InvalidDataException("词汇表结构无效。");

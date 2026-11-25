@@ -478,7 +478,7 @@ public partial class MainWindow
                     PostWebPilot("actionResult", new { status = "invalid" }, requestId);
                     return;
                 }
-                SeekArticleRelative(direction.GetString() == "backward");
+                ViewModel.SeekArticleRelative(direction.GetString() == "backward");
             }
             else if (!data.TryGetProperty("position", out var time) ||
                      time.ValueKind != JsonValueKind.Number ||

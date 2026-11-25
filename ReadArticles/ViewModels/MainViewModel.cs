@@ -18,7 +18,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public NotificationService Notifications { get; } = new();
     public void Notify(string key, string message, NotificationSeverity severity) =>
         Notifications.Publish(key, message, severity);
-    private string accent = "uk";
+    private readonly ReaderSettings settings;
     private bool highlightsVisible;
     public event PropertyChangedEventHandler? PropertyChanged;
     public event Action? ArticleChanged;
@@ -33,12 +33,12 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
     public bool CanWriteVocabulary => Article?.Vocabulary.CanWrite == true;
     public string Accent
     {
-        get => accent;
+        get => settings.Accent;
         set
         {
-            if ((value != "uk" && value != "us") || value == accent) return;
+            if ((value != "uk" && value != "us") || value == settings.Accent) return;
             playback.StopPronunciation();
-            accent = value;
+            settings.Accent = value;
             Changed();
         }
     }
@@ -52,8 +52,19 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
             Changed();
         }
     }
-    public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer)
+    // The caller persists the detached settings draft before applying it.
+    public void ApplySettings(ReaderSettings edited)
     {
+        string previousAccent = settings.Accent;
+        if (previousAccent != edited.Accent) playback.StopPronunciation();
+        settings.Apply(edited);
+        if (previousAccent != settings.Accent) Changed(nameof(Accent));
+    }
+
+    public MainViewModel(PlaybackController articlePlayer, PlaybackController pronunciationPlayer,
+        ReaderSettings? settings = null)
+    {
+        this.settings = settings ?? new ReaderSettings();
         navigation = new LibraryNavigation(Notify);
         playback = new ReaderPlayback(articlePlayer, pronunciationPlayer);
         playback.Message += (message, severity) => Notify("PlaybackFailure", message, severity);

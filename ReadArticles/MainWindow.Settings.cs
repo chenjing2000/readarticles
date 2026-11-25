@@ -35,7 +35,6 @@ public partial class MainWindow
         // The reader owns no volume setting: both native players run at 100%.
         player.Volume = 1.0;
         pronunciationPlayer.Volume = 1.0;
-        ViewModel.Accent = settings.Accent;
     }
 
     private void WindowClosing(object? sender, CancelEventArgs e)
@@ -48,7 +47,6 @@ public partial class MainWindow
     {
         if (!persistSettings) return true;
 
-        settings.Accent = ViewModel.Accent;
         settings.Library = ViewModel.LibraryRoot;
         try
         {
@@ -123,8 +121,7 @@ public partial class MainWindow
             return false;
         }
 
-        settings.Apply(edited);
-        ViewModel.Accent = settings.Accent;
+        ViewModel.ApplySettings(edited);
         SendWebPilotSettings();
         return true;
     }

@@ -33,9 +33,10 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `Models/` | Passage sentence arrays, selection ranges, vocabulary entries, navigation nodes, and loaded snapshots |
 | `Services/LibraryRepository.cs` | Discover immediate book directories; scan one level and parse JSON for exact passage tags; defer full schema validation |
 | `Services/ArticleRepository.cs` | `ReadParagraphs` parses and validates passage content; `Load` prepares the matching vocabulary and article snapshot; `LoadScript` reads the optional Script on demand |
-| `Services/VocabularyRepository.cs` | Validate vocabulary, derive audio stems, and save with external-change detection |
-| `Services/ReaderWorkspace.cs` | Own committed article, Script cache and mode; validate selected text and replace vocabulary after successful persistence |
-| `Services/AudioResources.cs` | List safe sibling M4A/MP3/WAV article candidates in priority/name order and resolve word MP3/WAV under `audio/` |
+| `Vocabulary/VocabularyEditor.cs` | Prepare vocabulary edits, preserve metadata and return a saved snapshot |
+| `Services/VocabularyRepository.cs` | Validate vocabulary and save with external-change detection |
+| `Services/ReaderWorkspace.cs` | Own committed article, Script cache and mode; validate selected text and commit the saved vocabulary snapshot |
+| `Services/AudioResources.cs` | Derive audio stems, determine pronunciation ownership, list safe sibling M4A/MP3/WAV article candidates in priority/name order and resolve word MP3/WAV under `audio/` |
 | `Services/ReaderPlayback.cs` | Select audio targets, enforce article-only controls/progress, cancel pronunciation, and report audio errors |
 | `Services/PlaybackController.cs` / `IAudioPlayer.cs` | Playback state, pause/resume, completion, progress access, and stale-event rejection; player boundary |
 | `Infrastructure/JsonFiles.cs` | JSON helpers, SHA256 fingerprints, and temporary-file replacement |
@@ -65,9 +66,9 @@ Library selection clears the active passage and words. Startup restores only a l
 ### Vocabulary editing
 
 ```text
-Browser selection/import/move/delete intent -> MainViewModel -> ReaderWorkspace
+Browser selection/import/move/delete intent -> MainViewModel -> VocabularyEditor
                             -> VocabularyRepository -> checked file replacement
-                            -> authoritative word snapshot -> browser DOM/highlights
+                            -> ReaderWorkspace commit -> browser DOM/highlights
 ```
 
 All successful vocabulary commits use one refresh/notification path. Import keeps incoming metadata; later edits retain the current vocabulary metadata. Recognized extension metadata at the vocabulary root, entry, and meaning levels survives serialization. Legacy `audio` fields are ignored on load and removed on save.
@@ -111,7 +112,7 @@ The application reads passages and vocabulary and plays existing audio. OCR, voc
 
 Matching is literal and case-insensitive for each `word` and its explicit optional `family` forms: `convict` matches `convicted` only when `"convicted"` is listed. Every hit belongs to the canonical `word`, with direct headwords preferred over another entry's family forms. No automatic morphological inference runs, and straight/curly apostrophes are not normalized. ASCII letters, apostrophes, and hyphens participate in word boundaries; digits deliberately do not. Among matches starting at the same position, the longest wins. These details matter when authoring canonical vocabulary entries.
 
-Each playback controller owns one active audio file at a time. Whole-article opening may advance across a fixed sorted list of candidate files; it is not a playback playlist. Playback state belongs to the controller, coordination between the two players belongs to ReaderPlayback, and timers and controls belong to MainWindow.Playback. The existing concrete repositories and window partial classes remain together; small repeated UI operations do not require another abstraction layer.
+Each playback controller owns one active audio file at a time. Whole-article opening may advance across a fixed sorted list of candidate files; it is not a playback playlist. Playback state belongs to the controller, coordination and relative seeking belong to ReaderPlayback, and timers and controls belong to MainWindow.Playback. MainViewModel and MainWindow share one ReaderSettings instance; the accent is not separately stored in the view model. The existing concrete repositories and window partial classes remain together; small repeated UI operations do not require another abstraction layer.
 
 Tests exercise these production modules directly; the obsolete prototype application has been removed. See [Testing](Testing.md) for categories and their data ownership. Exercise authoring remains in the supplied skills, but there is no exercise runtime module on main.
 

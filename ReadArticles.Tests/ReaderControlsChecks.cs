@@ -257,6 +257,7 @@ internal static class ReaderControlsChecks
                 var apply = typeof(ReadArticles.MainWindow).GetMethod("ApplyDialogSettings",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
                 Program.Check((bool)apply.Invoke(window, [draft])!);
+                Program.Check(window.ViewModel.Accent == "us");
                 var saved = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && saved.Appearance.Body.Size == 17 &&
                     saved.ForwardStep == 7 && saved.Accent == "us" &&

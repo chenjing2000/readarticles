@@ -14,7 +14,7 @@ public partial class MainWindow : Window
         this.persistSettings = persistSettings;
         string? settingsWarning = null;
         settings = persistSettings ? ReaderSettings.Load(out settingsWarning) : new ReaderSettings();
-        ViewModel = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer));
+        ViewModel = new MainViewModel(new PlaybackController(player), new PlaybackController(pronunciationPlayer), settings);
 
         InitializeComponent();
         DataContext = ViewModel;

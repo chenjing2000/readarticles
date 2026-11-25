@@ -1,4 +1,5 @@
-using System.IO;
+using ReadArticles.Infrastructure;
+using ReadArticles.Vocabulary;
 using ReadArticles.Models;
 using ReadArticles.Services;
 
@@ -20,12 +21,14 @@ public sealed partial class MainViewModel
         var words = new List<VocabularyEntryViewModel>();
         foreach (var entry in article.Vocabulary.Data.Words)
         {
-            bool uk = playback.CanPlayWord(article, entry, "uk");
-            bool us = playback.CanPlayWord(article, entry, "us");
+            bool uk = playback.CanPlayWord(article.Directory, article.Vocabulary.Data.Words, entry, "uk");
+            bool us = playback.CanPlayWord(article.Directory, article.Vocabulary.Data.Words, entry, "us");
             words.Add(new VocabularyEntryViewModel(entry, uk, us));
         }
         return words;
     }
+
+    private readonly VocabularyEditor vocabularyEditor = new();
 
     public VocabularyEditResult TryAddWord(string text)
     {
@@ -33,42 +36,30 @@ public sealed partial class MainViewModel
         bool duplicate = false;
         bool completed = Handle(() =>
         {
-            var article = Article ?? throw new InvalidOperationException("请先打开文章。");
-            var entry = VocabularyRepository.NewEntry(text);
-            if (article.Vocabulary.Data.Words.Any(w =>
-                w.Word.Equals(entry.Word, StringComparison.OrdinalIgnoreCase)))
+            var article = Article!;
+            var saved = vocabularyEditor.Add(article.VocabularyPath, article.Vocabulary, text, out string word);
+            if (saved is null)
             {
                 duplicate = true;
-                Notify("DuplicateVocabulary", "词表中已存在：" + entry.Word,
-                    ReadArticles.Infrastructure.NotificationSeverity.Warning);
+                Notify("DuplicateVocabulary", "词表中已存在：" + word, NotificationSeverity.Warning);
                 return;
             }
-            var entries = new List<VocabularyEntry>(article.Vocabulary.Data.Words) { entry };
-            CommitWords(entries);
+            CommitVocabulary(saved);
         });
         return !completed ? VocabularyEditResult.Failed :
             duplicate ? VocabularyEditResult.Duplicate : VocabularyEditResult.Success;
     }
 
-    public bool CanMoveWord(VocabularyEntry entry, int direction)
-    {
-        if (!CanWriteVocabulary || (direction != -1 && direction != 1)) return false;
-        var entries = Article!.Vocabulary.Data.Words;
-        int index = entries.IndexOf(entry);
-        return index >= 0 && index + direction >= 0 && index + direction < entries.Count;
-    }
+    public bool CanMoveWord(VocabularyEntry entry, int direction) =>
+        VocabularyEditor.CanMove(Article?.Vocabulary, entry, direction);
 
     public VocabularyEditResult TryMoveWord(VocabularyEntry entry, int direction)
     {
         if (!CanMoveWord(entry, direction)) return VocabularyEditResult.Unavailable;
         bool completed = Handle(() =>
         {
-            var entries = Article!.Vocabulary.Data.Words.ToList();
-            int index = entries.IndexOf(entry);
-            int destination = index + direction;
-            entries.RemoveAt(index);
-            entries.Insert(destination, entry);
-            CommitWords(entries);
+            var article = Article!;
+            CommitVocabulary(vocabularyEditor.Move(article.VocabularyPath, article.Vocabulary, entry, direction));
         });
         return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
     }
@@ -76,13 +67,11 @@ public sealed partial class MainViewModel
     public VocabularyEditResult TryDeleteWord(VocabularyEntry entry)
     {
         var article = Article;
-        if (article is null || !CanWriteVocabulary ||
-            !article.Vocabulary.Data.Words.Contains(entry))
+        if (article is null || !VocabularyEditor.CanDelete(article.Vocabulary, entry))
             return VocabularyEditResult.Unavailable;
         bool completed = Handle(() =>
         {
-            CommitWords(article.Vocabulary.Data.Words
-                .Where(w => !ReferenceEquals(w, entry)).ToList());
+            CommitVocabulary(vocabularyEditor.Delete(article.VocabularyPath, article.Vocabulary, entry));
             playback.StopWord(entry);
         });
         return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
@@ -93,22 +82,16 @@ public sealed partial class MainViewModel
         if (!CanWriteVocabulary) return VocabularyEditResult.Unavailable;
         bool completed = Handle(() =>
         {
-            if (!File.Exists(path)) throw new FileNotFoundException("导入文件不存在。");
-            var incoming = new VocabularyRepository().Load(path);
-            CommitVocabulary(incoming.Data);
+            var article = Article!;
+            CommitVocabulary(vocabularyEditor.Import(article.VocabularyPath, article.Vocabulary, path));
         });
         return completed ? VocabularyEditResult.Success : VocabularyEditResult.Failed;
     }
 
-    private void CommitWords(List<VocabularyEntry> entries)
+    private void CommitVocabulary(VocabularySnapshot saved)
     {
-        CommitVocabulary(new VocabularyData { Words = entries, Extra = Article!.Vocabulary.Data.Extra });
-    }
-
-    private void CommitVocabulary(VocabularyData vocabulary)
-    {
-        workspace.ReplaceVocabulary(vocabulary);
-        playback.RefreshVocabulary(Article!);
+        workspace.CommitVocabulary(saved);
+        playback.RefreshVocabulary(saved.Data.Words);
         RefreshWords();
         VocabularyChanged?.Invoke();
     }

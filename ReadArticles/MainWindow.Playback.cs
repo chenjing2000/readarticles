@@ -25,21 +25,13 @@ public partial class MainWindow
             ViewModel.ToggleArticleAudio();
         }
         else
-            SeekArticleRelative(e.Key == Key.Left);
+            ViewModel.SeekArticleRelative(e.Key == Key.Left);
         SendWebPilotPlayback();
     }
 
     private void PlaybackShortcutKeyUp(object sender, KeyEventArgs e)
     {
         if (IsPlaybackShortcut(e)) e.Handled = true;
-    }
-
-    private void SeekArticleRelative(bool backward)
-    {
-        if (!ViewModel.Playback.CanSeekArticle) return;
-        double step = backward ? -settings.BackwardStep : settings.ForwardStep;
-        ViewModel.Playback.SeekArticle(Math.Clamp(ViewModel.Playback.ArticlePosition + step,
-            0, ViewModel.Playback.ArticleDuration));
     }
 
     private void InitializePlayback()
