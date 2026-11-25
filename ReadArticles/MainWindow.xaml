@@ -30,6 +30,10 @@
               <Trigger Property="IsKeyboardFocused" Value="True">
                 <Setter TargetName="Circle" Property="Background" Value="#EAF3FC"/>
               </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Circle" Property="Background" Value="Transparent"/>
+                <Setter TargetName="Circle" Property="Opacity" Value="0.42"/>
+              </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -61,9 +65,15 @@
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/>
           <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <Button Grid.Column="0" Content="选择图书馆" Click="LibraryClicked" Margin="0,0,6,0"/>
-        <Button x:Name="SettingsButton" Grid.Column="1" Style="{StaticResource CircularIconButton}"
+        <Button x:Name="RefreshButton" Grid.Column="1" Style="{StaticResource CircularIconButton}"
+                Margin="0,0,5,0" IsEnabled="{Binding CanRefreshLibrary}"
+                ToolTip="刷新图书馆" AutomationProperties.Name="刷新图书馆" Click="RefreshClicked">
+          <Image Source="{x:Static icons:UiIcons.Refresh}" Width="28" Height="28"/>
+        </Button>
+        <Button x:Name="SettingsButton" Grid.Column="2" Style="{StaticResource CircularIconButton}"
                 ToolTip="设置" Click="SettingsClicked">
           <Image Source="{x:Static icons:UiIcons.Settings}" Width="28" Height="28"/>
         </Button>

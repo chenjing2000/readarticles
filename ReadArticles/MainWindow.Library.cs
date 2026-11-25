@@ -145,6 +145,9 @@ public partial class MainWindow
         }
     }
 
+    private async void RefreshClicked(object sender, RoutedEventArgs e) =>
+        await ViewModel.RefreshLibraryAsync();
+
     private async void LibraryClicked(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog { Title = "选择包含 Book 文件夹的图书馆", InitialDirectory = ViewModel.LibraryRoot ?? "" };

@@ -273,6 +273,18 @@ internal static class ReaderControlsChecks
                     saved.ForwardStep == 7 && saved.Accent == "us" &&
                     saved.Library == TestData.LibraryRoot &&
                     saved.Appearance.Body.Background == "#F7F1E6");
+                string missingRoot = Path.Combine(Path.GetTempPath(), "ReadArticles-refresh-settings-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(missingRoot);
+                try
+                {
+                    Program.Check(window.ViewModel.OpenLibrary(missingRoot));
+                    Directory.Delete(missingRoot);
+                    Task<bool> missing = window.ViewModel.RefreshLibraryAsync();
+                    WpfTestHelpers.Wait(() => missing.IsCompleted);
+                    Program.Check(!missing.GetAwaiter().GetResult() &&
+                        window.ViewModel.LibraryRoot is null && ReaderSettings.Load(out _).Library is null);
+                }
+                finally { if (Directory.Exists(missingRoot)) Directory.Delete(missingRoot); }
                 window.Close();
                 window = null;
                 string raw = File.ReadAllText(path);

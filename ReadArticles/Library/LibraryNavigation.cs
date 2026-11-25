@@ -54,7 +54,7 @@ public sealed class LibraryNavigation
         {
             CommitLibrary(prepared);
             RefreshBooks();
-            if (prepared.Warnings.Count > 0)
+            if (prepared is { Warnings.Count: > 0 })
             {
                 AppLogger.Default.Warning("LibraryLoadedWithWarnings");
                 notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);
@@ -62,10 +62,11 @@ public sealed class LibraryNavigation
         })
         : Task.CompletedTask;
 
-    public Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot> commit) =>
-        pendingSwitch = LoadRootAsync(root, commit, isSwitch: true);
+    public Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot?> commit, bool isRefresh = false) =>
+        pendingSwitch = LoadRootAsync(root, commit, isSwitch: true, isRefresh: isRefresh);
 
-    private async Task<bool> LoadRootAsync(string root, Action<LibrarySnapshot> commit, bool isSwitch = false)
+    private async Task<bool> LoadRootAsync(string root, Action<LibrarySnapshot?> commit,
+        bool isSwitch = false, bool isRefresh = false)
     {
         if (navigationClosed) return false;
         Dispatcher ui = Dispatcher.CurrentDispatcher;
@@ -102,6 +103,18 @@ public sealed class LibraryNavigation
             {
                 if (session != librarySession || navigationClosed) return null;
                 AppLogger.Default.Warning("LibraryOpenFailed", error);
+                if (isRefresh)
+                {
+                    // Only an explicit refresh discards an inaccessible current library.
+                    // A missing root is deselected; other failures retain the path for retry.
+                    bool missing = error is DirectoryNotFoundException;
+                    commit(missing ? null : new LibrarySnapshot(root,
+                        Array.Empty<NavigationNode>(), Array.Empty<string>()));
+                    notify("LibraryOpenFailed", missing
+                        ? "当前图书馆文件夹不存在，请重新选择图书馆。"
+                        : "无法刷新图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
+                    return null;
+                }
                 notify("LibraryOpenFailed", "无法打开图书馆，请检查文件夹访问权限。", NotificationSeverity.Error);
                 // A failed switch still owes the committed library its new filter.
                 return isSwitch && refreshRequired ? RefreshCurrentAsync() : null;
@@ -111,7 +124,7 @@ public sealed class LibraryNavigation
         }
     }
 
-    public void CommitLibrary(LibrarySnapshot prepared)
+    public void CommitLibrary(LibrarySnapshot? prepared)
     {
         ++librarySession;
         CancelAllDirectoryScans();

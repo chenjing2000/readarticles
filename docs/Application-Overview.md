@@ -19,7 +19,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `App.xaml` / `App.xaml.cs` | Shared brushes and button styles; startup, command-line library selection, and main-window creation |
 | `MainWindow.xaml` | Native left navigation and one WebView2 reader host, with a native failure/exit overlay |
 | `MainWindow.xaml.cs` | Construct the state model and two independent media players; initialize modules and coordinate shutdown |
-| `MainWindow.Library.cs` | Folder selection, tree selection, library restoration and article selection |
+| `MainWindow.Library.cs` | Folder selection, explicit library refresh, tree selection, library restoration and article selection |
 | `MainWindow.Playback.cs` | Native playback key interception and player cleanup |
 | `MainWindow.Settings.cs`, `Settings/SettingsDialog.cs` | Apply native pane widths, native modal settings and preference persistence |
 | `Layout/PaneLayout.cs` | Session-only pane widths, shared width solver and right-divider drag rollback |
@@ -88,7 +88,7 @@ Passage selection -> ArticleRepository -> prepared article and words
                   -> commit workspace -> WebView2 article/word snapshots -> DOM
 ```
 
-Library selection clears the active passage and words. Startup restores only a library directory, when available. Selecting an article loads its matching vocabulary. Preparation occurs before committing the article, so a failed switch retains the previous readable article.
+Library selection or explicit refresh clears the active passage and words and stops both audio channels. Missing-root refresh clears the persisted library path; other refresh failures retain it for retry. Exclusion changes still refresh navigation only. Startup restores only a library directory, when available. Selecting an article loads its matching vocabulary. Preparation occurs before committing the article, so a failed switch retains the previous readable article.
 
 ### Reading-mode switching
 

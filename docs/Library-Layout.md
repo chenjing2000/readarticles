@@ -103,6 +103,8 @@ Images, PDFs and other source materials may be prepared externally using the ski
 
 The application first enumerates only the library root's immediate child directories, identifying books by the existence (not contents) of `book.json`. Each expansion enumerates only the selected directory's immediate files and subdirectories and parses direct JSON to check the passage tag. Nested folders appear even when no passage JSON exists at their level; no recursive scan is performed at startup. Full Passage schema validation and companion loading occur only when a leaf is opened; whole-article audio candidates are checked only when playback is requested.
 
+The explicit Refresh Library button reopens the committed root using the current exclusions, resets the reading workspace and both audio channels, and starts with a collapsed tree. A missing root clears the persisted library selection and disables refresh; other root access failures clear the tree and reading workspace but retain the path for retry. Failed selection of a different library still retains the previous workspace.
+
 Collapsing invalidates pending scans; reopening refreshes that directory. When a refresh fails, the last successful snapshot is retained where available and a warning is shown. Navigation excludes the files and folders described in [Excluded branches and safe paths](#5-excluded-branches-and-safe-paths); there is no recursive pre-scan.
 
 ## Optional Script reading companion

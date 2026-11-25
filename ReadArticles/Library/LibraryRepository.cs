@@ -14,8 +14,17 @@ public sealed class LibraryRepository
     public LibrarySnapshot Load(string root, IReadOnlySet<string>? excludedFolders = null)
     {
         string absolute = Path.GetFullPath(root);
-        if (!Directory.Exists(absolute))
-            throw new DirectoryNotFoundException("图书馆目录不存在。");
+        // Directory.Exists also returns false on access errors. Keep absence
+        // distinct from an inaccessible root so explicit refresh can deselect safely.
+        try
+        {
+            if ((File.GetAttributes(absolute) & FileAttributes.Directory) == 0)
+                throw new DirectoryNotFoundException("图书馆目录不存在。");
+        }
+        catch (FileNotFoundException error)
+        {
+            throw new DirectoryNotFoundException("图书馆目录不存在。", error);
+        }
         var warnings = new List<string>();
         var books = new List<NavigationNode>();
         try
@@ -35,6 +44,7 @@ public sealed class LibraryRepository
                 }
             }
         }
+        catch (DirectoryNotFoundException) { throw; }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             // The root must be usable; an incomplete initial book list is not a
