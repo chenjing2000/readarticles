@@ -4,15 +4,10 @@ using System.Text.Json.Serialization;
 
 namespace ReadArticles.Infrastructure;
 
-// The executable-adjacent JSON is authoritative. Session-only pane widths
-// are never serialized. Obsolete flat settings are reset, not imported.
+// The executable-adjacent JSON is authoritative for persisted preferences.
+// Obsolete flat settings are reset, not imported.
 public sealed class ReaderSettings
 {
-    [JsonIgnore]
-    public double LeftWidth { get; set; } = 250;
-    [JsonIgnore]
-    public double RightWidth { get; set; } = 300;
-
     public ReaderAppearance Appearance { get; set; } = new();
     public ReaderAudioPreferences Audio { get; set; } = new();
     public string? Library { get; set; }
@@ -24,13 +19,8 @@ public sealed class ReaderSettings
 
     public static string PathName => AppPaths.SettingsFile;
 
-    public ReaderSettings Copy()
-    {
-        var copy = JsonSerializer.Deserialize<ReaderSettings>(JsonSerializer.Serialize(this, JsonFiles.Options))!;
-        copy.LeftWidth = LeftWidth;
-        copy.RightWidth = RightWidth;
-        return copy;
-    }
+    public ReaderSettings Copy() =>
+        JsonSerializer.Deserialize<ReaderSettings>(JsonSerializer.Serialize(this, JsonFiles.Options))!;
 
     public void Apply(ReaderSettings other)
     {
@@ -142,8 +132,6 @@ public sealed class ReaderSettings
 
     public void Normalize()
     {
-        LeftWidth = double.IsFinite(LeftWidth) ? Math.Clamp(Math.Round(LeftWidth), 200, 400) : 250;
-        RightWidth = double.IsFinite(RightWidth) ? Math.Clamp(Math.Round(RightWidth), 200, 400) : 300;
         Appearance ??= new();
         Audio ??= new();
         Appearance.Title ??= new();

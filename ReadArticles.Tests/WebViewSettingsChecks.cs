@@ -2,11 +2,34 @@ using System.Reflection;
 using System.Text.Json;
 using System.Windows.Controls;
 using ReadArticles.Infrastructure;
+using ReadArticles.Layout;
 
 internal static class WebViewSettingsChecks
 {
     internal static void Run()
     {
+        Program.Run("pane layout absorbs changes in article first and restores a cancelled drag", () =>
+        {
+            var layout = new PaneLayout();
+            Program.Check(layout.LeftWidth == 250 && layout.RightWidth == 300);
+            Program.Check(layout.ResizeLibrary(400, 750));
+            Program.Check(layout.LeftWidth == 350 && layout.RightWidth == 200);
+            Program.Check(!layout.ResizeLibrary(200, 750));
+            Program.Check(layout.LeftWidth == 200 && layout.RightWidth == 200);
+            Program.Check(layout.DragVocabulary(400, 750));
+            Program.Check(layout.LeftWidth == 200 && layout.RightWidth == 350);
+            layout.DragVocabulary(300, 750);
+            Program.Check(layout.CancelVocabularyDrag(750));
+            Program.Check(layout.LeftWidth == 200 && layout.RightWidth == 200);
+            layout.DragVocabulary(350, 750);
+            layout.EndVocabularyDrag();
+            Program.Check(!layout.CancelVocabularyDrag(750) && layout.RightWidth == 350);
+            layout.Fit(600);
+            Program.Check(layout.LeftWidth == 200 && layout.RightWidth == 200);
+            layout.Fit(1000);
+            Program.Check(layout.LeftWidth == 200 && layout.RightWidth == 200);
+        });
+
         Program.Run("highlight toggles do not simulate vocabulary edits or advance its revision", () =>
         {
             var window = new ReadArticles.MainWindow(false);
@@ -30,7 +53,7 @@ internal static class WebViewSettingsChecks
             try
             {
                 var type = typeof(ReadArticles.MainWindow);
-                var selected = (ReaderSettings)type.GetField("settings",
+                var selected = (PaneLayout)type.GetField("paneLayout",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
                 var handler = type.GetMethod("WebPilotSettingIntent",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -110,14 +133,19 @@ internal static class WebViewSettingsChecks
             var initial = new ReaderSettings { Accent = "us", ForwardStep = 7 };
             initial.Appearance.Body.Size = 17;
             initial.Appearance.Body.Background = "#F7F1E6";
-            initial.LeftWidth = 320;
-            initial.RightWidth = 390;
+            var layout = new PaneLayout();
+            layout.ResizeLibrary(320, 1000);
+            layout.ResizeVocabulary(390, 1000);
+            Program.Check(layout.LeftWidth == 320 && layout.RightWidth == 390);
             string serialized = JsonSerializer.Serialize(initial);
             Program.Check(!serialized.Contains("LeftWidth", StringComparison.Ordinal) &&
                 !serialized.Contains("RightWidth", StringComparison.Ordinal) &&
                 !serialized.Contains("\"FontSize\"", StringComparison.Ordinal));
-            var loaded = JsonSerializer.Deserialize<ReaderSettings>(serialized)!;
-            Program.Check(loaded.LeftWidth == 250 && loaded.RightWidth == 300 &&
+            // Legacy width fields must remain ignored on deserialization.
+            var legacy = serialized.Insert(1, "\"LeftWidth\":320,\"RightWidth\":390,");
+            var loaded = JsonSerializer.Deserialize<ReaderSettings>(legacy)!;
+            var fresh = new PaneLayout();
+            Program.Check(fresh.LeftWidth == 250 && fresh.RightWidth == 300 &&
                 loaded.Appearance.Body.Size == 17 && loaded.Accent == "us" &&
                 loaded.ForwardStep == 7 && loaded.Appearance.Body.Background == "#F7F1E6");
         });

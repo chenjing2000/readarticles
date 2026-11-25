@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using ReadArticles.Infrastructure;
+using ReadArticles.Layout;
 using ReadArticles.Services;
 
 internal static class ReaderControlsChecks
@@ -39,8 +40,8 @@ internal static class ReaderControlsChecks
                 var grid = (Grid)window.Content;
                 var left = (ColumnDefinition)window.FindName("LeftColumn");
                 var center = (ColumnDefinition)window.FindName("CenterColumn");
-                var settings = (ReaderSettings)typeof(ReadArticles.MainWindow)
-                    .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                var layout = (PaneLayout)typeof(ReadArticles.MainWindow)
+                    .GetField("paneLayout", BindingFlags.Instance | BindingFlags.NonPublic)!
                     .GetValue(window)!;
 
                 window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
@@ -51,29 +52,29 @@ internal static class ReaderControlsChecks
                 var dragRight = type.GetMethod("ResizeVocabularyPane",
                     BindingFlags.Instance | BindingFlags.NonPublic)!;
                 double available = Math.Floor(Math.Max(606, grid.ActualWidth) - 6);
-                double initialRight = settings.RightWidth;
+                double initialRight = layout.RightWidth;
                 dragLeft.Invoke(window, [400d]);
                 double expectedLeft = Math.Min(400, available - 400);
                 double expectedRight = Math.Min(initialRight, available - expectedLeft - 200);
-                Program.Check(settings.LeftWidth == expectedLeft &&
-                    settings.RightWidth == expectedRight &&
+                Program.Check(layout.LeftWidth == expectedLeft &&
+                    layout.RightWidth == expectedRight &&
                     center.MinWidth == 403);
-                double compressedRight = settings.RightWidth;
+                double compressedRight = layout.RightWidth;
                 dragLeft.Invoke(window, [200d]);
                 // Reversing this divider grows the article; right stays unchanged.
-                Program.Check(settings.LeftWidth == 200 &&
-                    settings.RightWidth == compressedRight);
+                Program.Check(layout.LeftWidth == 200 &&
+                    layout.RightWidth == compressedRight);
                 dragRight.Invoke(window, [400d]);
                 double maximumRight = Math.Min(400, available - 400);
                 double expectedRightAfterDrag = maximumRight;
-                Program.Check(settings.RightWidth == expectedRightAfterDrag &&
-                    settings.LeftWidth >= 200 &&
-                    available - settings.LeftWidth - settings.RightWidth >= 200);
-                double compressedLeft = settings.LeftWidth;
+                Program.Check(layout.RightWidth == expectedRightAfterDrag &&
+                    layout.LeftWidth >= 200 &&
+                    available - layout.LeftWidth - layout.RightWidth >= 200);
+                double compressedLeft = layout.LeftWidth;
                 dragRight.Invoke(window, [200d]);
                 // Reversing the right divider grows only the article.
-                Program.Check(settings.RightWidth == 200 &&
-                    settings.LeftWidth == compressedLeft);
+                Program.Check(layout.RightWidth == 200 &&
+                    layout.LeftWidth == compressedLeft);
             }
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
@@ -128,7 +129,6 @@ internal static class ReaderControlsChecks
             {
                 var invalid = new ReaderSettings
                 {
-                    LeftWidth = 221.4, RightWidth = 281.8,
                     Accent = "invalid", ForwardStep = 1, BackwardStep = 1
                 };
                 invalid.Appearance.Body.Size = 99;
@@ -142,7 +142,8 @@ internal static class ReaderControlsChecks
                 invalid.Appearance.Vocabulary.Color = "#BAD";
                 JsonFiles.WriteAtomic(path, invalid);
                 var loaded = ReaderSettings.Load(out var warning);
-                Program.Check(warning == null && loaded.LeftWidth == 250 && loaded.RightWidth == 300);
+                var layout = new PaneLayout();
+                Program.Check(warning == null && layout.LeftWidth == 250 && layout.RightWidth == 300);
                 Program.Check(loaded.Appearance.Body.Size == 15 && loaded.Accent == "uk");
                 Program.Check(loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
                 Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
@@ -176,8 +177,9 @@ internal static class ReaderControlsChecks
                 Program.Check(warning == null && loaded.Appearance.Body.Size == 15);
                 byte[] persisted = File.ReadAllBytes(path);
                 byte[] backupBytes = File.ReadAllBytes(backup);
-                loaded.LeftWidth = 517;
-                loaded.RightWidth = 645;
+                layout.ResizeLibrary(400, 900);
+                layout.ResizeVocabulary(400, 900);
+                Program.Check(layout.LeftWidth != 250 && layout.RightWidth != 300);
                 loaded.Save();
                 loaded.Save();
                 Program.Check(File.ReadAllBytes(path).SequenceEqual(persisted) &&
@@ -269,8 +271,9 @@ internal static class ReaderControlsChecks
                     raw.Contains("\"Appearance\"", StringComparison.Ordinal) &&
                     raw.Contains("\"Audio\"", StringComparison.Ordinal));
                 var closed = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && closed.LeftWidth == 250 &&
-                    closed.RightWidth == 300 && closed.Appearance.Body.Size == 17);
+                var freshLayout = new PaneLayout();
+                Program.Check(warning == null && freshLayout.LeftWidth == 250 &&
+                    freshLayout.RightWidth == 300 && closed.Appearance.Body.Size == 17);
             }
             finally
             {

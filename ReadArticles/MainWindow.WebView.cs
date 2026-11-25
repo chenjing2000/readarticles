@@ -22,7 +22,6 @@ public partial class MainWindow
     private bool webPilotClosed;
     private bool webPilotFailureShown;
     private int webPilotVocabularyRevision;
-    private (double Left, double Right)? webPilotRightDragStart;
     private ScriptArticle? webPilotScriptArticle;
     private bool webPilotScriptMode;
     private string? webPilotPendingModeRequest;
@@ -227,18 +226,13 @@ public partial class MainWindow
                     candidate.TryGetDouble(out double desired) && double.IsFinite(desired) &&
                     desired >= 200 && desired <= 400)
                 {
-                    webPilotRightDragStart ??= (settings.LeftWidth, settings.RightWidth);
-                    ResizeVocabularyPane(desired);
+                    ApplyPaneWidths(paneLayout.DragVocabulary(desired, AvailablePaneWidth()));
                 }
                 return;
             }
             if (type == "cancelPanelDrag")
             {
-                if (webPilotRightDragStart is { } original)
-                {
-                    webPilotRightDragStart = null;
-                    SetPaneWidths(original.Left, original.Right, notifyBrowser: true);
-                }
+                ApplyPaneWidths(paneLayout.CancelVocabularyDrag(AvailablePaneWidth()));
                 return;
             }
             if (type == "setHighlight")
@@ -391,7 +385,7 @@ public partial class MainWindow
             PostWebPilot("actionResult", new { status = "invalid" }, requestId);
             return;
         }
-        webPilotRightDragStart = null;
+        paneLayout.EndVocabularyDrag();
         ResizeVocabularyPane(value);
         PostWebPilot("actionResult", new { status = "success" }, requestId);
     }
@@ -699,7 +693,7 @@ public partial class MainWindow
         },
         accent = ViewModel.Accent,
         highlightsVisible = ViewModel.HighlightsVisible,
-        rightWidth = settings.RightWidth,
+        rightWidth = paneLayout.RightWidth,
         forwardStep = settings.ForwardStep,
         backwardStep = settings.BackwardStep
     };

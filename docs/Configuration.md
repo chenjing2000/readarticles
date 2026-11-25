@@ -6,7 +6,7 @@ ReadArticles stores its current settings in `userdata/config/settings.json`, ins
 
 The setting format is structured JSON with `Appearance`, `Audio` and `Library` (the selected library path or null). Older flat formats and old executable-sibling files are not imported. An obsolete file at the current location is replaced with defaults; no account-specific data is read. Normal current-schema saves are atomic and rotate one verified pre-save backup at `userdata/backups/settings/settings.json.bak`. Malformed current JSON is preserved as a timestamped `.corrupt` file, with verified-backup recovery attempted before default initialization. On I/O failure, settings remain in memory and a warning is reported.
 
-Pane widths are session-only (250/300 DIP default, each 200–400 DIP); the article has a 200-DIP minimum, each splitter is 3 DIP, and the native browser host has a 403-DIP minimum. Window size, active article and highlighting are not saved.
+Pane widths are owned by PaneLayout, separate from ReaderSettings, and are session-only (250/300 DIP default, each 200–400 DIP); the article has a 200-DIP minimum, each splitter is 3 DIP, and the native browser host has a 403-DIP minimum. Window size, active article and highlighting are not saved.
 
 ## Native settings dialog
 

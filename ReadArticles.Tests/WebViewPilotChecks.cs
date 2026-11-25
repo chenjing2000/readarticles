@@ -493,22 +493,22 @@ internal static class WebViewPilotChecks
                 {
                     window.Width = Math.Min(window.Width, Math.Max(window.MinWidth, 820));
                     WpfTestHelpers.Pump();
-                    var settingsField = typeof(ReadArticles.MainWindow).GetField("settings",
+                    var layoutField = typeof(ReadArticles.MainWindow).GetField("paneLayout",
                         BindingFlags.Instance | BindingFlags.NonPublic)!;
-                    var paneSettings = (ReaderSettings)settingsField.GetValue(window)!;
+                    var paneLayout = (ReadArticles.Layout.PaneLayout)layoutField.GetValue(window)!;
                     var resize = typeof(ReadArticles.MainWindow).GetMethod("ResizeLibraryPane",
                         BindingFlags.Instance | BindingFlags.NonPublic)!;
-                    double initialRight = paneSettings.RightWidth;
+                    double initialRight = paneLayout.RightWidth;
                     resize.Invoke(window, [400d]);
                     WaitFor(() => Math.Abs(Evaluate(browser, """
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
-                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        """).GetDouble() - paneLayout.RightWidth) < 2,
                         "coordinated vocabulary width after library resize");
-                    Program.Check(paneSettings.RightWidth <= initialRight);
+                    Program.Check(paneLayout.RightWidth <= initialRight);
                     resize.Invoke(window, [200d]);
                     WaitFor(() => Math.Abs(Evaluate(browser, """
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
-                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        """).GetDouble() - paneLayout.RightWidth) < 2,
                         "vocabulary stays steady when library shrinks");
 
                     // Reverse direction: a right-divider intent may compress
@@ -518,10 +518,10 @@ internal static class WebViewPilotChecks
                     resizeRight.Invoke(window, [400d]);
                     WaitFor(() => Math.Abs(Evaluate(browser, """
                         document.getElementById('vocabulary-scroll').getBoundingClientRect().width
-                        """).GetDouble() - paneSettings.RightWidth) < 2,
+                        """).GetDouble() - paneLayout.RightWidth) < 2,
                         "confirmed vocabulary width after right-divider resize");
                     var nativeLeft = (ColumnDefinition)window.FindName("LeftColumn");
-                    Program.Check(Math.Abs(nativeLeft.ActualWidth - paneSettings.LeftWidth) < 2);
+                    Program.Check(Math.Abs(nativeLeft.ActualWidth - paneLayout.LeftWidth) < 2);
                 }
                 finally
                 {

@@ -15,7 +15,7 @@ Use explicit calls for prepare/commit and cross-feature ordering; events report 
 | Stage | Work | Exit evidence |
 | --- | --- | --- |
 | R1 | State ownership, dependency direction and workflow review; this temporary plan | Approved design, fixed baseline |
-| R2 | Extract PaneLayout; remove transient widths from ReaderSettings; keep one C# layout authority; test resize, cancel, settings serialization and actual WPF/browser agreement | Build and targeted layout/settings checks; Core/UI as applicable |
+| R2 | Extract PaneLayout; remove transient widths from ReaderSettings; keep one C# layout authority; test resize, cancel, settings serialization and actual WPF/browser agreement (code and regression updates prepared; execution pending) | Build and targeted layout/settings checks; Core/UI as applicable |
 | R3 | Extract LibraryNavigation, separate prepare/commit, move committed Script/mode to workspace; preserve scan guards and failed selection rollback | Navigation, content, Script and bridge checks |
 | R4 | Consolidate vocabulary edit/save/commit; narrow audio inputs; unify relative seek and accent ownership without changing playback semantics | Content, backups, audio, vocabulary and coordination checks |
 | R5 | Extract WebReaderHost and WebReaderBridge; separate native dialogs and protocol from application rules; preserve message schema and resource/CSP restrictions | Bridge, real DOM, failure and lifecycle checks |
