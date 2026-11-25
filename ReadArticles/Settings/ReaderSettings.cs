@@ -11,6 +11,26 @@ public sealed class ReaderSettings
     public ReaderAppearance Appearance { get; set; } = new();
     public ReaderAudioPreferences Audio { get; set; } = new();
     public string? Library { get; set; }
+    public const string DefaultExcludedFolders = "audio, cache";
+    public string ExcludedFolders { get; set; } = DefaultExcludedFolders;
+
+    public static HashSet<string> ParseExcludedFolders(string? text)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string name in (text ?? DefaultExcludedFolders)
+            .Split([',', ';', '，', '；'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            string stem = name.Split('.')[0].TrimEnd(' ').ToUpperInvariant();
+            bool reserved = stem is "CON" or "PRN" or "AUX" or "NUL" or "CONIN$" or "CONOUT$" ||
+                (stem.Length == 4 && (stem.StartsWith("COM", StringComparison.Ordinal) ||
+                    stem.StartsWith("LPT", StringComparison.Ordinal)) && "123456789¹²³".Contains(stem[3]));
+            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+                name.EndsWith('.') || reserved)
+                throw new ArgumentException($"无效的文件夹名称：{name}。请输入文件夹名称，而不是路径。");
+            names.Add(name);
+        }
+        return names;
+    }
 
     // Convenience accessors for native playback and setting updates.
     [JsonIgnore] public string Accent { get => Audio.Accent; set => Audio.Accent = value; }
@@ -27,6 +47,7 @@ public sealed class ReaderSettings
         Appearance = other.Appearance;
         Audio = other.Audio;
         Library = other.Library;
+        ExcludedFolders = other.ExcludedFolders;
     }
 
     // A deliberate breaking configuration upgrade: old flat settings are
@@ -132,6 +153,9 @@ public sealed class ReaderSettings
 
     public void Normalize()
     {
+        ExcludedFolders ??= DefaultExcludedFolders;
+        try { _ = ParseExcludedFolders(ExcludedFolders); }
+        catch (ArgumentException error) { throw new JsonException(error.Message, error); }
         Appearance ??= new();
         Audio ??= new();
         Appearance.Title ??= new();

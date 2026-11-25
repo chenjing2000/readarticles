@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.IO;
 using ReadArticles.Models;
+using ReadArticles.Infrastructure;
 
 internal static class TreeNavigationChecks
 {
@@ -96,6 +97,67 @@ internal static class TreeNavigationChecks
                 window.Close();
                 WpfTestHelpers.Pump();
                 Directory.Delete(root, true);
+            }
+        });
+
+        Program.Run("changing folder exclusions refreshes only navigation and invalidates old scans", () =>
+        {
+            string root = Path.Combine(Path.GetTempPath(), "ReadArticles-exclusions-" + Guid.NewGuid().ToString("N"));
+            string book = Path.Combine(root, "Book");
+            string folder = Path.Combine(book, "video");
+            Directory.CreateDirectory(folder);
+            var window = new ReadArticles.MainWindow(false);
+            try
+            {
+                File.WriteAllText(Path.Combine(book, "book.json"), "{}");
+                string passage = Path.Combine(folder, "Article.json");
+                File.Copy(TestData.ArticlePath, passage);
+                window.Show();
+                var vm = window.ViewModel;
+                Program.Check(vm.OpenLibrary(root) && vm.OpenArticle(passage));
+                var article = vm.Article;
+                var oldBook = vm.Books.Single();
+                oldBook.IsExpanded = true;
+                Task pending = vm.ExpandDirectoryAsync(oldBook);
+                var settings = new ReaderSettings { ExcludedFolders = "video; AUDIO, cache" };
+                Task refresh = vm.ApplySettings(settings);
+                WpfTestHelpers.Wait(() => pending.IsCompleted && refresh.IsCompleted);
+                pending.GetAwaiter().GetResult();
+                refresh.GetAwaiter().GetResult();
+                Program.Check(ReferenceEquals(article, vm.Article) && vm.LibraryRoot == root);
+                Program.Check(oldBook.LoadState != NodeLoadState.Loaded &&
+                    !ReferenceEquals(oldBook, vm.Books.Single()));
+                var newBook = vm.Books.Single();
+                Program.Check(!newBook.IsExpanded && newBook.LoadState == NodeLoadState.NotLoaded);
+                newBook.IsExpanded = true;
+                Task expand = vm.ExpandDirectoryAsync(newBook);
+                WpfTestHelpers.Wait(() => expand.IsCompleted);
+                expand.GetAwaiter().GetResult();
+                Program.Check(newBook.Children.All(n => n.Name != "video"));
+                Task unchanged = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "CACHE, video, audio, video" });
+                Program.Check(unchanged.IsCompleted && ReferenceEquals(newBook, vm.Books.Single()));
+                Task restored = vm.ApplySettings(new ReaderSettings { ExcludedFolders = "" });
+                WpfTestHelpers.Wait(() => restored.IsCompleted);
+                restored.GetAwaiter().GetResult();
+                var restoredBook = vm.Books.Single();
+                restoredBook.IsExpanded = true;
+                Task scan = vm.ExpandDirectoryAsync(restoredBook);
+                WpfTestHelpers.Wait(() => scan.IsCompleted);
+                scan.GetAwaiter().GetResult();
+                Program.Check(restoredBook.Children.Any(n => n.Name == "video") &&
+                    ReferenceEquals(vm.Article, article));
+                Directory.Delete(root, true);
+                Task failed = vm.ApplySettings(settings);
+                WpfTestHelpers.Wait(() => failed.IsCompleted);
+                failed.GetAwaiter().GetResult();
+                Program.Check(vm.Books.Count == 0 && vm.LibraryRoot == root &&
+                    ReferenceEquals(vm.Article, article));
+            }
+            finally
+            {
+                window.Close();
+                WpfTestHelpers.Pump();
+                if (Directory.Exists(root)) Directory.Delete(root, true);
             }
         });
 

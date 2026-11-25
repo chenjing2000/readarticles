@@ -481,5 +481,24 @@ internal sealed class SettingsDialog : Window
             v => draft.ForwardStep = v), "秒"),
             "后退", WithUnit(Dropdown(new double[] { 5, 8, 11, 16 }, draft.BackwardStep,
                 v => draft.BackwardStep = v), "秒"));
+
+        var other = Section("其它");
+        var row = new Grid { Height = 36, HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 0, 5) };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(332) });
+        row.Children.Add(Label("需排除的文件夹"));
+        var excluded = new TextBox
+        {
+            Text = draft.ExcludedFolders, Width = 332, Height = 30, FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            AcceptsReturn = false, TextWrapping = TextWrapping.NoWrap,
+            ToolTip = "使用逗号或分号分隔多个文件夹名称，忽略大小写。"
+        };
+        excluded.TextChanged += (_, _) => draft.ExcludedFolders = excluded.Text;
+        Grid.SetColumn(excluded, 1);
+        row.Children.Add(excluded);
+        other.Children.Add(row);
     }
 }

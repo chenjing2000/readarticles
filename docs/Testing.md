@@ -80,6 +80,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 `Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files.
 
+## Folder exclusion regression
+
+Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
+
 ## Ownership and maintenance
 
 Feature tests cover PaneLayout geometry/drag rollback, ReaderWorkspace committed modes, VocabularyEditor persistence before workspace commit, and WebReaderBridge request identity/revision guards. Browser tests exercise actual embedded ES modules via dynamic import and DOM events without exposing mutable application globals. Retain real DOM, native focus and media assertions when reorganizing source files. Hosted Core does not run all local UI/Full cases.

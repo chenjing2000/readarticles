@@ -25,7 +25,7 @@ JSON handling uses `System.Text.Json`; files remain the storage layer. Neither P
 | `Layout/PaneLayout.cs` | Session-only pane widths, shared width solver and right-divider drag rollback |
 | `Application/MainViewModel.cs` | Shared state, notifications, and operation errors |
 | `Application/MainViewModel.Library.cs` | Coordinate library/article preparation and commits |
-| `Library/LibraryNavigation.cs` | Own library root, tree projection, async scans, cancellation and stale-result guards |
+| `Library/LibraryNavigation.cs` | Own library root, exclusion snapshot, tree projection, async scans, cancellation and stale-result guards |
 | `Application/MainViewModel.Reading.cs` | Prepare reading-mode changes, coordinate render-confirmed commits and selection validation |
 | `Application/MainViewModel.Vocabulary.cs` | Prepare word commands and coordinate vocabulary edits and commits |
 | `Application/MainViewModel.Playback.cs` | Forward reader commands with the current article and accent |

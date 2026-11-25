@@ -19,13 +19,14 @@ internal static class BackupChecks
             {
                 if (File.Exists(settingsPath)) File.Delete(settingsPath);
                 if (File.Exists(backupPath)) File.Delete(backupPath);
-                var first = new ReaderSettings { ForwardStep = 4, Accent = "uk" };
+                var first = new ReaderSettings { ForwardStep = 4, Accent = "uk", ExcludedFolders = "" };
                 first.Save();
                 Program.Check(!File.Exists(backupPath));
-                var second = new ReaderSettings { ForwardStep = 7, Accent = "us" };
+                var second = new ReaderSettings { ForwardStep = 7, Accent = "us", ExcludedFolders = "video, 结果" };
                 second.Save();
                 Program.Check(File.Exists(backupPath));
-                Program.Check(ReaderSettings.Load(out _).ForwardStep == 7);
+                var loadedSecond = ReaderSettings.Load(out _);
+                Program.Check(loadedSecond.ForwardStep == 7 && loadedSecond.ExcludedFolders == "video, 结果");
                 Program.Check(JsonFiles.Fingerprint(backupPath) == JsonFiles.Fingerprint(Encoding.UTF8.GetBytes(File.ReadAllText(backupPath))));
                 var third = new ReaderSettings { ForwardStep = 10, Accent = "uk" };
                 third.Save();
@@ -33,6 +34,7 @@ internal static class BackupChecks
                 Program.Check(JsonFiles.Fingerprint(backupPath) != JsonFiles.Fingerprint(settingsPath));
                 ReaderSettings.RestoreLatestBackup();
                 var restored = ReaderSettings.Load(out var warning);
+                Program.Check(restored.ExcludedFolders == "video, 结果");
                 Program.Check(warning == null && restored.ForwardStep == 7 && restored.Accent == "us");
                 Program.Check(Directory.GetFiles(AppPaths.SettingsBackupDirectory, "*.bak").Length == 1);
 

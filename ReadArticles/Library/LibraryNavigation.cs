@@ -15,18 +15,43 @@ public sealed class LibraryNavigation
     private readonly Dictionary<NavigationNode, CancellationTokenSource> directoryScans = new();
     private long librarySession;
     private bool navigationClosed;
+    private HashSet<string> excludedFolders;
 
     private readonly Action<string, string, NotificationSeverity> notify;
     private LibrarySnapshot? library;
     public string? Root => library?.Root;
     public ObservableCollection<NavigationNode> Books { get; } = new();
 
-    public LibraryNavigation(Action<string, string, NotificationSeverity> notify)
+    public LibraryNavigation(Action<string, string, NotificationSeverity> notify,
+        string? excludedFolders = null)
     {
         this.notify = notify;
+        this.excludedFolders = ReaderSettings.ParseExcludedFolders(excludedFolders);
     }
 
-    public LibrarySnapshot PrepareLibrary(string root) => libraryRepository.Load(root);
+    public LibrarySnapshot PrepareLibrary(string root) => libraryRepository.Load(root, excludedFolders);
+
+    // Only navigation changes: the committed reading workspace and players are untouched.
+    public Task UpdateExcludedFoldersAsync(HashSet<string> names)
+    {
+        if (navigationClosed || excludedFolders.SetEquals(names)) return Task.CompletedTask;
+        excludedFolders = names;
+        CancelAllDirectoryScans();
+        string? root = Root;
+        // A pending initial library open retries with the latest filter.
+        if (root is null) return Task.CompletedTask;
+
+        ++librarySession;
+        library = new LibrarySnapshot(root, Array.Empty<NavigationNode>(), Array.Empty<string>());
+        RefreshBooks();
+        return OpenLibraryAsync(root, prepared =>
+        {
+            CommitLibrary(prepared);
+            RefreshBooks();
+            if (prepared.Warnings.Count > 0)
+                notify("LibraryLoadedWithWarnings", "图书馆存在部分无法读取的目录。", NotificationSeverity.Warning);
+        });
+    }
 
     public async Task<bool> OpenLibraryAsync(string root, Action<LibrarySnapshot> commit)
     {
@@ -38,13 +63,24 @@ public sealed class LibraryNavigation
             // Only filesystem discovery runs on the worker thread. Binding and
             // collection updates always return to the owning UI Dispatcher,
             // including under the STA test runner without a SynchronizationContext.
-            var prepared = await Task.Run(() => libraryRepository.Load(root));
-            return await ui.InvokeAsync(() =>
+            var filter = excludedFolders;
+            while (true)
             {
-                if (navigationClosed || session != librarySession) return false;
-                commit(prepared);
-                return true;
-            });
+                var snapshot = filter;
+                var prepared = await Task.Run(() => libraryRepository.Load(root, snapshot));
+                bool? result = await ui.InvokeAsync<bool?>(() =>
+                {
+                    if (navigationClosed || session != librarySession) return false;
+                    if (!ReferenceEquals(snapshot, excludedFolders))
+                    {
+                        filter = excludedFolders;
+                        return null;
+                    }
+                    commit(prepared);
+                    return true;
+                });
+                if (result.HasValue) return result.Value;
+            }
         }
         catch (Exception error) when (error is ArgumentException or IOException or
             InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
@@ -84,6 +120,7 @@ public sealed class LibraryNavigation
         // The test runner does not install a WPF SynchronizationContext.
         // Capture the actual owning dispatcher before the background scan.
         Dispatcher ui = Dispatcher.CurrentDispatcher;
+        var filter = excludedFolders;
         long generation = node.NextGeneration();
         long session = librarySession;
         var cts = new CancellationTokenSource();
@@ -96,7 +133,7 @@ public sealed class LibraryNavigation
             DirectoryScanResult result = await Task.Run(() =>
             {
                 token.ThrowIfCancellationRequested();
-                return libraryRepository.ScanDirectoryLevel(node.DirectoryPath, node.BookRoot);
+                return libraryRepository.ScanDirectoryLevel(node.DirectoryPath, node.BookRoot, filter);
             }, token);
 
             await ui.InvokeAsync(() =>

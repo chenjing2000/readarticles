@@ -12,6 +12,28 @@ internal static class ReaderControlsChecks
 {
     internal static void Run()
     {
+        Program.Run("excluded folder names parse and validate without losing internal characters", () =>
+        {
+            var names = ReaderSettings.ParseExcludedFolders(" audio , video ; player-result ，结果 ； AUDIO ;; my audio (2) ");
+            Program.Check(names.SetEquals(new[] { "audio", "video", "player-result", "结果", "my audio (2)" }) &&
+                names.Count == 5 && names.Contains("AUDIO"));
+            Program.Check(ReaderSettings.ParseExcludedFolders(" ;，, ").Count == 0);
+            foreach (string invalid in new[] { "audio*", @"C:\audio", @"audio\video", "..", "name.", "NUL.txt", "COM¹", "a/b" })
+            {
+                bool rejected = false;
+                try { ReaderSettings.ParseExcludedFolders(invalid); }
+                catch (ArgumentException) { rejected = true; }
+                Program.Check(rejected);
+            }
+            var original = new ReaderSettings();
+            var draft = original.Copy();
+            draft.ExcludedFolders = "";
+            Program.Check(original.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
+            original.Apply(draft);
+            Program.Check(original.ExcludedFolders == "");
+            var legacy = System.Text.Json.JsonSerializer.Deserialize<ReaderSettings>("""{"Appearance":{},"Audio":{}}""")!;
+            Program.Check(legacy.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
+        });
         Program.Run("three-pane WPF constraints match requested widths", () =>
         {
             var window = new ReadArticles.MainWindow(false);
@@ -312,6 +334,21 @@ internal static class ReaderControlsChecks
                 {
                     var heading = section.Children.OfType<TextBlock>().Single();
                     Program.Check(heading.FontSize == 15);
+                    if (heading.Text == "其它")
+                    {
+                        var row = section.Children.OfType<Grid>().Single();
+                        Program.Check(row.ColumnDefinitions.Select(c => c.Width.Value)
+                            .SequenceEqual(new[] { 112d, 332d }));
+                        Program.Check(row.Children.OfType<TextBlock>().Single().Text == "需排除的文件夹");
+                        var input = row.Children.OfType<TextBox>().Single();
+                        Program.Check(input.Text == ReaderSettings.DefaultExcludedFolders &&
+                            input.Width == 332 && input.Height == 30 && !input.AcceptsReturn);
+                        input.Text = "video, 结果";
+                        var edited = (ReaderSettings)type.GetField("draft",
+                            BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                        Program.Check(edited.ExcludedFolders == "video, 结果");
+                        continue;
+                    }
                     foreach (var row in section.Children.OfType<Grid>())
                     {
                         Program.Check(row.ColumnDefinitions.Select(c => c.Width.Value)
@@ -388,7 +425,8 @@ internal static class ReaderControlsChecks
                         .Select(item => item.Tag?.ToString())
                         .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",
                             "Nunito", "Segoe UI" }));
-                var audio = sections.Children.OfType<StackPanel>().Last();
+                var audio = sections.Children.OfType<StackPanel>().Single(section =>
+                    section.Children.OfType<TextBlock>().Single().Text == "音频");
                 Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
                     !audio.Children.OfType<Grid>().SelectMany(row => row.Children.OfType<Grid>())
                         .Any(group => group.Children.OfType<Slider>().Any()));
@@ -411,7 +449,8 @@ internal static class ReaderControlsChecks
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
                 var selectors = (List<ComboBox>)type.GetField("englishFontSelectors",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
-                Program.Check(resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
+                Program.Check(resetDraft.ExcludedFolders == ReaderSettings.DefaultExcludedFolders &&
+                    resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Body.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Vocabulary.Font == "Microsoft YaHei UI" &&
                     selectors.Count == 3 &&

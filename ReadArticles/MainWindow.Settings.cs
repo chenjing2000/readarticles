@@ -107,7 +107,13 @@ public partial class MainWindow
         edited.Library = ViewModel.LibraryRoot;
         try
         {
+            _ = ReaderSettings.ParseExcludedFolders(edited.ExcludedFolders);
             if (persistSettings) edited.Save();
+        }
+        catch (ArgumentException error)
+        {
+            MessageBox.Show(this, error.Message, "ReadArticles", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
@@ -117,7 +123,7 @@ public partial class MainWindow
             return false;
         }
 
-        ViewModel.ApplySettings(edited);
+        _ = ViewModel.ApplySettings(edited);
         webReaderBridge?.SendSettings();
         return true;
     }
