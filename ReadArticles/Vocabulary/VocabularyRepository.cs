@@ -113,12 +113,7 @@ public sealed class VocabularyRepository
             // recovery inputs are staged; copy rather than moving the source.
             string corruptPath = absolute + "." + DateTime.Now.ToString("yyyyMMddHHmmssfff") +
                 "." + Guid.NewGuid().ToString("N") + ".corrupt";
-            using (var input = new FileStream(absolute, FileMode.Open, FileAccess.Read, FileShare.Read))
-            using (var output = new FileStream(corruptPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                input.CopyTo(output);
-                output.Flush(true);
-            }
+            BackupFiles.CreateVerifiedBackup(absolute, corruptPath);
             if (JsonFiles.Fingerprint(corruptPath) != actual ||
                 JsonFiles.Fingerprint(absolute) != actual)
                 throw new IOException("损坏文件保护副本校验失败，恢复已取消。");

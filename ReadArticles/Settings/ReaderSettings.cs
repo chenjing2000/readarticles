@@ -74,8 +74,7 @@ public sealed class ReaderSettings
                     // This is corruption, not an old schema. Retain the
                     // original and try a verified backup of the new format.
                     warning = "配置文件损坏：" + error.Message;
-                    string corrupt = PathName + "." +
-                        DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".corrupt";
+                    string corrupt = RecoveryCopyPath();
                     File.Move(PathName, corrupt);
                     if (File.Exists(AppPaths.SettingsBackupFile))
                     {
