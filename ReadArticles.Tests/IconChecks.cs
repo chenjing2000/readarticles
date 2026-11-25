@@ -12,6 +12,14 @@ internal static class IconChecks
             Program.Check(UiIcons.AppIcon is ImageSource &&
                 UiIcons.Plus is ImageSource && UiIcons.Minus is ImageSource &&
                 UiIcons.Settings is ImageSource && UiIcons.Refresh is ImageSource);
+            foreach (var image in new[] { UiIcons.Plus, UiIcons.Minus, UiIcons.Settings, UiIcons.Refresh })
+            {
+                var group = (DrawingGroup)((DrawingImage)image).Drawing;
+                var background = (GeometryDrawing)group.Children[1];
+                Program.Check(background.Geometry is EllipseGeometry ellipse &&
+                    ellipse.Center == new Point(512, 512) && ellipse.RadiusX == 480 && ellipse.RadiusY == 480 &&
+                    background.Brush is SolidColorBrush brush && brush.Color == Color.FromRgb(214, 91, 69));
+            }
         });
         Program.Run("native window starts centered with the tree and one browser host", () =>
         {

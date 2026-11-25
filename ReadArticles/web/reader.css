@@ -145,8 +145,8 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 .vocabulary-toolbar button { flex-basis: 28px; width: 28px; height: 28px; }
 .vocabulary-toolbar button img { width: 26px; height: 26px; }
 .toolbar button:disabled { opacity: .42; cursor: default; }
-.toolbar button:not(:disabled):hover { background: #e7f1f9; }
-.toolbar button:not(:disabled):active { background: #d8eafa; }
+.toolbar button:not(:disabled):hover { background: #FBECE8; }
+.toolbar button:not(:disabled):active { background: #F4D8D0; }
 .selection-add { position: fixed; z-index: 30; width: 24px; height: 24px;
   font-size: var(--body-size, 15px);
   border: 0; background: transparent; padding: 0; cursor: pointer; }

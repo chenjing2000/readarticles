@@ -27,7 +27,7 @@ Select the parent directory of marked book directories. Startup and folder selec
 
 ## Passage and Script
 
-Use the music icon immediately left of the highlight toggle to switch to an optional same-stem `<name>.script.json` and back. The companion is loaded on demand, not at startup. Missing or invalid Script leaves Passage and article playback unchanged. The Script may have different text and title from Passage; its timestamped foreground follows article audio, including seeks, and clears on Stop or natural completion. Untimed or unaligned units remain readable without progress coloring. Vocabulary and article-audio lookup remain tied to the original Passage. See [Library Layout](Library-Layout.md) for the format.
+Use the document/code icon immediately left of the highlight toggle to switch to an optional same-stem `<name>.script.json` and back. The companion is loaded on demand, not at startup. Missing or invalid Script leaves Passage and article playback unchanged. The Script may have different text and title from Passage; its timestamped foreground follows article audio, including seeks, and clears on Stop or natural completion. Untimed or unaligned units remain readable without progress coloring. Vocabulary and article-audio lookup remain tied to the original Passage. See [Library Layout](Library-Layout.md) for the format.
 
 ## Vocabulary and playback
 

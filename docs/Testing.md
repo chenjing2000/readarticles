@@ -80,6 +80,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Workflow.ps
 
 `Test-Workflow.ps1` verifies command failure propagation and that Full uses the unified test data without external paths. `Test-Publish.ps1` separately exercises staged replacement against temporary files.
 
+## Functional icons
+
+Native and embedded browser functional icons use maple-red `#D65B45` circles and white glyphs; preserve distinct play/pause, Passage/Script and eye/crossed-eye states. Verify actual rendering at toolbar, pronunciation, selection-add and tree sizes, hover/pressed/disabled states, and unchanged app icon and keyboard behavior.
+
 ## Explicit library refresh
 
 Core/UI/Full exercise reopening the current root, collapsed fresh nodes, resetting the reading workspace, missing-root deselection, stale refresh rejection during a later library switch, and the actual refresh button. UI/Full also check immediate persistence of a null library path after missing-root refresh. Manually check button placement/disabled state and real playback interruption; use a disposable library.
