@@ -10,7 +10,13 @@ public static class JsonFiles
     public static readonly JsonSerializerOptions Options = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     public static string Fingerprint(string path) => Fingerprint(File.ReadAllBytes(path));
     public static string Fingerprint(byte[] content) => Convert.ToHexString(SHA256.HashData(content));
-    public static string WriteAtomic(string path, object data, Action? beforeCommit = null)
+    public static string WriteAtomic(string path, object data, Action? beforeCommit = null) =>
+        WriteAtomicCore(path, stream => JsonSerializer.Serialize(stream, data, Options), beforeCommit);
+
+    internal static string WriteAtomicBytes(string path, byte[] data) =>
+        WriteAtomicCore(path, stream => stream.Write(data), null);
+
+    private static string WriteAtomicCore(string path, Action<Stream> write, Action? beforeCommit)
     {
         string absolute = Path.GetFullPath(path);
         Directory.CreateDirectory(Path.GetDirectoryName(absolute)!);
@@ -19,7 +25,7 @@ public static class JsonFiles
         {
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
-                JsonSerializer.Serialize(stream, data, Options);
+                write(stream);
                 stream.Flush(true);
             }
             string fingerprint = Fingerprint(temporary);

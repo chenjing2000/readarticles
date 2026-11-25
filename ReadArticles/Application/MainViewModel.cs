@@ -43,9 +43,11 @@ public sealed partial class MainViewModel : INotifyPropertyChanged
         }
     }
     // The caller persists the detached settings draft before applying it.
-    public Task ApplySettings(ReaderSettings edited)
+    public Task ApplySettings(ReaderSettings edited) =>
+        ApplySettings(edited, ReaderSettings.ParseExcludedFolders(edited.ExcludedFolders));
+
+    internal Task ApplySettings(ReaderSettings edited, HashSet<string> excluded)
     {
-        var excluded = ReaderSettings.ParseExcludedFolders(edited.ExcludedFolders);
         string previousAccent = settings.Accent;
         if (previousAccent != edited.Accent) playback.StopPronunciation();
         settings.Apply(edited);

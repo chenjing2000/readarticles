@@ -7,6 +7,28 @@ internal static class LazyTreeChecks
 {
     internal static void Run()
     {
+        Program.Run("excluded folder names parse and validate without losing internal characters", () =>
+        {
+            var names = ReaderSettings.ParseExcludedFolders(" audio , video ; player-result ，结果 ； AUDIO ;; my audio (2) ");
+            Program.Check(names.SetEquals(new[] { "audio", "video", "player-result", "结果", "my audio (2)" }) &&
+                names.Count == 5 && names.Contains("AUDIO"));
+            Program.Check(ReaderSettings.ParseExcludedFolders(" ;，, ").Count == 0);
+            foreach (string invalid in new[] { "audio*", @"C:\audio", @"audio\video", "..", "name.", "NUL.txt", "COM¹", "a/b" })
+            {
+                bool rejected = false;
+                try { ReaderSettings.ParseExcludedFolders(invalid); }
+                catch (ArgumentException) { rejected = true; }
+                Program.Check(rejected);
+            }
+            var original = new ReaderSettings();
+            var draft = original.Copy();
+            draft.ExcludedFolders = "";
+            Program.Check(original.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
+            original.Apply(draft);
+            Program.Check(original.ExcludedFolders == "");
+            var legacy = System.Text.Json.JsonSerializer.Deserialize<ReaderSettings>("""{"Appearance":{},"Audio":{}}""")!;
+            Program.Check(legacy.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
+        });
         Program.Run("root discovery does not recurse into books or parse their JSON", () =>
         {
             InTemporaryLibrary(root =>

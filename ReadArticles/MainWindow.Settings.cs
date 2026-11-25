@@ -115,10 +115,10 @@ public partial class MainWindow
     {
         refresh = Task.CompletedTask;
         edited.Library = ViewModel.LibraryRoot;
+        HashSet<string> excluded;
         try
         {
-            _ = ReaderSettings.ParseExcludedFolders(edited.ExcludedFolders);
-            if (persistSettings) edited.Save();
+            excluded = persistSettings ? edited.Save() : edited.Normalize();
         }
         catch (ArgumentException error)
         {
@@ -133,7 +133,7 @@ public partial class MainWindow
             return false;
         }
 
-        refresh = ViewModel.ApplySettings(edited);
+        refresh = ViewModel.ApplySettings(edited, excluded);
         webReaderBridge?.SendSettings();
         return true;
     }

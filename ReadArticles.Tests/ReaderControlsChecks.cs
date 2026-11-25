@@ -12,28 +12,6 @@ internal static class ReaderControlsChecks
 {
     internal static void Run()
     {
-        Program.Run("excluded folder names parse and validate without losing internal characters", () =>
-        {
-            var names = ReaderSettings.ParseExcludedFolders(" audio , video ; player-result ，结果 ； AUDIO ;; my audio (2) ");
-            Program.Check(names.SetEquals(new[] { "audio", "video", "player-result", "结果", "my audio (2)" }) &&
-                names.Count == 5 && names.Contains("AUDIO"));
-            Program.Check(ReaderSettings.ParseExcludedFolders(" ;，, ").Count == 0);
-            foreach (string invalid in new[] { "audio*", @"C:\audio", @"audio\video", "..", "name.", "NUL.txt", "COM¹", "a/b" })
-            {
-                bool rejected = false;
-                try { ReaderSettings.ParseExcludedFolders(invalid); }
-                catch (ArgumentException) { rejected = true; }
-                Program.Check(rejected);
-            }
-            var original = new ReaderSettings();
-            var draft = original.Copy();
-            draft.ExcludedFolders = "";
-            Program.Check(original.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
-            original.Apply(draft);
-            Program.Check(original.ExcludedFolders == "");
-            var legacy = System.Text.Json.JsonSerializer.Deserialize<ReaderSettings>("""{"Appearance":{},"Audio":{}}""")!;
-            Program.Check(legacy.ExcludedFolders == ReaderSettings.DefaultExcludedFolders);
-        });
         Program.Run("three-pane WPF constraints match requested widths", () =>
         {
             var window = new ReadArticles.MainWindow(false);
@@ -347,12 +325,17 @@ internal static class ReaderControlsChecks
                         var input = row.Children.OfType<TextBox>().Single();
                         Program.Check(input.Text == ReaderSettings.DefaultExcludedFolders &&
                             input.Width == 332 && input.Height == 30 && !input.AcceptsReturn);
-                        // Exercise the Loaded handler after the Fluent template is applied.
-                        input.ApplyTemplate();
-                        input.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
-                        if (input.Template?.FindName("DeleteButton", input) is UIElement clearButton)
-                            Program.Check(Equals(clearButton.ReadLocalValue(UIElement.VisibilityProperty),
-                                Visibility.Collapsed));
+                        // Exercise the actual loaded Fluent template, not a synthetic Loaded event.
+                        dialog.Show();
+                        input.BringIntoView();
+                        input.Focus();
+                        WpfTestHelpers.Pump();
+                        dialog.UpdateLayout();
+                        Program.Check(input.IsLoaded && input.Template is not null);
+                        var clearButton = input.Template.FindName("DeleteButton", input) as UIElement;
+                        Program.Check(clearButton is not null &&
+                            clearButton.Visibility == Visibility.Collapsed &&
+                            Equals(clearButton.ReadLocalValue(UIElement.VisibilityProperty), Visibility.Collapsed));
                         input.Text = "video, 结果";
                         var edited = (ReaderSettings)type.GetField("draft",
                             BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;

@@ -69,7 +69,7 @@ public sealed class ReaderSettings
                         appearance.ValueKind == JsonValueKind.Object &&
                         root.TryGetProperty("Audio", out var audio) &&
                         audio.ValueKind == JsonValueKind.Object)
-                        return Deserialize(PathName);
+                        return Deserialize(root, out warning);
                     // Valid JSON but obsolete schema: deliberate breaking change.
                     warning = "检测到旧格式配置，已重新创建默认设置。";
                 }
@@ -85,7 +85,7 @@ public sealed class ReaderSettings
                     {
                         try
                         {
-                            var backup = Deserialize(AppPaths.SettingsBackupFile);
+                            var backup = DeserializeBackup(AppPaths.SettingsBackupFile);
                             BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
                             warning += " 已从最近一次有效备份恢复。";
                             return backup;
@@ -115,31 +115,55 @@ public sealed class ReaderSettings
         }
     }
 
-    private static ReaderSettings Deserialize(string path)
+    // A malformed field value is not structural JSON corruption. On load,
+    // recover only that value; the original file remains untouched until Save.
+    private static ReaderSettings Deserialize(JsonElement root, out string? warning)
     {
-        var settings = JsonSerializer.Deserialize<ReaderSettings>(File.ReadAllText(path), JsonFiles.Options)
+        warning = null;
+        var settings = root.Deserialize<ReaderSettings>(JsonFiles.Options)
             ?? throw new JsonException("配置内容不能为空。");
-        settings.Normalize();
+        try { _ = ParseExcludedFolders(settings.ExcludedFolders); }
+        catch (ArgumentException)
+        {
+            settings.ExcludedFolders = DefaultExcludedFolders;
+            warning = "排除文件夹名称无效，已恢复该项默认设置；其他设置保持不变。";
+        }
+        settings.NormalizeAppearanceAndAudio();
         return settings;
     }
 
-    public void Save()
+    private static ReaderSettings DeserializeBackup(string path)
     {
-        Normalize();
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var settings = Deserialize(document.RootElement, out var warning);
+        if (warning is not null) throw new JsonException(warning);
+        return settings;
+    }
+
+    // Return the validated set for the caller to apply without parsing again.
+    public HashSet<string> Save()
+    {
+        var names = Normalize();
         byte[] desired = JsonSerializer.SerializeToUtf8Bytes(this, JsonFiles.Options);
         if (File.Exists(PathName))
         {
             byte[] existing = File.ReadAllBytes(PathName);
-            if (existing.AsSpan().SequenceEqual(desired)) return;
-            _ = Deserialize(PathName);
-            BackupFiles.CreateVerifiedBackup(PathName, AppPaths.SettingsBackupFile);
+            if (existing.AsSpan().SequenceEqual(desired)) return names;
+            using var document = JsonDocument.Parse(System.Text.Encoding.UTF8.GetString(existing).TrimStart('\uFEFF'));
+            _ = Deserialize(document.RootElement, out var warning);
+            // Preserve the original invalid field separately. Do not replace
+            // the last valid normal backup with a configuration needing repair.
+            string backup = warning is null ? AppPaths.SettingsBackupFile :
+                PathName + "." + Guid.NewGuid().ToString("N") + ".corrupt";
+            BackupFiles.CreateVerifiedBackup(PathName, backup);
         }
-        JsonFiles.WriteAtomic(PathName, this);
+        JsonFiles.WriteAtomicBytes(PathName, desired);
+        return names;
     }
 
     public static void RestoreLatestBackup()
     {
-        _ = Deserialize(AppPaths.SettingsBackupFile);
+        _ = DeserializeBackup(AppPaths.SettingsBackupFile);
         BackupFiles.RestoreLatestBackup(PathName, AppPaths.SettingsBackupFile);
     }
 
@@ -151,11 +175,19 @@ public sealed class ReaderSettings
         value != null && palette.Contains(value, StringComparer.OrdinalIgnoreCase)
             ? value.ToUpperInvariant() : fallback;
 
-    public void Normalize()
+    public HashSet<string> Normalize()
     {
         ExcludedFolders ??= DefaultExcludedFolders;
-        try { _ = ParseExcludedFolders(ExcludedFolders); }
+        HashSet<string> names;
+        try { names = ParseExcludedFolders(ExcludedFolders); }
         catch (ArgumentException error) { throw new JsonException(error.Message, error); }
+        NormalizeAppearanceAndAudio();
+        return names;
+    }
+
+    private void NormalizeAppearanceAndAudio()
+    {
+        ExcludedFolders ??= DefaultExcludedFolders;
         Appearance ??= new();
         Audio ??= new();
         Appearance.Title ??= new();
