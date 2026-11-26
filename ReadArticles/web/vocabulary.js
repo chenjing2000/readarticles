@@ -382,12 +382,10 @@ function hideSelectionAdd() {
 // Anchor after the final selected text fragment, 1px right and 0px below.
 // Flip left/above near viewport edges; the visible em-sized glyph occupies
 // the click target's upper-left corner.
-export function positionSelectionAddButton(range, button) {
+export function positionSelectionAddButton(anchor, button) {
   const size = Math.ceil(button.getBoundingClientRect().width);
   const horizontalGap = 1;
   const verticalGap = 0;
-  const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
-  const anchor = fragments.at(-1) ?? range.getBoundingClientRect();
   const toRight = anchor.right + horizontalGap;
   const toLeft = anchor.left - horizontalGap - size;
   const below = anchor.bottom + verticalGap;
@@ -432,7 +430,7 @@ function refreshSelectionAddPosition() {
     return;
   }
   button.hidden = false;
-  positionSelectionAddButton(range, button);
+  positionSelectionAddButton(anchor, button);
   scheduleSelectionAddFrame();
 }
 

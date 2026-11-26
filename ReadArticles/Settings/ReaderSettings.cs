@@ -278,7 +278,7 @@ public sealed class ReaderSettings
 
 public sealed class ReaderAppearance
 {
-    public ReaderTextStyle Title { get; set; } = new() { Size = 18, LineHeight = 1.7, ParagraphAfter = 16 };
+    public ReaderTextStyle Title { get; set; } = new();
     public ReaderBodyStyle Body { get; set; } = new();
     public ReaderWordStyle Vocabulary { get; set; } = new();
     public ReaderPhoneticStyle Phonetics { get; set; } = new();
@@ -289,12 +289,12 @@ public class ReaderTextStyle
     public string Font { get; set; } = "Newsreader";
     public double Size { get; set; } = 18;
     public double LineHeight { get; set; } = 1.7;
-    public double ParagraphAfter { get; set; } = 6;
+    public double ParagraphAfter { get; set; } = 16;
     public string Color { get; set; } = "#283747";
 }
 public sealed class ReaderBodyStyle : ReaderTextStyle
 {
-    public ReaderBodyStyle() { Size = 15; LineHeight = 1.7; ParagraphAfter = 16; }
+    public ReaderBodyStyle() { Size = 15; }
     public double FirstLineIndent { get; set; } = 2;
     public string Background { get; set; } = "#F8F8F6";
     public string ScriptColor { get; set; } = "#F6EDC2";

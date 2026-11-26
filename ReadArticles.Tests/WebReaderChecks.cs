@@ -387,22 +387,13 @@ internal static class WebReaderChecks
                         left, top, right, bottom,
                         width: right - left, height: bottom - top
                       });
-                      positionSelectionAddButton({
-                        getClientRects: () => [
-                          rect(90, 80, 150, 100),
-                          rect(90, 110, 130, 130)
-                        ]
-                      }, button);
+                      positionSelectionAddButton(rect(90, 110, 130, 130), button);
                       const afterLastLine = {
                         x: Number.parseInt(button.style.left),
                         y: Number.parseInt(button.style.top)
                       };
-                      positionSelectionAddButton({
-                        getClientRects: () => [
-                          rect(innerWidth - 30, innerHeight - 30,
-                            innerWidth - 10, innerHeight - 10)
-                        ]
-                      }, button);
+                      positionSelectionAddButton(rect(innerWidth - 30, innerHeight - 30,
+                        innerWidth - 10, innerHeight - 10), button);
                       const nearEdge = {
                         x: Number.parseInt(button.style.left),
                         y: Number.parseInt(button.style.top)
@@ -445,11 +436,17 @@ internal static class WebReaderChecks
                       const hidden = button.hidden, oldLeft = button.style.left, oldTop = button.style.top;
                       try {
                         root.setProperty('--body-size', '40px');
-                        root.setProperty('--selection-add-size', '1.2em');
                         button.hidden = false;
+                        for (const [size, expected] of [[.4, 24], [.6, 24], [1.2, 48]]) {
+                          root.setProperty('--selection-add-size', size + 'em');
+                          const box = button.getBoundingClientRect();
+                          const glyph = button.querySelector('img').getBoundingClientRect();
+                          if (box.width !== expected || box.height !== expected ||
+                              Math.abs(glyph.width - size * 40) > .02) return false;
+                        }
                         const rect = { left: innerWidth - 30, top: innerHeight - 30,
                           right: innerWidth - 10, bottom: innerHeight - 10, width: 20, height: 20 };
-                        positionSelectionAddButton({ getClientRects: () => [rect] }, button);
+                        positionSelectionAddButton(rect, button);
                         const hit = button.getBoundingClientRect();
                         const icon = button.querySelector('img').getBoundingClientRect();
                         return hit.width === 48 && hit.height === 48 && icon.width === 48 && icon.height === 48 &&

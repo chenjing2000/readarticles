@@ -19,9 +19,9 @@ internal sealed class SettingsDialog : Window
     private readonly HashSet<string> installedFontNames = Fonts.SystemFontFamilies
         .SelectMany(family => family.FamilyNames.Values.Append(family.Source))
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
-    private readonly DispatcherTimer fontNoticeTimer = new()
+    private readonly DispatcherTimer noticeTimer = new()
         { Interval = TimeSpan.FromSeconds(3) };
-    private Popup? fontNotice;
+    private Popup? notice;
     private readonly List<ComboBox> englishFontSelectors = new();
     private readonly List<(TextBox Input, string Label, (double Min, double Max, int Decimals) Range, Action<double> Apply)> numberInputs = new();
     private string? initiallyMissingFont;
@@ -71,10 +71,10 @@ internal sealed class SettingsDialog : Window
         this.commit = commit;
         draft = current.Copy();
         EnsureUsableDefaultFonts();
-        fontNoticeTimer.Tick += (_, _) =>
+        noticeTimer.Tick += (_, _) =>
         {
-            fontNoticeTimer.Stop();
-            if (fontNotice != null) fontNotice.IsOpen = false;
+            noticeTimer.Stop();
+            if (notice != null) notice.IsOpen = false;
         };
         Loaded += (_, _) =>
         {
@@ -83,8 +83,8 @@ internal sealed class SettingsDialog : Window
         };
         Closed += (_, _) =>
         {
-            fontNoticeTimer.Stop();
-            if (fontNotice != null) fontNotice.IsOpen = false;
+            noticeTimer.Stop();
+            if (notice != null) notice.IsOpen = false;
         };
 
         Title = "设置";
@@ -143,8 +143,8 @@ internal sealed class SettingsDialog : Window
         reset.Content = resetContents;
         reset.Click += (_, _) =>
         {
-            fontNoticeTimer.Stop();
-            if (fontNotice != null) fontNotice.IsOpen = false;
+            noticeTimer.Stop();
+            if (notice != null) notice.IsOpen = false;
             string? library = draft.Library;
             draft = new ReaderSettings { Library = library };
             initiallyMissingFont = null;
@@ -218,7 +218,7 @@ internal sealed class SettingsDialog : Window
 
     private void ShowNotice(FrameworkElement anchor, string message)
     {
-        fontNotice ??= new Popup
+        notice ??= new Popup
         {
             AllowsTransparency = true,
             Placement = PlacementMode.Bottom,
@@ -233,12 +233,12 @@ internal sealed class SettingsDialog : Window
                 Child = new TextBlock { Foreground = Brush("#344256"), FontSize = 12 }
             }
         };
-        ((TextBlock)((Border)fontNotice.Child).Child).Text = message;
-        fontNotice.IsOpen = false;
-        fontNotice.PlacementTarget = anchor;
-        fontNotice.IsOpen = true;
-        fontNoticeTimer.Stop();
-        fontNoticeTimer.Start();
+        ((TextBlock)((Border)notice.Child).Child).Text = message;
+        notice.IsOpen = false;
+        notice.PlacementTarget = anchor;
+        notice.IsOpen = true;
+        noticeTimer.Stop();
+        noticeTimer.Start();
     }
 
     private static Brush Brush(string hex) =>
@@ -367,6 +367,14 @@ internal sealed class SettingsDialog : Window
         input.PreviewKeyDown += (_, e) =>
         {
             if (e.Key == Key.Space) e.Handled = true;
+            if (e.Key is not (Key.Back or Key.Delete) || Keyboard.Modifiers != ModifierKeys.None) return;
+            int start = input.SelectionStart, length = input.SelectionLength;
+            if (length == 0)
+            {
+                if (e.Key == Key.Back && start > 0) { start--; length = 1; }
+                else if (e.Key == Key.Delete && start < input.Text.Length) length = 1;
+            }
+            if (!CanEdit(input.Text.Remove(start, length))) e.Handled = true;
         };
         DataObject.AddPastingHandler(input, (_, e) =>
         {
@@ -375,8 +383,11 @@ internal sealed class SettingsDialog : Window
             else
                 e.FormatToApply = DataFormats.UnicodeText;
         });
-        // Removing a decimal point (including Cut/Undo) can make the remaining
-        // integer too long; retain the last syntactically valid edit.
+        CommandManager.AddPreviewExecutedHandler(input, (_, e) =>
+        {
+            if (e.Command == ApplicationCommands.Cut && !CanInsert("")) e.Handled = true;
+        });
+        // Guard other edits (including programmatic changes) that bypass input filtering.
         string lastText = input.Text;
         input.TextChanged += (_, _) =>
         {
