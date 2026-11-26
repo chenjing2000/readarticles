@@ -127,8 +127,8 @@ internal static class WebReaderChecks
                         "text": "It is a beautiful day.",
                         "timed_units": [["It is a",1.0,1.8],["beautiful",1.8,2.4],["day",2.4,2.8]]
                       }], [{
-                        "text": "Alpha stays beta.",
-                        "timed_units": [["Alpha",3,4],["stays",null,null],["missing",4,4.5],["beta",4.5,5]]
+                        "text": "Alpha, stays beta.",
+                        "timed_units": [["Alpha",4,5],[",",null,null],["stays",null,null],["missing",4,4.5],["beta",3,4.5]]
                       }]]
                     }
                     """);
@@ -871,7 +871,7 @@ internal static class WebReaderChecks
                       const rows = [...document.querySelectorAll('#article-body > .script-paragraph')];
                       const near = (a, b) => Math.abs(a - b) < 0.02;
                       const width = rect => Number(rect.getAttribute('width'));
-                      if (rows.length !== 2 || rows[1].textContent !== 'Alpha stays beta.' ||
+                      if (rows.length !== 2 || rows[1].textContent !== 'Alpha, stays beta.' ||
                           [...rows[1].querySelectorAll('.script-timed-unit')].map(unit => unit.textContent).join('|') !== 'Alpha|beta')
                         return false;
                       const savedPlayback = getPlayback();
@@ -894,10 +894,32 @@ internal static class WebReaderChecks
                             near(Number(actual[i].getAttribute('x')), r.left-base.left) &&
                             near(Number(actual[i].getAttribute('y')), r.top-base.top-1) &&
                             near(Number(actual[i].getAttribute('height')), r.height+2))) return false;
-                          // No extension past the last unit of either paragraph, including punctuation.
-                          if (!near(width(actual.at(-1)), expected.at(-1).width)) return false;
-                          // The real null/unaligned interval must not create rectangles or join the gap.
-                          if (index === 1 && !actual.every((rect,i) => near(width(rect),expected[i].width))) return false;
+                          // Measure the trailing punctuation independently of the production gap calculation.
+                          const suffixWidth = (unit, rect) => {
+                            const range = document.createRange();
+                            range.setStart(unit.nextSibling, 0);
+                            range.setEnd(unit.nextSibling, 1);
+                            const mark = range.getBoundingClientRect();
+                            return Math.abs(mark.top-rect.top)<2 ? Math.max(0,mark.right-rect.right) : 0;
+                          };
+                          const period = suffixWidth(units.at(-1),expected.at(-1));
+                          if (period<=0 || !near(width(actual.at(-1)),expected.at(-1).width+period))
+                            throw Error('JSON period row '+index+': '+width(actual.at(-1))+'/'+(expected.at(-1).width+period));
+                          if (index === 1) {
+                            // Real null/unaligned units and an overlapping, out-of-order interval.
+                            // Only the comma after Alpha and the period after beta may extend.
+                            const firstEnd = groups[0].length-1;
+                            const comma = suffixWidth(units[0],expected[firstEnd]);
+                            if (comma<=0 || !actual.every((rect,i) => near(width(rect),expected[i].width+
+                                (i===firstEnd?comma:i===actual.length-1?period:0))))
+                              throw Error('JSON comma/untimed barrier: '+actual.map(width)+'; comma '+comma);
+                            paintScriptProgress({position:4.5,isArticleActive:true,canSeek:true});
+                            const alphaWidth = groups[0].reduce((sum,r)=>sum+r.width,0);
+                            if (!near(actual.slice(0,firstEnd+1).reduce((sum,r)=>sum+width(r),0),alphaWidth/2) ||
+                                !near(width(actual.at(-1)),expected.at(-1).width+period))
+                              throw Error('JSON overlapping/out-of-order interval');
+                            paintScriptProgress({position:5,isArticleActive:true,canSeek:true});
+                          }
                         }
                         return true;
                       } finally {
@@ -955,7 +977,9 @@ internal static class WebReaderChecks
                         paint(2.5);
                         if (!near(x(b)+width(b), x(c)) || !near(width(c), widths[2]/2)) return false;
                         paint(7);
-                        if (![c,d,e,f,g].every((rect,i) => near(width(rect), widths[i+2])) || near(y(f),y(g))) return false;
+                        if (![c,e,f,g].every((rect,i) => near(width(rect), widths[[2,4,5,6][i]])) ||
+                            !near(x(d)+width(d),x(e)) || width(d)<=widths[3] || near(y(f),y(g)))
+                          throw Error('completed comma bridge or untimed/wrapped boundary');
                         paint(0.5);
                         if (!near(width(a),widths[0]/2) || [b,c,d,e,f,g].some(rect => width(rect)!==0)) return false;
                         // A paused playback snapshot must be restored by geometry measurement itself.
@@ -989,7 +1013,205 @@ internal static class WebReaderChecks
                         paint(5+w1/(2*total));
                         if (!near(width(first),w1/2) || width(last)!==0 || width(next)!==0) return false;
                         paint(7); paint(0,false);
-                        return [...rects(row),...rects(wrap)].every(rect=>width(rect)===0);
+                        if (![...rects(row),...rects(wrap)].every(rect=>width(rect)===0)) return false;
+
+                        // Reuse the actual reader's geometry and paint entry points for punctuation.
+                        const arrange = async (html, style='width:1000px;white-space:nowrap;text-indent:0') => {
+                          const p = paragraph(html,style);
+                          body.replaceChildren(p);
+                          await measure();
+                          paint(0,false);
+                          return p;
+                        };
+                        const unitRect = unit => {
+                          const range = document.createRange();
+                          range.selectNodeContents(unit);
+                          return range.getBoundingClientRect();
+                        };
+                        const markRight = (node,length) => {
+                          const range = document.createRange();
+                          range.setStart(node,0);
+                          range.setEnd(node,length);
+                          return Math.max(...[...range.getClientRects()].map(r=>r.right));
+                        };
+                        for (const marks of [',','.',';',':','?','!','…','...','?!','!!']) {
+                          const p = await arrange(sentence(word('Alpha',0)+marks+' '+word('Beta',1)));
+                          const [a,b] = rects(p);
+                          const original = unitRect(p.querySelector('.script-timed-unit')).width;
+                          if (rects(p).length!==2) throw Error('rect count '+marks);
+                          paint(0.99);
+                          if (!near(width(a),original*0.99) || width(b)!==0) throw Error('partial '+marks);
+                          paint(1);
+                          if (!near(x(a)+width(a),x(b)) || width(a)<=original || width(b)!==0)
+                            throw Error('bridge '+marks);
+                          const observer = new MutationObserver(()=>{});
+                          observer.observe(a,{attributes:true});
+                          paint(1);
+                          const writes = observer.takeRecords().length;
+                          observer.disconnect();
+                          paint(0.5);
+                          if (writes!==0 || !near(width(a),original/2) || width(b)!==0)
+                            throw Error('rewind '+marks);
+
+                          // Exercise the partial-gap path for every mark, with visible trailing whitespace.
+                          const tail = await arrange(sentence(word('Alpha',0)+marks+'  '),
+                            'width:1000px;white-space:pre;text-indent:0');
+                          const tailUnit = tail.querySelector('.script-timed-unit');
+                          const tailOriginal = unitRect(tailUnit);
+                          const end = markRight(tailUnit.nextSibling,marks.length)-tailOriginal.left;
+                          const withSpace = markRight(tailUnit.nextSibling,marks.length+2)-tailOriginal.left;
+                          const [last] = rects(tail);
+                          if (rects(tail).length!==1 || end<=tailOriginal.width || withSpace<=end)
+                            throw Error('tail fixture '+marks);
+                          paint(0.99);
+                          if (!near(width(last),tailOriginal.width*0.99)) throw Error('tail partial '+marks);
+                          paint(1);
+                          if (!near(width(last),end)) throw Error('tail complete '+marks+': '+width(last)+'/'+end);
+                          paint(0.5);
+                          if (!near(width(last),tailOriginal.width/2)) throw Error('tail rewind '+marks);
+                        }
+                        for (const [suffix,count,next] of [
+                          ['...',3,false],['?! ',2,false],[',\"',1,true],[', untimed ',1,true],
+                          ['— ',0,true],[' (',0,true],['\"!',0,false],['，',0,false],
+                          ['?!—',2,true],[' ',0,false]
+                        ]) {
+                          const p = await arrange(sentence(word('Alpha',0)+suffix+(next?word('Beta',1):'')));
+                          const unit = p.querySelector('.script-timed-unit'), original = unitRect(unit);
+                          const expected = count?markRight(unit.nextSibling,count)-original.right:0;
+                          paint(1);
+                          if ((count && expected<=0) || !near(width(rects(p)[0]),original.width+expected))
+                            throw Error('prefix '+suffix);
+                        }
+                        // An actual wrap between words must leave only the comma on the first line.
+                        let p = await arrange(sentence(word('Alpha',0)+', '+word('Beta',1)),
+                          'font-family:monospace;width:8ch;text-indent:0');
+                        let [leftMark,rightWord] = rects(p);
+                        let unit = p.querySelector('.script-timed-unit'), original = unitRect(unit);
+                        let expected = markRight(unit.nextSibling,1)-original.right;
+                        paint(1);
+                        if (near(y(leftMark),y(rightWord)) || expected<=0 ||
+                            !near(width(leftMark),original.width+expected)) throw Error('line end');
+                        renderPlayback({...savedPlayback,position:1,duration:2,state:'paused',
+                          isArticleActive:true,canSeek:true});
+                        p.style.width='1000px';
+                        await measure();
+                        [leftMark,rightWord] = rects(p);
+                        if (!near(y(leftMark),y(rightWord)) || !near(x(leftMark)+width(leftMark),x(rightWord)) ||
+                            width(rightWord)!==0 || getPlayback().position!==1 || getPlayback().state!=='paused')
+                          throw Error('paused reflow');
+                        // Reuse the paused snapshot and actual geometry scheduler after typography changes.
+                        for (const [property,value] of [['fontFamily','Georgia'],['fontSize','32px'],['lineHeight','2.5']]) {
+                          const prior = rects(p)[0];
+                          p.style[property]=value;
+                          await measure();
+                          const [a,b] = rects(p);
+                          const [u,v] = [...p.querySelectorAll('.script-timed-unit')].map(unitRect);
+                          const base = p.querySelector('svg').getBoundingClientRect();
+                          const wanted = v.left-u.left;
+                          if (a===prior || rects(p).length!==2 || Math.abs(u.top-v.top)>=2 ||
+                              !near(x(a),u.left-base.left) || !near(y(a),u.top-base.top-1) ||
+                              !near(Number(a.getAttribute('height')),u.height+2) ||
+                              !near(width(a),wanted) || width(b)!==0 ||
+                              getPlayback().position!==1 || getPlayback().state!=='paused')
+                            throw Error('paused typography '+property+': '+width(a)+'/'+wanted);
+                        }
+                        // Use explicit newlines for punctuation wraps, but natural wrapping for a long word.
+                        for (const [text,marks,size,expectedCount] of [
+                          ['Alpha','?\n!...','1000px',1],['Alpha','\n?!...','1000px',0],
+                          ['Alpha','? \n!...','1000px',1],['ABCDEFGHIJK','?!','8ch',2]
+                        ]) {
+                          p = await arrange(sentence(word(text,0)+marks),
+                            'font-family:monospace;white-space:pre-line;text-indent:0;width:'+size);
+                          unit = p.querySelector('.script-timed-unit');
+                          const range = document.createRange();
+                          range.selectNodeContents(unit);
+                          const fragments = [...range.getClientRects()].filter(r=>r.width>0.25&&r.height>0.25);
+                          const lastRect = fragments.at(-1), node = unit.nextSibling;
+                          let right = lastRect.right, count = 0, offLine = 0;
+                          for (let i=0;i<marks.length;i++) {
+                            if (/\s/u.test(marks[i])) continue;
+                            range.setStart(node,i); range.setEnd(node,i+1);
+                            const mark = range.getBoundingClientRect();
+                            if (mark.width<=0) continue;
+                            if (Math.abs(mark.top-lastRect.top)<2) { count++; right=Math.max(right,mark.right); }
+                            else offLine++;
+                          }
+                          if (count!==expectedCount || count+offLine!==marks.replace(/\s/gu,'').length ||
+                              (marks.includes('\n')?offLine===0:fragments.length<2))
+                            throw Error('wrap fixture '+text+' '+count+'/'+offLine);
+                          paint(1);
+                          const actual = rects(p);
+                          if (actual.length!==fragments.length || !actual.every((r,i)=>
+                              near(width(r),fragments[i].width+(i===actual.length-1?right-lastRect.right:0))))
+                            throw Error('wrap paint '+text);
+                          p.style.width='1000px'; p.style.whiteSpace='nowrap';
+                          await measure();
+                          paint(1);
+                          original = unitRect(unit);
+                          if (rects(p).length!==1 ||
+                              !near(width(rects(p)[0]),markRight(node,marks.length)-original.left))
+                            throw Error('wrap reflow '+text);
+                        }
+                        for (const [parts,count] of [[['?','!'],2],[['...',' '],3],[[',','"'],1]]) {
+                          p = await arrange(sentence(word('Alpha',0)));
+                          unit = p.querySelector('.script-timed-unit');
+                          for (const part of parts) unit.parentNode.append(document.createTextNode(part));
+                          await measure();
+                          const range = document.createRange();
+                          range.setStartAfter(unit);
+                          let node=unit.nextSibling, remaining=count;
+                          while (remaining>node.length) { remaining-=node.length; node=node.nextSibling; }
+                          range.setEnd(node,remaining);
+                          expected = Math.max(...[...range.getClientRects()].map(r=>r.right))-unitRect(unit).left;
+                          paint(1);
+                          if (!near(width(rects(p)[0]),expected)) throw Error('split prefix '+parts);
+                        }
+                        p = await arrange(sentence(word('Alpha',0)+',')+' '+sentence(word('Beta',1)));
+                        paint(1);
+                        if (!near(x(rects(p)[0])+width(rects(p)[0]),x(rects(p)[1])))
+                          throw Error('sentence separator');
+                        p = await arrange(sentence(word('Alpha',0))+sentence('?! "untimed"'));
+                        unit = p.querySelector('.script-timed-unit');
+                        expected = markRight(p.querySelectorAll('.script-sentence')[1].firstChild,2)-unitRect(unit).left;
+                        paint(1);
+                        if (!near(width(rects(p)[0]),expected)) throw Error('sentence prefix');
+                        p = await arrange(sentence(word('Alpha',0)+' '));
+                        body.append(paragraph(sentence('! '+word('Beta',1)),'width:1000px;white-space:nowrap;text-indent:0'));
+                        await measure(); paint(1);
+                        if (!near(width(rects(p)[0]),unitRect(p.querySelector('.script-timed-unit')).width))
+                          throw Error('paragraph boundary');
+                        // A valid but zero-width timed unit is a barrier, not a paint target.
+                        p = await arrange(sentence(word('Alpha',0)+','+word('\u200B',1)+'?! '+word('Beta',2)));
+                        const [before,barrier,after] = p.querySelectorAll('.script-timed-unit');
+                        const invisible = document.createRange();
+                        invisible.selectNodeContents(barrier);
+                        if ([...invisible.getClientRects()].some(r=>r.width>0.25&&r.height>0.25) ||
+                            rects(p).length!==2) throw Error('zero-width fixture');
+                        const [beforeRect,afterRect] = rects(p);
+                        const beforeWidth = unitRect(before).width, afterWidth = unitRect(after).width;
+                        expected = markRight(before.nextSibling,1)-unitRect(before).left;
+                        if (expected<=beforeWidth || x(afterRect)<=x(beforeRect)+expected)
+                          throw Error('zero-width barrier fixture');
+                        paint(1);
+                        if (!near(width(beforeRect),expected) || width(afterRect)!==0)
+                          throw Error('zero-width barrier prefix');
+                        paint(2.5);
+                        if (!near(width(beforeRect),expected) || !near(width(afterRect),afterWidth/2))
+                          throw Error('zero-width barrier following unit');
+                        p = await arrange(sentence(word('Alpha',0)+word(',',1)+' '+word('Beta!',2)));
+                        const [firstTimed,commaTimed,lastTimed] = rects(p);
+                        const [firstWidth,commaWidth,lastWidth] = [...p.querySelectorAll('.script-timed-unit')]
+                          .map(u=>unitRect(u).width);
+                        paint(1);
+                        if (!near(width(firstTimed),firstWidth) || width(commaTimed)!==0) throw Error('timed mark');
+                        paint(1.5);
+                        if (!near(width(commaTimed),commaWidth/2)) throw Error('timed mark partial');
+                        paint(2.5);
+                        if (!near(width(lastTimed),lastWidth/2)) throw Error('included mark partial');
+                        paint(3);
+                        if (!near(width(lastTimed),lastWidth)) throw Error('included mark complete');
+                        paint(0,false);
+                        return rects(p).every(r=>width(r)===0);
                       } finally {
                         body.replaceChildren(...saved);
                         refreshHighlights(true);
@@ -1019,7 +1241,7 @@ internal static class WebReaderChecks
                 File.WriteAllText(ArticleRepository.ScriptPathFor(familyArticle), """
                     {"filetype":"script","title":"Family script",
                      "paragraphs":[[{"text":"We went home. She goes away.",
-                       "timed_units":[["We we",0,1],["nt home. She goes away.",1,3]]}]]}
+                       "timed_units":[["We we",0,1],["nt home. She goes away",1,3]]}]]}
                     """);
                 Program.Check(window.ViewModel.OpenArticle(familyArticle));
                 WaitFor(() => Evaluate(browser, """
@@ -1078,16 +1300,38 @@ internal static class WebReaderChecks
                           getComputedStyle(row).isolation !== 'isolate' ||
                           getComputedStyle(background).zIndex !== '-1') return false;
                       const unchanged = () => capsules.length === layer.children.length &&
-                        capsules.every((node,i) => node === layer.children[i] && node.style.backgroundColor === color[i]);
+                        capsules.every((node,i) => node === layer.children[i] && node.style.backgroundColor === color[i]) &&
+                        matchedTexts('go').join('|')==='went|goes';
                       const paint = (position, active = true) => paintScriptProgress({
                         position, isArticleActive: active, canSeek: active
                       });
+                      const unit = row.querySelectorAll('.script-timed-unit')[1];
+                      const range = document.createRange();
+                      range.selectNodeContents(unit);
+                      const fragments = [...range.getClientRects()].filter(r=>r.width>0.25&&r.height>0.25)
+                        .sort((a,b)=>a.top-b.top||a.left-b.left);
+                      const last = fragments.at(-1), total = fragments.reduce((sum,r)=>sum+r.width,0);
+                      range.setStart(unit.nextSibling,0); range.setEnd(unit.nextSibling,1);
+                      const period = range.getBoundingClientRect(), gap = period.right-last.right;
+                      const width = rect => Number(rect.getAttribute('width'));
+                      const tail = rectangles.slice(-fragments.length);
+                      const near = (a,b) => Math.abs(a-b)<0.02;
+                      if (!last || gap<=0 || Math.abs(period.top-last.top)>=2)
+                        throw Error('family punctuation fixture');
+                      const partial = () => unchanged() && near(tail.reduce((sum,r)=>sum+width(r),0),total/2);
+                      paint(2);
+                      if (!partial()) throw Error('family punctuation partial');
                       paint(3);
-                      if (!rectangles.every(rect => Number(rect.getAttribute('width')) > 0) || !unchanged()) return false;
+                      if (!rectangles.every(rect=>width(rect)>0) || !unchanged() ||
+                          !near(width(tail.at(-1)),last.width+gap) ||
+                          !near(tail.reduce((sum,r)=>sum+width(r),0),total+gap))
+                        throw Error('family punctuation complete');
+                      paint(2);
+                      if (!partial()) throw Error('family punctuation rewind');
                       paint(0.5);
-                      if (!unchanged() || Number(rectangles.at(-1).getAttribute('width')) !== 0) return false;
+                      if (!unchanged() || tail.some(r=>width(r)!==0)) throw Error('family rewind earlier unit');
                       paint(0,false);
-                      return unchanged() && rectangles.every(rect => Number(rect.getAttribute('width')) === 0);
+                      return unchanged() && rectangles.every(rect => width(rect)===0);
                     })()
                     """).GetBoolean());
                 Program.Check(window.FindName("ParagraphHost") is null);
