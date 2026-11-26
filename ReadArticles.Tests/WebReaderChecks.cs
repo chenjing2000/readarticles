@@ -387,22 +387,13 @@ internal static class WebReaderChecks
                         left, top, right, bottom,
                         width: right - left, height: bottom - top
                       });
-                      positionSelectionAddButton({
-                        getClientRects: () => [
-                          rect(90, 80, 150, 100),
-                          rect(90, 110, 130, 130)
-                        ]
-                      }, button);
+                      positionSelectionAddButton(rect(90, 110, 130, 130), button);
                       const afterLastLine = {
                         x: Number.parseInt(button.style.left),
                         y: Number.parseInt(button.style.top)
                       };
-                      positionSelectionAddButton({
-                        getClientRects: () => [
-                          rect(innerWidth - 30, innerHeight - 30,
-                            innerWidth - 10, innerHeight - 10)
-                        ]
-                      }, button);
+                      positionSelectionAddButton(rect(innerWidth - 30, innerHeight - 30,
+                        innerWidth - 10, innerHeight - 10), button);
                       const nearEdge = {
                         x: Number.parseInt(button.style.left),
                         y: Number.parseInt(button.style.top)
@@ -435,6 +426,42 @@ internal static class WebReaderChecks
                         Evaluate(browser, "innerWidth").GetInt32() - 55 &&
                     selectionAction.GetProperty("nearEdge").GetProperty("y").GetInt32() ==
                         Evaluate(browser, "innerHeight").GetInt32() - 54);
+
+                Program.Check(EvaluateModule(browser, """
+                    (() => {
+                      const button = document.getElementById('selection-add');
+                      const root = document.documentElement.style;
+                      const oldSize = root.getPropertyValue('--body-size');
+                      const oldAdd = root.getPropertyValue('--selection-add-size');
+                      const hidden = button.hidden, oldLeft = button.style.left, oldTop = button.style.top;
+                      try {
+                        root.setProperty('--body-size', '40px');
+                        button.hidden = false;
+                        for (const [size, expected] of [[.4, 24], [.6, 24], [1.2, 48]]) {
+                          root.setProperty('--selection-add-size', size + 'em');
+                          const box = button.getBoundingClientRect();
+                          const glyph = button.querySelector('img').getBoundingClientRect();
+                          if (box.width !== expected || box.height !== expected ||
+                              Math.abs(glyph.width - size * 40) > .02) return false;
+                        }
+                        const rect = { left: innerWidth - 30, top: innerHeight - 30,
+                          right: innerWidth - 10, bottom: innerHeight - 10, width: 20, height: 20 };
+                        positionSelectionAddButton(rect, button);
+                        const hit = button.getBoundingClientRect();
+                        const icon = button.querySelector('img').getBoundingClientRect();
+                        return hit.width === 48 && hit.height === 48 && icon.width === 48 && icon.height === 48 &&
+                          hit.left === innerWidth - 79 && hit.top === innerHeight - 78 &&
+                          hit.right <= innerWidth && hit.bottom <= innerHeight &&
+                          button.contains(document.elementFromPoint(hit.right - 1, hit.bottom - 1));
+                      } finally {
+                        root.setProperty('--body-size', oldSize);
+                        root.setProperty('--selection-add-size', oldAdd);
+                        button.style.left = oldLeft;
+                        button.style.top = oldTop;
+                        button.hidden = hidden;
+                      }
+                    })()
+                    """).GetBoolean());
 
                 // The frame-paced loop checks geometry at up to 60Hz, even
                 // without another selectionchange, and clears when selection ends.
@@ -684,12 +711,23 @@ internal static class WebReaderChecks
                     .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
                     .GetValue(window)!;
                 var draft = readSettings.Copy();
-                draft.Appearance.Body.Size = 16;
+                draft.Appearance.Title.Size = 21;
+                draft.Appearance.Body.Size = 19;
+                draft.Appearance.Vocabulary.Size = 20;
+                draft.Appearance.Phonetics.Size = 18;
+                draft.Appearance.Meanings.Size = 22;
                 draft.Appearance.Body.Background = "#F7F1E6";
-                draft.Appearance.Title.Font = "Nunito";
-                draft.Appearance.Body.Font = "Nunito";
+                draft.Appearance.Title.Font = "Newsreader";
+                draft.Appearance.Body.Font = "Source Serif 4";
                 draft.Appearance.Vocabulary.Font = "Nunito";
-                draft.Appearance.Body.SelectionAddSize = 0.80;
+                draft.Appearance.Meanings.Font = "Source Han Serif SC";
+                draft.Appearance.Title.LineHeight = 1.85;
+                draft.Appearance.Body.LineHeight = 1.65;
+                draft.Appearance.Meanings.LineHeight = 1.55;
+                draft.Appearance.Title.ParagraphAfter = 13;
+                draft.Appearance.Body.ParagraphAfter = 19;
+                draft.Appearance.Body.FirstLineIndent = 1;
+                draft.Appearance.Body.SelectionAddSize = 0.95;
                 draft.Appearance.Body.SelectionBackground = "#E5EDE0";
                 draft.Appearance.Body.ScriptColor = "#ECE6F3";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
@@ -701,22 +739,39 @@ internal static class WebReaderChecks
                 settingsRefresh.GetAwaiter().GetResult();
                 WaitFor(() => Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--body-size')")
-                    .GetString() == "16px", "native font-size setting roundtrip");
+                    .GetString() == "19px", "native font-size setting roundtrip");
+                Program.Check(Evaluate(browser, """
+                    (() => {
+                      const style = document.documentElement.style;
+                      return ['--title-size', '--body-size', '--word-size', '--phonetic-size', '--meaning-size']
+                        .map(name => style.getPropertyValue(name)).join(',') === '21px,19px,20px,18px,22px' &&
+                        getComputedStyle(document.querySelector('#article-title')).fontSize === '21px' &&
+                        getComputedStyle(document.querySelector('#article-body')).fontSize === '19px' &&
+                        ['--title-line', '--body-line', '--meaning-line', '--title-after', '--body-after', '--body-indent']
+                          .map(name => style.getPropertyValue(name)).join(',') === '1.85,1.65,1.55,13px,19px,1em' &&
+                        Math.abs(parseFloat(getComputedStyle(document.querySelector('#article-body')).lineHeight) - 19 * 1.65) < .02 &&
+                        getComputedStyle(document.querySelector('#article-body .article-paragraph')).marginBottom === '19px' &&
+                        getComputedStyle(document.querySelector('#article-body .article-paragraph')).textIndent === '19px';
+                    })()
+                    """).GetBoolean());
                 Program.Check(Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--reading-bg')")
                     .GetString() == "#F7F1E6");
                 Program.Check(Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--selection-add-size')")
-                    .GetString() == "0.8em" &&
+                    .GetString() == "0.95em" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--title-font')")
-                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                        .GetString() == "\"Newsreader\", \"Source Serif 4\", \"Georgia\", \"Nunito\", \"Microsoft YaHei UI\", sans-serif" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--body-font')")
-                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                        .GetString() == "\"Source Serif 4\", \"Newsreader\", \"Georgia\", \"Nunito\", \"Microsoft YaHei UI\", sans-serif" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--word-font')")
-                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                        .GetString() == "\"Nunito\", \"Newsreader\", \"Source Serif 4\", \"Georgia\", \"Microsoft YaHei UI\", sans-serif" &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--meaning-font')")
+                        .GetString() == "\"Source Han Serif SC\", \"Microsoft YaHei\", sans-serif" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--script-color')")
                         .GetString() == "#ECE6F3" &&

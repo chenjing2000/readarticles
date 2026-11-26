@@ -33,7 +33,7 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
 #article-scroll { padding: 22px 26px 20px 28px; background: var(--reading-bg, #F8F8F6); }
 #article-title {
   text-align: center;
-  font-family: var(--title-font, Georgia, "Microsoft YaHei UI", "Nunito", "Segoe UI", serif);
+  font-family: var(--title-font, "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI", sans-serif);
   font-size: var(--title-size, 18px);
   font-weight: 700;
   color: var(--title-color, #283747);
@@ -42,7 +42,7 @@ html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
 }
 #article-title:empty { display: none; }
 #article-body {
-  font-family: var(--body-font, Georgia, "Microsoft YaHei UI", "Nunito", "Segoe UI", serif);
+  font-family: var(--body-font, "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI", sans-serif);
   font-size: var(--body-size, 15px); line-height: var(--body-line, 1.7);
   color: var(--body-color, #283747);
 }
@@ -104,10 +104,10 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
   position: absolute; border-radius: 4px; pointer-events: none;
 }
 .word-row:nth-child(even) { background: #f5f7f3; }
-.word-head { font-family: var(--word-font, Georgia, "Microsoft YaHei UI", "Nunito", "Segoe UI", serif);
+.word-head { font-family: var(--word-font, "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI", sans-serif);
   color: var(--word-color, #B7394D); font-size: var(--word-size, 16px);
   font-weight: 600; overflow-wrap: anywhere; }
-.meaning { font-family: var(--meaning-font, "Microsoft YaHei", SimSun, KaiTi, sans-serif);
+.meaning { font-family: var(--meaning-font, "Source Han Serif SC", "Microsoft YaHei", sans-serif);
   margin: 3px 0; overflow-wrap: anywhere; font-size: var(--meaning-size, 15px);
   line-height: var(--meaning-line, 1.5); color: var(--meaning-color, #283747); }
 .part-of-speech { font-weight: 600; margin-right: 6px; }
@@ -135,7 +135,9 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 .toolbar button:disabled { opacity: .42; cursor: default; }
 .toolbar button:not(:disabled):hover { background: #FBECE8; }
 .toolbar button:not(:disabled):active { background: #F4D8D0; }
-.selection-add { position: fixed; z-index: 30; width: 24px; height: 24px;
+.selection-add { position: fixed; z-index: 30;
+  width: max(24px, var(--selection-add-size, 0.65em));
+  height: max(24px, var(--selection-add-size, 0.65em));
   font-size: var(--body-size, 15px);
   border: 0; background: transparent; padding: 0; cursor: pointer; }
 .selection-add img { display: block; position: absolute; left: 0; top: 0;

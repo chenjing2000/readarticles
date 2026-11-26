@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using ReadArticles.Models;
 using ReadArticles.Services;
 using ReadArticles.ViewModels;
+using ReadArticles.Infrastructure;
 
 internal static class UnifiedAudioChecks
 {
@@ -54,6 +55,30 @@ internal static class UnifiedAudioChecks
                 string[] expected = ["a.M4A", "b.m4a", "z.m4a", "a.mp3", "b.mp3", "a.wav"];
                 var found = new AudioResources().ArticleFiles(folder).Select(Path.GetFileName).ToArray();
                 Program.Check(found.SequenceEqual(expected));
+            });
+            Program.Run("relative audio seek uses current custom settings and clamps while paused", () =>
+            {
+                using var first = new AudioChecks.FakePlayer();
+                using var second = new AudioChecks.FakePlayer();
+                var article = new PlaybackController(first);
+                var settings = new ReaderSettings { ForwardStep = 1, BackwardStep = 60 };
+                var model = new MainViewModel(article, new PlaybackController(second), settings);
+                article.Play(new AudioItem(Path.Combine(root, "whole", "a.mp3")), "passage");
+                article.Pause();
+                model.Playback.SeekArticle(4);
+                model.SeekArticleRelative(false);
+                Program.Check(model.Playback.IsArticlePaused && model.Playback.ArticlePosition == 5);
+                model.SeekArticleRelative(true);
+                Program.Check(model.Playback.IsArticlePaused && model.Playback.ArticlePosition == 0);
+                var edited = settings.Copy();
+                edited.ForwardStep = 60;
+                edited.BackwardStep = 1;
+                model.ApplySettings(edited).GetAwaiter().GetResult();
+                model.SeekArticleRelative(false);
+                Program.Check(model.Playback.IsArticlePaused && model.Playback.ArticlePosition == 10);
+                model.SeekArticleRelative(true);
+                Program.Check(model.Playback.IsArticlePaused && model.Playback.ArticlePosition == 9);
+                model.Stop();
             });
             Program.Run("collision words remain editable and only first owns audio after reorder", () =>
             {

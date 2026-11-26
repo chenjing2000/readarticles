@@ -586,9 +586,7 @@ public sealed class WebReaderBridge : IDisposable
         },
         accent = ViewModel.Accent,
         highlightsVisible = ViewModel.HighlightsVisible,
-        rightWidth = paneLayout.RightWidth,
-        forwardStep = settings.ForwardStep,
-        backwardStep = settings.BackwardStep
+        rightWidth = paneLayout.RightWidth
     };
 
     private object PlaybackSnapshot()

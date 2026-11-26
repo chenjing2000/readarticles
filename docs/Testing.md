@@ -100,6 +100,10 @@ Core/UI/Full exercise reopening the current root, collapsed fresh nodes, resetti
 
 Core includes the pure exclusion parser checks. UI and Full also verify independent invalid-name and invalid-JSON-type field recovery, invalid-source preservation during explicit backup restoration, rejection of obsolete/invalid backups, and the loaded Fluent template's collapsed clear button. The navigation regression schedules another filter edit during failure fallback before the root result commits. Cover default and empty exclusions, exact case-insensitive matching across root and nested folders, four delimiters, whitespace and duplicates, invalid names, settings round-trip and backup, reset, equivalent-set no-op, scan invalidation and failed refresh retaining the reading workspace. On Windows, verify the new text box, cancel/save, immediate collapsed-tree refresh and continued real article/word playback.
 
+## Numeric settings regression
+
+Core verifies structured configuration defaults (including missing fields), retained valid values, invalid ranges/precision, all numeric settings round-trip, unchanged-file/backup behavior, custom audio seek through MainViewModel, and browser layout/selection-add geometry. UI and Full additionally verify native numeric editor layout, ASCII and decimal restrictions, selection replacement, rejected paste, invalid save and reset, and editing history. On an interactive desktop verify Backspace/Delete/Ctrl+X on the decimal point, Ctrl+Z/Ctrl+Y, clipboard behavior, and custom seek while paused/playing. Check actual variable fonts and large glyph click targets. No duplicate Core/UI/Full test invocation is needed.
+
 ## Ownership and maintenance
 
 Feature tests cover PaneLayout geometry/drag rollback, ReaderWorkspace committed modes, VocabularyEditor persistence before workspace commit, and WebReaderBridge request identity/revision guards. Browser tests exercise actual embedded ES modules via dynamic import and DOM events without exposing mutable application globals. Retain real DOM, native focus and media assertions when reorganizing source files. Hosted Core does not run all local UI/Full cases.

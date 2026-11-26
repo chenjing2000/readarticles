@@ -125,100 +125,6 @@ internal static class ReaderControlsChecks
             finally { window.Close(); WpfTestHelpers.Pump(); }
         });
 
-        Program.Run("current structured settings normalize values and keep pane widths session-only", () =>
-        {
-            string path = ReaderSettings.PathName;
-            string backup = AppPaths.SettingsBackupFile;
-            byte[]? old = File.Exists(path) ? File.ReadAllBytes(path) : null;
-            byte[]? oldBackup = File.Exists(backup) ? File.ReadAllBytes(backup) : null;
-            try
-            {
-                var invalid = new ReaderSettings
-                {
-                    Accent = "invalid", ForwardStep = 1, BackwardStep = 1
-                };
-                invalid.Appearance.Body.Size = 99;
-                invalid.Appearance.Body.ParagraphAfter = -5;
-                invalid.Appearance.Body.SelectionAddSize = 0.60;
-                invalid.Appearance.Title.Font = "Noto Sans";
-                invalid.Appearance.Body.Font = "Nunito Sans";
-                invalid.Appearance.Vocabulary.Font = "Noto Sans";
-                invalid.Appearance.Body.SelectionBackground = "#BAD";
-                invalid.Appearance.Title.LineHeight = 1.3;
-                invalid.Appearance.Vocabulary.Color = "#BAD";
-                JsonFiles.WriteAtomic(path, invalid);
-                var loaded = ReaderSettings.Load(out var warning);
-                var layout = new PaneLayout();
-                Program.Check(warning == null && layout.LeftWidth == 250 && layout.RightWidth == 300);
-                Program.Check(loaded.Appearance.Body.Size == 15 && loaded.Accent == "uk");
-                Program.Check(loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
-                Program.Check(loaded.Appearance.Body.ParagraphAfter == 16 &&
-                    loaded.Appearance.Title.LineHeight == 1.7 &&
-                    loaded.Appearance.Body.LineHeight == 1.7 &&
-                    loaded.Appearance.Body.ScriptColor == "#F6EDC2" &&
-                    loaded.Appearance.Body.SelectionAddSize == 0.65 &&
-                    loaded.Appearance.Title.Font == "Georgia" &&
-                    loaded.Appearance.Body.Font == "Georgia" &&
-                    loaded.Appearance.Vocabulary.Font == "Georgia" &&
-                    loaded.Appearance.Body.SelectionBackground == "#DDE8F2" &&
-                    loaded.Appearance.Vocabulary.Size == 16 &&
-                    loaded.Appearance.Phonetics.Size == 14 &&
-                    loaded.Appearance.Vocabulary.Color == "#B7394D");
-                loaded.Appearance.Body.SelectionAddSize = 0.80;
-                loaded.Appearance.Title.Font = "Nunito";
-                loaded.Appearance.Body.Font = "Nunito";
-                loaded.Appearance.Vocabulary.Font = "Nunito";
-                loaded.Appearance.Body.SelectionBackground = "#EBE5F2";
-                loaded.Save();
-                loaded = ReaderSettings.Load(out warning);
-                Program.Check(warning == null &&
-                    loaded.Appearance.Body.SelectionAddSize == 0.80 &&
-                    loaded.Appearance.Title.Font == "Nunito" &&
-                    loaded.Appearance.Body.Font == "Nunito" &&
-                    loaded.Appearance.Vocabulary.Font == "Nunito" &&
-                    loaded.Appearance.Body.SelectionBackground == "#EBE5F2");
-                foreach (var (oldColor, expected) in new[]
-                {
-                    ("#B64550", "#F6EDC2"), ("#A33D30", "#F6EDC2"), ("#E02020", "#F6EDC2"),
-                    ("#A45A2C", "#F5E4D6"), ("#D65A00", "#F5E4D6"),
-                    ("#53713C", "#E1EEDB"), ("#008A48", "#E1EEDB"),
-                    ("#0066E6", "#E0ECF4"), ("#856300", "#ECE6F3"), ("#8a36d1", "#ECE6F3"),
-                    ("#123456", "#F6EDC2")
-                })
-                {
-                    loaded.Appearance.Body.ScriptColor = oldColor;
-                    JsonFiles.WriteAtomic(path, loaded);
-                    byte[] before = File.ReadAllBytes(path);
-                    loaded = ReaderSettings.Load(out warning);
-                    Program.Check(warning == null && loaded.Appearance.Body.ScriptColor == expected &&
-                        loaded.Appearance.Body.Font == "Nunito" &&
-                        loaded.Appearance.Body.SelectionBackground == "#EBE5F2" &&
-                        File.ReadAllBytes(path).SequenceEqual(before));
-                }
-                foreach (string color in new[] { "#F6EDC2", "#F5E4D6", "#E1EEDB", "#E0ECF4", "#ECE6F3" })
-                {
-                    loaded.Appearance.Body.ScriptColor = color;
-                    loaded.Save();
-                    loaded = ReaderSettings.Load(out warning);
-                    Program.Check(warning == null && loaded.Appearance.Body.ScriptColor == color);
-                }
-                loaded.Appearance.Body.Size = double.NaN;
-                loaded.Save();
-                loaded = ReaderSettings.Load(out warning);
-                Program.Check(warning == null && loaded.Appearance.Body.Size == 15);
-                byte[] persisted = File.ReadAllBytes(path);
-                byte[] backupBytes = File.ReadAllBytes(backup);
-                layout.ResizeLibrary(400, 900);
-                layout.ResizeVocabulary(400, 900);
-                Program.Check(layout.LeftWidth != 250 && layout.RightWidth != 300);
-                loaded.Save();
-                loaded.Save();
-                Program.Check(File.ReadAllBytes(path).SequenceEqual(persisted) &&
-                    File.ReadAllBytes(backup).SequenceEqual(backupBytes));
-            }
-            finally { Restore(path, old); Restore(backup, oldBackup); }
-        });
-
         Program.Run("breaking change replaces old flat configuration without importing values", () =>
         {
             string path = ReaderSettings.PathName;
@@ -268,7 +174,10 @@ internal static class ReaderControlsChecks
                     defaults.Appearance.Body.SelectionAddSize == 0.65 &&
                     defaults.Appearance.Body.SelectionBackground == "#DDE8F2" &&
                     defaults.Appearance.Body.ScriptColor == "#F6EDC2" &&
-                    defaults.Appearance.Title.Font == "Georgia" &&
+                    defaults.Appearance.Title.Font == "Newsreader" &&
+                    defaults.Appearance.Body.Font == "Newsreader" &&
+                    defaults.Appearance.Vocabulary.Font == "Newsreader" &&
+                    defaults.Appearance.Meanings.Font == "Source Han Serif SC" &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
                     defaults.Appearance.Phonetics.Size == 14);
                 Program.Check(((Button)window.FindName("SettingsButton")).ContextMenu is null);
@@ -281,7 +190,8 @@ internal static class ReaderControlsChecks
                 Program.Check(player.Volume == 1.0 && pronunciationPlayer.Volume == 1.0);
                 Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
                 var draft = defaults.Copy();
-                draft.ForwardStep = 7;
+                draft.ForwardStep = 23;
+                draft.BackwardStep = 31;
                 draft.Accent = "us";
                 draft.Appearance.Body.Size = 17;
                 draft.Appearance.Body.Background = "#F7F1E6";
@@ -295,7 +205,7 @@ internal static class ReaderControlsChecks
                 Program.Check(window.ViewModel.Accent == "us");
                 var saved = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && saved.Appearance.Body.Size == 17 &&
-                    saved.ForwardStep == 7 && saved.Accent == "us" &&
+                    saved.ForwardStep == 23 && saved.BackwardStep == 31 && saved.Accent == "us" &&
                     saved.Library == TestData.LibraryRoot &&
                     saved.Appearance.Body.Background == "#F7F1E6");
                 string missingRoot = Path.Combine(Path.GetTempPath(), "ReadArticles-refresh-settings-" + Guid.NewGuid().ToString("N"));
@@ -336,8 +246,7 @@ internal static class ReaderControlsChecks
             var ctor = type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
                 binder: null, types: [typeof(ReaderSettings), typeof(Func<ReaderSettings, bool>)],
                 modifiers: null)!;
-            var dialog = (Window)ctor.Invoke([new ReaderSettings(),
-                new Func<ReaderSettings, bool>(_ => true)]);
+            var dialog = (Window)ctor.Invoke([new ReaderSettings(), new Func<ReaderSettings, bool>(_ => false)]);
             try
             {
                 Program.Check(dialog.Title == "设置" && dialog.ResizeMode == ResizeMode.NoResize &&
@@ -414,12 +323,12 @@ internal static class ReaderControlsChecks
                             }
                             else if (group.ColumnDefinitions.Count == 2)
                             {
-                                // The 100-DIP dropdown + 20-DIP unit label
+                                // The 100-DIP editor + 20-DIP unit label
                                 // retains the established compact layout.
                                 Program.Check(group.ColumnDefinitions.Select(c => c.Width.Value)
                                     .SequenceEqual(new[] { 100d, 20d }));
-                                Program.Check(group.Children.OfType<ComboBox>()
-                                    .Single().Width == 100);
+                                Program.Check(group.Children.OfType<TextBox>().Single().Width == 100 &&
+                                    !group.Children.OfType<ComboBox>().Any());
                                 Program.Check(group.Children.OfType<TextBlock>()
                                     .Single().FontSize == 12);
                             }
@@ -448,27 +357,27 @@ internal static class ReaderControlsChecks
                     playbackSwatches.All(swatch =>
                         ((System.Windows.Media.SolidColorBrush)swatch.Children.OfType<TextBlock>()
                             .Single().Foreground).Color.ToString() == "#FF283747"));
-                var selectionRow = body.Children.OfType<Grid>().Single(row =>
-                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词加号"));
-                var selectionSize = selectionRow.Children.OfType<Grid>()
-                    .SelectMany(group => group.Children.OfType<ComboBox>()).Single();
-                Program.Check(selectionSize.Items.OfType<ComboBoxItem>()
-                    .Select(item => (double)item.Tag)
-                    .SequenceEqual(new[] { 0.65, 0.70, 0.75, 0.80 }) &&
-                    (double)((ComboBoxItem)selectionSize.SelectedItem).Tag == 0.65);
                 var fontDropdowns = sections.Children.OfType<StackPanel>()
                     .SelectMany(section => section.Children.OfType<Grid>())
                     .SelectMany(row => row.Children.OfType<ComboBox>())
                     .ToArray();
                 var englishSelectors = fontDropdowns.Where(combo =>
-                    combo.Items.Count == 4 &&
+                    combo.Items.Count == 5 &&
                     combo.Items.OfType<ComboBoxItem>().All(item => item.Tag is string)).ToArray();
-                Program.Check(englishSelectors.Length == 3);
+                Program.Check(englishSelectors.Length == 3 && fontDropdowns.Length == 5);
                 foreach (var selector in englishSelectors)
                     Program.Check(selector.Items.OfType<ComboBoxItem>()
                         .Select(item => item.Tag?.ToString())
-                        .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",
-                            "Nunito", "Segoe UI" }));
+                        .SequenceEqual(new[] { "Newsreader", "Source Serif 4", "Georgia",
+                            "Nunito", "Microsoft YaHei UI" }));
+                var meanings = sections.Children.OfType<StackPanel>().Single(section =>
+                    section.Children.OfType<TextBlock>().Single().Text == "释义");
+                var meaningSelector = meanings.Children.OfType<Grid>().SelectMany(row =>
+                    row.Children.OfType<ComboBox>()).Single();
+                Program.Check(meaningSelector.Items.OfType<ComboBoxItem>().Select(item => (string)item.Tag)
+                    .SequenceEqual(new[] { "Source Han Serif SC", "Microsoft YaHei" }) &&
+                    meaningSelector.Items.OfType<ComboBoxItem>().Select(item => (string)item.Content)
+                    .SequenceEqual(new[] { "思源宋体", "微软雅黑" }) && meaningSelector.SelectedIndex == 0);
                 var audio = sections.Children.OfType<StackPanel>().Single(section =>
                     section.Children.OfType<TextBlock>().Single().Text == "音频");
                 Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
@@ -480,11 +389,150 @@ internal static class ReaderControlsChecks
                         .SelectMany(row => row.Children.OfType<TextBlock>())
                         .Any(label => label.Text == "播放音量"));
 
+            }
+            finally { dialog.Close(); }
+        });
+
+        Program.Run("numeric editors validate typing, paste, save and reset", () =>
+        {
+            var type = typeof(ReadArticles.MainWindow).Assembly
+                .GetType("ReadArticles.SettingsDialog", throwOnError: true)!;
+            var ctor = type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null, types: [typeof(ReaderSettings), typeof(Func<ReaderSettings, bool>)],
+                modifiers: null)!;
+            var originalSettings = new ReaderSettings();
+            ReaderSettings? savedDraft = null;
+            int commitCalls = 0;
+            var dialog = (Window)ctor.Invoke([originalSettings,
+                new Func<ReaderSettings, bool>(value =>
+                {
+                    commitCalls++;
+                    savedDraft = value.Copy();
+                    return false;
+                })]);
+            var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+            try
+            {
+                System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+                var sections = (StackPanel)type.GetField("sections",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                dialog.Show();
+                WpfTestHelpers.Pump();
+                TextBox[] NumberBoxes() => sections.Children.OfType<StackPanel>()
+                    .SelectMany(section => section.Children.OfType<Grid>())
+                    .SelectMany(row => row.Children.OfType<Grid>())
+                    .SelectMany(group => group.Children.OfType<TextBox>()).ToArray();
+                var defaults = new[] { "18", "1.7", "16", "15", "1.7", "16", "2", "0.65",
+                    "16", "14", "15", "1.5", "4", "5" };
+                var boxes = NumberBoxes();
+                Program.Check(boxes.Select(box => box.Text).SequenceEqual(defaults) &&
+                    boxes.Select(box => box.MaxLength).SequenceEqual(new[] { 2, 4, 2, 2, 4, 2, 1, 4, 2, 2, 2, 4, 2, 2 }) &&
+                    boxes.All(box => box.Width == 100 && box.Height == 30 && box.FontSize == 13 &&
+                        box.TextAlignment == TextAlignment.Center &&
+                        box.VerticalContentAlignment == VerticalAlignment.Center && !box.AcceptsReturn &&
+                        !InputMethod.GetIsInputMethodEnabled(box)));
+                foreach (var box in boxes)
+                {
+                    box.BringIntoView();
+                    WpfTestHelpers.Pump();
+                    box.ApplyTemplate();
+                    Program.Check(box.Template?.FindName("DeleteButton", box) is UIElement clear &&
+                        clear.Visibility == Visibility.Collapsed);
+                }
+                bool RejectsTyping(TextBox box, string text)
+                {
+                    var args = new TextCompositionEventArgs(Keyboard.PrimaryDevice,
+                        new TextComposition(InputManager.Current, box, text))
+                        { RoutedEvent = TextCompositionManager.PreviewTextInputEvent };
+                    box.RaiseEvent(args);
+                    return args.Handled;
+                }
+                bool RejectsPaste(TextBox box, string text)
+                {
+                    var args = new DataObjectPastingEventArgs(
+                        new DataObject(DataFormats.UnicodeText, text), false, DataFormats.UnicodeText)
+                        { RoutedEvent = DataObject.PastingEvent };
+                    box.RaiseEvent(args);
+                    return args.CommandCancelled;
+                }
+                foreach (var box in boxes)
+                {
+                    box.SelectAll();
+                    Program.Check(RejectsTyping(box, "abc") && RejectsTyping(box, "-") &&
+                        RejectsTyping(box, "１") && RejectsPaste(box, "2a") && RejectsPaste(box, " 2"));
+                    if (box.MaxLength == 4)
+                        Program.Check(!RejectsPaste(box, "1.75") && !RejectsPaste(box, ".65") &&
+                            !RejectsPaste(box, "1.") && RejectsPaste(box, "1.755") && RejectsPaste(box, "1..7") &&
+                            RejectsPaste(box, "12.3"));
+                    else
+                        Program.Check(RejectsTyping(box, ".") && RejectsPaste(box, "100") &&
+                            RejectsPaste(box, "1.5") && RejectsPaste(box, box.MaxLength == 1 ? "10" : "123") &&
+                            !RejectsPaste(box, box.MaxLength == 1 ? "2" : "25"));
+                }
+                var sizeBox = boxes[0];
+                sizeBox.Select(2, 0);
+                Program.Check(RejectsTyping(sizeBox, "3") && RejectsPaste(sizeBox, "3"));
+                sizeBox.SelectAll();
+                sizeBox.SelectedText = "25";
+                Program.Check(sizeBox.Text == "25");
+                var lineBox = boxes[1];
+                lineBox.BringIntoView();
+                lineBox.Focus();
+                WpfTestHelpers.Pump();
+                lineBox.Text = "1.7";
+                lineBox.SelectAll();
+                lineBox.SelectedText = "1.75";
+                Program.Check(lineBox.Text == "1.75" && lineBox.CanUndo);
+                lineBox.Select(1, 1);
+                Program.Check(lineBox.SelectionLength == 1 && ApplicationCommands.Cut.CanExecute(null, lineBox));
+                ApplicationCommands.Cut.Execute(null, lineBox);
+                Program.Check(lineBox.Text == "1.75");
+                lineBox.Undo();
+                Program.Check(lineBox.Text == "1.7" && lineBox.CanRedo);
+                lineBox.Redo();
+                Program.Check(lineBox.Text == "1.75");
+                lineBox.Select(1, 1);
+                lineBox.SelectedText = "";
+                Program.Check(lineBox.Text == "1.75");
+                lineBox.SelectAll();
+                lineBox.SelectedText = "";
+                Program.Check(lineBox.Text == "");
+                lineBox.Text = defaults[1];
+                var saveButton = ((Grid)dialog.Content).Children.OfType<Grid>().Single()
+                    .Children.OfType<Button>().Single(button => Equals(button.Content, "保存"));
+                foreach (var (index, invalid) in new[] { (0, ""), (0, "0"), (0, "09"), (0, "41"), (0, "00"),
+                    (1, "."), (1, "0.99"), (1, "3.01"), (2, "41"), (4, "0"), (5, "99"),
+                    (6, "6"), (7, "0.39"), (7, "1.21"), (11, "3.1"), (12, "0"), (13, "61") })
+                {
+                    boxes[index].Text = invalid;
+                    saveButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                    var notice = (Popup)type.GetField("notice", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .GetValue(dialog)!;
+                    Program.Check(commitCalls == 0 && notice.IsOpen &&
+                        ReferenceEquals(notice.PlacementTarget, boxes[index]));
+                    boxes[index].Text = defaults[index];
+                }
+                var custom = new[] { "10", "1.", "0", "40", "3", "40", "5", ".65",
+                    "21", "22", "23", "1.55", "1", "60" };
+                for (int i = 0; i < boxes.Length; i++) boxes[i].Text = custom[i];
+                saveButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Program.Check(commitCalls == 1 && savedDraft is not null &&
+                    savedDraft.Appearance.Title.Size == 10 && savedDraft.Appearance.Body.Size == 40 &&
+                    savedDraft.Appearance.Vocabulary.Size == 21 && savedDraft.Appearance.Phonetics.Size == 22 &&
+                    savedDraft.Appearance.Meanings.Size == 23 && savedDraft.Appearance.Title.LineHeight == 1 &&
+                    savedDraft.Appearance.Body.LineHeight == 3 && savedDraft.Appearance.Meanings.LineHeight == 1.55 &&
+                    savedDraft.Appearance.Title.ParagraphAfter == 0 && savedDraft.Appearance.Body.ParagraphAfter == 40 &&
+                    savedDraft.Appearance.Body.FirstLineIndent == 5 && savedDraft.Appearance.Body.SelectionAddSize == 0.65 &&
+                    savedDraft.ForwardStep == 1 && savedDraft.BackwardStep == 60 &&
+                    originalSettings.Appearance.Title.Size == 18 && originalSettings.Appearance.Body.Size == 15 &&
+                    originalSettings.ForwardStep == 4 && originalSettings.BackwardStep == 5);
+
                 // Reset must not reintroduce an unavailable default font or
                 // retain selectors from the previous draft visual tree.
                 var installed = (HashSet<string>)type.GetField("installedFontNames",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
-                installed.Remove("Georgia");
+                installed.Add("Newsreader");
+                installed.Add("Source Serif 4");
                 var footer = ((Grid)dialog.Content).Children.OfType<Grid>().Single();
                 var resetButton = footer.Children.OfType<Button>().First();
                 resetButton.RaiseEvent(new RoutedEventArgs(
@@ -495,14 +543,38 @@ internal static class ReaderControlsChecks
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
                 Program.Check(resetDraft.ExcludedFolders == ReaderSettings.DefaultExcludedFolders &&
                     resetDraft.Appearance.Body.ScriptColor == "#F6EDC2" &&
-                    resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
+                    resetDraft.Appearance.Meanings.Font == "Source Han Serif SC" &&
+                    resetDraft.Appearance.Title.Font == "Newsreader" &&
+                    resetDraft.Appearance.Body.Font == "Newsreader" &&
+                    resetDraft.Appearance.Vocabulary.Font == "Newsreader" &&
+                    selectors.Count == 3 && selectors.All(combo => combo.SelectedIndex == 0));
+                Program.Check(NumberBoxes().Select(box => box.Text).SequenceEqual(defaults));
+                installed.Remove("Newsreader");
+                resetButton.RaiseEvent(new RoutedEventArgs(
+                    System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                resetDraft = (ReaderSettings)type.GetField("draft",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(resetDraft.Appearance.Title.Font == "Source Serif 4" &&
+                    resetDraft.Appearance.Body.Font == "Source Serif 4" &&
+                    resetDraft.Appearance.Vocabulary.Font == "Source Serif 4" &&
+                    selectors.Count == 3 && selectors.All(combo => combo.SelectedIndex == 1));
+                installed.Remove("Source Serif 4");
+                installed.Remove("Georgia");
+                installed.Remove("Nunito");
+                resetButton.RaiseEvent(new RoutedEventArgs(
+                    System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                resetDraft = (ReaderSettings)type.GetField("draft",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Body.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Vocabulary.Font == "Microsoft YaHei UI" &&
-                    selectors.Count == 3 &&
-                    selectors.All(combo => combo.SelectedItem is ComboBoxItem item &&
-                        (string)item.Tag == "Microsoft YaHei UI"));
+                    selectors.Count == 3 && selectors.All(combo => combo.SelectedIndex == 4));
             }
-            finally { dialog.Close(); }
+            finally
+            {
+                System.Globalization.CultureInfo.CurrentCulture = previousCulture;
+                dialog.Close();
+            }
         });
     }
 

@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Threading;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -17,10 +19,11 @@ internal sealed class SettingsDialog : Window
     private readonly HashSet<string> installedFontNames = Fonts.SystemFontFamilies
         .SelectMany(family => family.FamilyNames.Values.Append(family.Source))
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
-    private readonly DispatcherTimer fontNoticeTimer = new()
+    private readonly DispatcherTimer noticeTimer = new()
         { Interval = TimeSpan.FromSeconds(3) };
-    private Popup? fontNotice;
+    private Popup? notice;
     private readonly List<ComboBox> englishFontSelectors = new();
+    private readonly List<(TextBox Input, string Label, (double Min, double Max, int Decimals) Range, Action<double> Apply)> numberInputs = new();
     private string? initiallyMissingFont;
 
     private static readonly (string Value, string Name)[] TextColors =
@@ -55,12 +58,12 @@ internal sealed class SettingsDialog : Window
     ];
     private static readonly (string Value, string Label)[] EnglishFonts =
     [
-        ("Georgia", "Georgia"), ("Microsoft YaHei UI", "微软雅黑 UI"),
-        ("Nunito", "Nunito"), ("Segoe UI", "Segoe UI")
+        ("Newsreader", "Newsreader"), ("Source Serif 4", "Source Serif 4"),
+        ("Georgia", "Georgia"), ("Nunito", "Nunito"), ("Microsoft YaHei UI", "微软雅黑 UI")
     ];
     private static readonly (string Value, string Label)[] ChineseFonts =
     [
-        ("Microsoft YaHei", "微软雅黑"), ("SimSun", "宋体"), ("KaiTi", "楷体")
+        ("Source Han Serif SC", "思源宋体"), ("Microsoft YaHei", "微软雅黑")
     ];
 
     internal SettingsDialog(ReaderSettings current, Func<ReaderSettings, bool> commit)
@@ -68,20 +71,20 @@ internal sealed class SettingsDialog : Window
         this.commit = commit;
         draft = current.Copy();
         EnsureUsableDefaultFonts();
-        fontNoticeTimer.Tick += (_, _) =>
+        noticeTimer.Tick += (_, _) =>
         {
-            fontNoticeTimer.Stop();
-            if (fontNotice != null) fontNotice.IsOpen = false;
+            noticeTimer.Stop();
+            if (notice != null) notice.IsOpen = false;
         };
         Loaded += (_, _) =>
         {
             if (initiallyMissingFont != null && englishFontSelectors.Count > 0)
-                ShowFontNotice(englishFontSelectors[0], initiallyMissingFont);
+                ShowNotice(englishFontSelectors[0], $"未检测到字体 {initiallyMissingFont}。");
         };
         Closed += (_, _) =>
         {
-            fontNoticeTimer.Stop();
-            if (fontNotice != null) fontNotice.IsOpen = false;
+            noticeTimer.Stop();
+            if (notice != null) notice.IsOpen = false;
         };
 
         Title = "设置";
@@ -140,13 +143,15 @@ internal sealed class SettingsDialog : Window
         reset.Content = resetContents;
         reset.Click += (_, _) =>
         {
+            noticeTimer.Stop();
+            if (notice != null) notice.IsOpen = false;
             string? library = draft.Library;
             draft = new ReaderSettings { Library = library };
             initiallyMissingFont = null;
             EnsureUsableDefaultFonts();
             BuildSections();
             if (IsLoaded && initiallyMissingFont != null && englishFontSelectors.Count > 0)
-                ShowFontNotice(englishFontSelectors[0], initiallyMissingFont);
+                ShowNotice(englishFontSelectors[0], $"未检测到字体 {initiallyMissingFont}。");
         };
         Grid.SetColumn(reset, 0);
         footer.Children.Add(reset);
@@ -163,6 +168,18 @@ internal sealed class SettingsDialog : Window
         };
         save.Click += (_, _) =>
         {
+            foreach (var (input, label, range, _) in numberInputs)
+            {
+                if (double.TryParse(input.Text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture,
+                    out double value) && ReaderSettings.IsValidNumber(value, range)) continue;
+                input.BringIntoView();
+                input.Focus();
+                input.SelectAll();
+                ShowNotice(input, label + "必须为 " + NumberRangeDescription(range) + "。");
+                return;
+            }
+            foreach (var (input, _, _, apply) in numberInputs)
+                apply(double.Parse(input.Text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture));
             if (commit(draft)) DialogResult = true;
         };
         Grid.SetColumn(save, 3);
@@ -174,7 +191,7 @@ internal sealed class SettingsDialog : Window
     }
 
     private static bool RequiresEnglishFontCheck(string name) =>
-        name is "Georgia" or "Nunito" or "Segoe UI";
+        name is "Newsreader" or "Source Serif 4" or "Georgia" or "Nunito";
 
     private bool IsAvailableEnglishFont(string name) =>
         !RequiresEnglishFontCheck(name) || installedFontNames.Contains(name);
@@ -199,9 +216,9 @@ internal sealed class SettingsDialog : Window
         }
     }
 
-    private void ShowFontNotice(ComboBox anchor, string missing)
+    private void ShowNotice(FrameworkElement anchor, string message)
     {
-        fontNotice ??= new Popup
+        notice ??= new Popup
         {
             AllowsTransparency = true,
             Placement = PlacementMode.Bottom,
@@ -216,13 +233,12 @@ internal sealed class SettingsDialog : Window
                 Child = new TextBlock { Foreground = Brush("#344256"), FontSize = 12 }
             }
         };
-        ((TextBlock)((Border)fontNotice.Child).Child).Text =
-            $"未检测到字体 {missing}。";
-        fontNotice.IsOpen = false;
-        fontNotice.PlacementTarget = anchor;
-        fontNotice.IsOpen = true;
-        fontNoticeTimer.Stop();
-        fontNoticeTimer.Start();
+        ((TextBlock)((Border)notice.Child).Child).Text = message;
+        notice.IsOpen = false;
+        notice.PlacementTarget = anchor;
+        notice.IsOpen = true;
+        noticeTimer.Stop();
+        noticeTimer.Start();
     }
 
     private static Brush Brush(string hex) =>
@@ -274,34 +290,6 @@ internal sealed class SettingsDialog : Window
         parent.Children.Add(grid);
     }
 
-    private static ComboBox Dropdown<T>(IEnumerable<T> values, T selected, Action<T> onChange)
-    {
-        var combo = new ComboBox
-        {
-            Width = 100, Height = 30, FontSize = 13,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center
-        };
-        foreach (T value in values)
-        {
-            var option = new ComboBoxItem
-            {
-                Content = value, Tag = value, HorizontalContentAlignment = HorizontalAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center
-            };
-            combo.Items.Add(option);
-            if (EqualityComparer<T>.Default.Equals(value, selected)) combo.SelectedItem = option;
-        }
-        combo.SelectionChanged += (_, _) =>
-        {
-            if (combo.SelectedItem is ComboBoxItem item && item.Tag is T value)
-                onChange(value);
-        };
-        return combo;
-    }
-
     private ComboBox DropdownLabels((string Value, string Label)[] values,
         string selected, Action<string> onChange, bool checkEnglish = false)
     {
@@ -334,13 +322,97 @@ internal sealed class SettingsDialog : Window
             {
                 combo.SelectedItem = combo.Items.OfType<ComboBoxItem>()
                     .First(option => (string)option.Tag == accepted);
-                ShowFontNotice(combo, value);
+                ShowNotice(combo, $"未检测到字体 {value}。");
                 return;
             }
             accepted = value;
             onChange(value);
         };
         return combo;
+    }
+
+    private static string NumberRangeDescription((double Min, double Max, int Decimals) range) =>
+        range.Min.ToString("0.##", CultureInfo.InvariantCulture) + "–" +
+        range.Max.ToString("0.##", CultureInfo.InvariantCulture) +
+        (range.Decimals == 0 ? " 之间的整数" : " 之间最多两位小数的数值");
+
+    private TextBox NumberInput(string label, double selected,
+        (double Min, double Max, int Decimals) range, Action<double> apply)
+    {
+        int integerDigits = range.Max >= 10 ? 2 : 1;
+        var input = new TextBox
+        {
+            Text = selected.ToString("0.##", CultureInfo.InvariantCulture),
+            Width = 100, Height = 30, FontSize = 13,
+            MaxLength = integerDigits + (range.Decimals == 0 ? 0 : 1 + range.Decimals),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextAlignment = TextAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
+            AcceptsReturn = false, TextWrapping = TextWrapping.NoWrap, AllowDrop = false,
+            ToolTip = "请输入 " + NumberRangeDescription(range) + "。"
+        };
+        InputMethod.SetIsInputMethodEnabled(input, false);
+        HideClearButton(input);
+        bool CanEdit(string text)
+        {
+            var parts = text.Split('.');
+            return parts.Length <= (range.Decimals == 0 ? 1 : 2) &&
+                parts[0].Length <= integerDigits &&
+                (parts.Length == 1 || parts[1].Length <= range.Decimals) &&
+                parts.All(part => part.All(c => c is >= '0' and <= '9'));
+        }
+        bool CanInsert(string text) => CanEdit(input.Text.Remove(input.SelectionStart, input.SelectionLength)
+            .Insert(input.SelectionStart, text));
+        input.PreviewTextInput += (_, e) => e.Handled = !CanInsert(e.Text);
+        input.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Space) e.Handled = true;
+            if (e.Key is not (Key.Back or Key.Delete) || Keyboard.Modifiers != ModifierKeys.None) return;
+            int start = input.SelectionStart, length = input.SelectionLength;
+            if (length == 0)
+            {
+                if (e.Key == Key.Back && start > 0) { start--; length = 1; }
+                else if (e.Key == Key.Delete && start < input.Text.Length) length = 1;
+            }
+            if (!CanEdit(input.Text.Remove(start, length))) e.Handled = true;
+        };
+        DataObject.AddPastingHandler(input, (_, e) =>
+        {
+            if (e.DataObject.GetData(DataFormats.UnicodeText) is not string text || !CanInsert(text))
+                e.CancelCommand();
+            else
+                e.FormatToApply = DataFormats.UnicodeText;
+        });
+        CommandManager.AddPreviewExecutedHandler(input, (_, e) =>
+        {
+            if (e.Command == ApplicationCommands.Cut && !CanInsert("")) e.Handled = true;
+        });
+        // Guard other edits (including programmatic changes) that bypass input filtering.
+        string lastText = input.Text;
+        input.TextChanged += (_, _) =>
+        {
+            if (CanEdit(input.Text))
+                lastText = input.Text;
+            else
+            {
+                int caret = Math.Min(input.CaretIndex, lastText.Length);
+                input.Text = lastText;
+                input.CaretIndex = caret;
+            }
+        };
+        numberInputs.Add((input, label, range, apply));
+        return input;
+    }
+
+    // Keep the Fluent single-line TextBox, but hide its built-in clear action.
+    private static void HideClearButton(TextBox input)
+    {
+        input.Loaded += (_, _) =>
+        {
+            input.ApplyTemplate();
+            if (input.Template?.FindName("DeleteButton", input) is UIElement clearButton)
+                clearButton.Visibility = Visibility.Collapsed;
+        };
     }
 
     private static UIElement WithUnit(UIElement control, string unit)
@@ -423,27 +495,26 @@ internal sealed class SettingsDialog : Window
     {
         sections.Children.Clear();
         englishFontSelectors.Clear();
+        numberInputs.Clear();
         var a = draft.Appearance;
 
         var title = Section("标题");
         Row(title, "字体", DropdownLabels(EnglishFonts, a.Title.Font, v => a.Title.Font = v, checkEnglish: true),
-            "文字大小", WithUnit(Dropdown(new double[] { 16, 18, 20, 22, 24 }, a.Title.Size,
-                v => a.Title.Size = v), "px"));
-        Row(title, "行高", WithUnit(Dropdown(new[] { 1.6, 1.7, 1.8 }, a.Title.LineHeight,
+            "文字大小", WithUnit(NumberInput("标题文字大小", a.Title.Size, ReaderSettings.FontSizeRange, v => a.Title.Size = v), "px"));
+        Row(title, "行高", WithUnit(NumberInput("标题行高", a.Title.LineHeight, ReaderSettings.LineHeightRange,
             v => a.Title.LineHeight = v), "倍"),
-            "段后间距", WithUnit(Dropdown(new double[] { 16, 18, 20 }, a.Title.ParagraphAfter,
+            "段后间距", WithUnit(NumberInput("标题段后间距", a.Title.ParagraphAfter, ReaderSettings.ParagraphAfterRange,
                 v => a.Title.ParagraphAfter = v), "px"));
         Row(title, "颜色", ColorPalette(TextColors, a.Title.Color, v => a.Title.Color = v));
 
         var body = Section("正文");
         Row(body, "字体", DropdownLabels(EnglishFonts, a.Body.Font, v => a.Body.Font = v, checkEnglish: true),
-            "文字大小", WithUnit(Dropdown(new double[] { 14, 15, 16, 17 }, a.Body.Size,
-                v => a.Body.Size = v), "px"));
-        Row(body, "行高", WithUnit(Dropdown(new[] { 1.6, 1.7, 1.8 }, a.Body.LineHeight,
+            "文字大小", WithUnit(NumberInput("正文文字大小", a.Body.Size, ReaderSettings.FontSizeRange, v => a.Body.Size = v), "px"));
+        Row(body, "行高", WithUnit(NumberInput("正文行高", a.Body.LineHeight, ReaderSettings.LineHeightRange,
             v => a.Body.LineHeight = v), "倍"),
-            "段后间距", WithUnit(Dropdown(new double[] { 14, 16, 18 }, a.Body.ParagraphAfter,
+            "段后间距", WithUnit(NumberInput("正文段后间距", a.Body.ParagraphAfter, ReaderSettings.ParagraphAfterRange,
                 v => a.Body.ParagraphAfter = v), "px"));
-        Row(body, "首行缩进", WithUnit(Dropdown(new double[] { 0, 1, 2, 3 }, a.Body.FirstLineIndent,
+        Row(body, "首行缩进", WithUnit(NumberInput("首行缩进", a.Body.FirstLineIndent, ReaderSettings.FirstLineIndentRange,
             v => a.Body.FirstLineIndent = v), "em"),
             "文字颜色", ColorPalette(TextColors, a.Body.Color, v => a.Body.Color = v));
         Row(body, "背景颜色", ColorPalette(BackgroundColors, a.Body.Background,
@@ -451,36 +522,33 @@ internal sealed class SettingsDialog : Window
             "播放颜色", ColorPalette(ScriptColors, a.Body.ScriptColor,
                 v => a.Body.ScriptColor = v));
         Row(body, "选词加号", WithUnit(
-            Dropdown(new[] { 0.65, 0.70, 0.75, 0.80 }, a.Body.SelectionAddSize,
+            NumberInput("选词加号", a.Body.SelectionAddSize, ReaderSettings.SelectionAddSizeRange,
                 v => a.Body.SelectionAddSize = v), "em"),
             "选词背景", ColorPalette(SelectionBackgroundColors, a.Body.SelectionBackground,
                 v => a.Body.SelectionBackground = v));
 
         var vocabulary = Section("词头");
         Row(vocabulary, "字体", DropdownLabels(EnglishFonts, a.Vocabulary.Font, v => a.Vocabulary.Font = v, checkEnglish: true),
-            "文字大小", WithUnit(Dropdown(new double[] { 15, 16, 17 }, a.Vocabulary.Size,
-                v => a.Vocabulary.Size = v), "px"));
+            "文字大小", WithUnit(NumberInput("词头文字大小", a.Vocabulary.Size, ReaderSettings.FontSizeRange, v => a.Vocabulary.Size = v), "px"));
         Row(vocabulary, "颜色", ColorPalette(WordColors, a.Vocabulary.Color, v => a.Vocabulary.Color = v));
 
         var phonetics = Section("音标");
-        Row(phonetics, "文字大小", WithUnit(Dropdown(new double[] { 13, 14, 15 },
-            a.Phonetics.Size, v => a.Phonetics.Size = v), "px"),
+        Row(phonetics, "文字大小", WithUnit(NumberInput("音标文字大小", a.Phonetics.Size, ReaderSettings.FontSizeRange, v => a.Phonetics.Size = v), "px"),
             "颜色", ColorPalette(PhoneticColors, a.Phonetics.Color, v => a.Phonetics.Color = v));
 
         var meanings = Section("释义");
         Row(meanings, "字体", DropdownLabels(ChineseFonts, a.Meanings.Font, v => a.Meanings.Font = v),
-            "文字大小", WithUnit(Dropdown(new double[] { 14, 15, 16 }, a.Meanings.Size,
-                v => a.Meanings.Size = v), "px"));
-        Row(meanings, "行高", WithUnit(Dropdown(new[] { 1.5, 1.6, 1.7 }, a.Meanings.LineHeight,
+            "文字大小", WithUnit(NumberInput("释义文字大小", a.Meanings.Size, ReaderSettings.FontSizeRange, v => a.Meanings.Size = v), "px"));
+        Row(meanings, "行高", WithUnit(NumberInput("释义行高", a.Meanings.LineHeight, ReaderSettings.LineHeightRange,
             v => a.Meanings.LineHeight = v), "倍"),
             "颜色", ColorPalette(TextColors, a.Meanings.Color, v => a.Meanings.Color = v));
 
         var audio = Section("音频");
         Row(audio, "默认发音", DropdownLabels([("uk", "英音"), ("us", "美音")], draft.Accent,
             v => draft.Accent = v));
-        Row(audio, "前进", WithUnit(Dropdown(new double[] { 4, 7, 10, 15 }, draft.ForwardStep,
+        Row(audio, "前进", WithUnit(NumberInput("音频前进", draft.ForwardStep, ReaderSettings.SeekStepRange,
             v => draft.ForwardStep = v), "秒"),
-            "后退", WithUnit(Dropdown(new double[] { 5, 8, 11, 16 }, draft.BackwardStep,
+            "后退", WithUnit(NumberInput("音频后退", draft.BackwardStep, ReaderSettings.SeekStepRange,
                 v => draft.BackwardStep = v), "秒"));
 
         var other = Section("其它");
@@ -497,13 +565,7 @@ internal sealed class SettingsDialog : Window
             AcceptsReturn = false, TextWrapping = TextWrapping.NoWrap,
             ToolTip = "使用逗号或分号分隔多个文件夹名称，忽略大小写。"
         };
-        // Keep the Fluent single-line TextBox, but hide its built-in clear action.
-        excluded.Loaded += (_, _) =>
-        {
-            excluded.ApplyTemplate();
-            if (excluded.Template?.FindName("DeleteButton", excluded) is UIElement clearButton)
-                clearButton.Visibility = Visibility.Collapsed;
-        };
+        HideClearButton(excluded);
         excluded.TextChanged += (_, _) => draft.ExcludedFolders = excluded.Text;
         Grid.SetColumn(excluded, 1);
         row.Children.Add(excluded);
