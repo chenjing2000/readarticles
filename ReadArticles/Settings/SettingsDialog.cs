@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Threading;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -21,6 +22,7 @@ internal sealed class SettingsDialog : Window
         { Interval = TimeSpan.FromSeconds(3) };
     private Popup? fontNotice;
     private readonly List<ComboBox> englishFontSelectors = new();
+    private readonly List<(TextBox Input, string Section, Action<double> Apply)> fontSizeInputs = new();
     private string? initiallyMissingFont;
 
     private static readonly (string Value, string Name)[] TextColors =
@@ -76,7 +78,7 @@ internal sealed class SettingsDialog : Window
         Loaded += (_, _) =>
         {
             if (initiallyMissingFont != null && englishFontSelectors.Count > 0)
-                ShowFontNotice(englishFontSelectors[0], initiallyMissingFont);
+                ShowNotice(englishFontSelectors[0], $"未检测到字体 {initiallyMissingFont}。");
         };
         Closed += (_, _) =>
         {
@@ -140,13 +142,15 @@ internal sealed class SettingsDialog : Window
         reset.Content = resetContents;
         reset.Click += (_, _) =>
         {
+            fontNoticeTimer.Stop();
+            if (fontNotice != null) fontNotice.IsOpen = false;
             string? library = draft.Library;
             draft = new ReaderSettings { Library = library };
             initiallyMissingFont = null;
             EnsureUsableDefaultFonts();
             BuildSections();
             if (IsLoaded && initiallyMissingFont != null && englishFontSelectors.Count > 0)
-                ShowFontNotice(englishFontSelectors[0], initiallyMissingFont);
+                ShowNotice(englishFontSelectors[0], $"未检测到字体 {initiallyMissingFont}。");
         };
         Grid.SetColumn(reset, 0);
         footer.Children.Add(reset);
@@ -163,6 +167,18 @@ internal sealed class SettingsDialog : Window
         };
         save.Click += (_, _) =>
         {
+            foreach (var (input, section, _) in fontSizeInputs)
+            {
+                if (input.Text.Length == 2 && input.Text.All(c => c is >= '0' and <= '9') &&
+                    int.TryParse(input.Text, out int size) && ReaderSettings.IsValidFontSize(size)) continue;
+                input.BringIntoView();
+                input.Focus();
+                input.SelectAll();
+                ShowNotice(input, $"{section}文字大小必须为 10–40 之间的整数。");
+                return;
+            }
+            foreach (var (input, _, apply) in fontSizeInputs)
+                apply(int.Parse(input.Text));
             if (commit(draft)) DialogResult = true;
         };
         Grid.SetColumn(save, 3);
@@ -199,7 +215,7 @@ internal sealed class SettingsDialog : Window
         }
     }
 
-    private void ShowFontNotice(ComboBox anchor, string missing)
+    private void ShowNotice(FrameworkElement anchor, string message)
     {
         fontNotice ??= new Popup
         {
@@ -216,8 +232,7 @@ internal sealed class SettingsDialog : Window
                 Child = new TextBlock { Foreground = Brush("#344256"), FontSize = 12 }
             }
         };
-        ((TextBlock)((Border)fontNotice.Child).Child).Text =
-            $"未检测到字体 {missing}。";
+        ((TextBlock)((Border)fontNotice.Child).Child).Text = message;
         fontNotice.IsOpen = false;
         fontNotice.PlacementTarget = anchor;
         fontNotice.IsOpen = true;
@@ -334,13 +349,55 @@ internal sealed class SettingsDialog : Window
             {
                 combo.SelectedItem = combo.Items.OfType<ComboBoxItem>()
                     .First(option => (string)option.Tag == accepted);
-                ShowFontNotice(combo, value);
+                ShowNotice(combo, $"未检测到字体 {value}。");
                 return;
             }
             accepted = value;
             onChange(value);
         };
         return combo;
+    }
+
+    private TextBox FontSizeInput(string section, double selected, Action<double> apply)
+    {
+        var input = new TextBox
+        {
+            Text = selected.ToString("0", System.Globalization.CultureInfo.InvariantCulture),
+            Width = 100, Height = 30, FontSize = 13, MaxLength = 2,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextAlignment = TextAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
+            AcceptsReturn = false, TextWrapping = TextWrapping.NoWrap, AllowDrop = false,
+            ToolTip = "请输入 10–40 之间的整数。"
+        };
+        InputMethod.SetIsInputMethodEnabled(input, false);
+        HideClearButton(input);
+        bool CanInsert(string text) =>
+            text.All(c => c is >= '0' and <= '9') &&
+            input.Text.Length - input.SelectionLength + text.Length <= input.MaxLength;
+        input.PreviewTextInput += (_, e) => e.Handled = !CanInsert(e.Text);
+        input.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Space) e.Handled = true;
+        };
+        DataObject.AddPastingHandler(input, (_, e) =>
+        {
+            if (e.DataObject.GetData(DataFormats.UnicodeText) is not string text || !CanInsert(text))
+                e.CancelCommand();
+        });
+        fontSizeInputs.Add((input, section, apply));
+        return input;
+    }
+
+    // Keep the Fluent single-line TextBox, but hide its built-in clear action.
+    private static void HideClearButton(TextBox input)
+    {
+        input.Loaded += (_, _) =>
+        {
+            input.ApplyTemplate();
+            if (input.Template?.FindName("DeleteButton", input) is UIElement clearButton)
+                clearButton.Visibility = Visibility.Collapsed;
+        };
     }
 
     private static UIElement WithUnit(UIElement control, string unit)
@@ -423,12 +480,12 @@ internal sealed class SettingsDialog : Window
     {
         sections.Children.Clear();
         englishFontSelectors.Clear();
+        fontSizeInputs.Clear();
         var a = draft.Appearance;
 
         var title = Section("标题");
         Row(title, "字体", DropdownLabels(EnglishFonts, a.Title.Font, v => a.Title.Font = v, checkEnglish: true),
-            "文字大小", WithUnit(Dropdown(new double[] { 16, 18, 20, 22, 24 }, a.Title.Size,
-                v => a.Title.Size = v), "px"));
+            "文字大小", WithUnit(FontSizeInput("标题", a.Title.Size, v => a.Title.Size = v), "px"));
         Row(title, "行高", WithUnit(Dropdown(new[] { 1.6, 1.7, 1.8 }, a.Title.LineHeight,
             v => a.Title.LineHeight = v), "倍"),
             "段后间距", WithUnit(Dropdown(new double[] { 16, 18, 20 }, a.Title.ParagraphAfter,
@@ -437,8 +494,7 @@ internal sealed class SettingsDialog : Window
 
         var body = Section("正文");
         Row(body, "字体", DropdownLabels(EnglishFonts, a.Body.Font, v => a.Body.Font = v, checkEnglish: true),
-            "文字大小", WithUnit(Dropdown(new double[] { 14, 15, 16, 17 }, a.Body.Size,
-                v => a.Body.Size = v), "px"));
+            "文字大小", WithUnit(FontSizeInput("正文", a.Body.Size, v => a.Body.Size = v), "px"));
         Row(body, "行高", WithUnit(Dropdown(new[] { 1.6, 1.7, 1.8 }, a.Body.LineHeight,
             v => a.Body.LineHeight = v), "倍"),
             "段后间距", WithUnit(Dropdown(new double[] { 14, 16, 18 }, a.Body.ParagraphAfter,
@@ -458,19 +514,16 @@ internal sealed class SettingsDialog : Window
 
         var vocabulary = Section("词头");
         Row(vocabulary, "字体", DropdownLabels(EnglishFonts, a.Vocabulary.Font, v => a.Vocabulary.Font = v, checkEnglish: true),
-            "文字大小", WithUnit(Dropdown(new double[] { 15, 16, 17 }, a.Vocabulary.Size,
-                v => a.Vocabulary.Size = v), "px"));
+            "文字大小", WithUnit(FontSizeInput("词头", a.Vocabulary.Size, v => a.Vocabulary.Size = v), "px"));
         Row(vocabulary, "颜色", ColorPalette(WordColors, a.Vocabulary.Color, v => a.Vocabulary.Color = v));
 
         var phonetics = Section("音标");
-        Row(phonetics, "文字大小", WithUnit(Dropdown(new double[] { 13, 14, 15 },
-            a.Phonetics.Size, v => a.Phonetics.Size = v), "px"),
+        Row(phonetics, "文字大小", WithUnit(FontSizeInput("音标", a.Phonetics.Size, v => a.Phonetics.Size = v), "px"),
             "颜色", ColorPalette(PhoneticColors, a.Phonetics.Color, v => a.Phonetics.Color = v));
 
         var meanings = Section("释义");
         Row(meanings, "字体", DropdownLabels(ChineseFonts, a.Meanings.Font, v => a.Meanings.Font = v),
-            "文字大小", WithUnit(Dropdown(new double[] { 14, 15, 16 }, a.Meanings.Size,
-                v => a.Meanings.Size = v), "px"));
+            "文字大小", WithUnit(FontSizeInput("释义", a.Meanings.Size, v => a.Meanings.Size = v), "px"));
         Row(meanings, "行高", WithUnit(Dropdown(new[] { 1.5, 1.6, 1.7 }, a.Meanings.LineHeight,
             v => a.Meanings.LineHeight = v), "倍"),
             "颜色", ColorPalette(TextColors, a.Meanings.Color, v => a.Meanings.Color = v));
@@ -497,13 +550,7 @@ internal sealed class SettingsDialog : Window
             AcceptsReturn = false, TextWrapping = TextWrapping.NoWrap,
             ToolTip = "使用逗号或分号分隔多个文件夹名称，忽略大小写。"
         };
-        // Keep the Fluent single-line TextBox, but hide its built-in clear action.
-        excluded.Loaded += (_, _) =>
-        {
-            excluded.ApplyTemplate();
-            if (excluded.Template?.FindName("DeleteButton", excluded) is UIElement clearButton)
-                clearButton.Visibility = Visibility.Collapsed;
-        };
+        HideClearButton(excluded);
         excluded.TextChanged += (_, _) => draft.ExcludedFolders = excluded.Text;
         Grid.SetColumn(excluded, 1);
         row.Children.Add(excluded);

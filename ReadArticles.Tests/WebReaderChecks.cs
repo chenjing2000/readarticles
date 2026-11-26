@@ -684,7 +684,11 @@ internal static class WebReaderChecks
                     .GetField("settings", BindingFlags.Instance | BindingFlags.NonPublic)!
                     .GetValue(window)!;
                 var draft = readSettings.Copy();
-                draft.Appearance.Body.Size = 16;
+                draft.Appearance.Title.Size = 21;
+                draft.Appearance.Body.Size = 19;
+                draft.Appearance.Vocabulary.Size = 20;
+                draft.Appearance.Phonetics.Size = 18;
+                draft.Appearance.Meanings.Size = 22;
                 draft.Appearance.Body.Background = "#F7F1E6";
                 draft.Appearance.Title.Font = "Newsreader";
                 draft.Appearance.Body.Font = "Source Serif 4";
@@ -702,7 +706,16 @@ internal static class WebReaderChecks
                 settingsRefresh.GetAwaiter().GetResult();
                 WaitFor(() => Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--body-size')")
-                    .GetString() == "16px", "native font-size setting roundtrip");
+                    .GetString() == "19px", "native font-size setting roundtrip");
+                Program.Check(Evaluate(browser, """
+                    (() => {
+                      const style = document.documentElement.style;
+                      return ['--title-size', '--body-size', '--word-size', '--phonetic-size', '--meaning-size']
+                        .map(name => style.getPropertyValue(name)).join(',') === '21px,19px,20px,18px,22px' &&
+                        getComputedStyle(document.querySelector('#article-title')).fontSize === '21px' &&
+                        getComputedStyle(document.querySelector('#article-body')).fontSize === '19px';
+                    })()
+                    """).GetBoolean());
                 Program.Check(Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--reading-bg')")
                     .GetString() == "#F7F1E6");

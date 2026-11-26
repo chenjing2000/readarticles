@@ -200,6 +200,10 @@ public sealed class ReaderSettings
 
     private static double Allowed(double value, double fallback, params double[] choices) =>
         double.IsFinite(value) && choices.Contains(value) ? value : fallback;
+    internal static bool IsValidFontSize(double value) =>
+        value is >= 10 and <= 40 && value == Math.Truncate(value);
+    private static double ValidFontSize(double value, double fallback) =>
+        IsValidFontSize(value) ? value : fallback;
     private static string Font(string? value, string fallback, params string[] choices) =>
         choices.Contains(value, StringComparer.Ordinal) ? value! : fallback;
     private static string ColorCode(string? value, string fallback, params string[] palette) =>
@@ -228,12 +232,12 @@ public sealed class ReaderSettings
         Appearance.Meanings ??= new();
         var a = Appearance;
         a.Title.Font = Font(a.Title.Font, "Newsreader", "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI");
-        a.Title.Size = Allowed(a.Title.Size, 18, 16, 18, 20, 22, 24);
+        a.Title.Size = ValidFontSize(a.Title.Size, 18);
         a.Title.LineHeight = Allowed(a.Title.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Title.ParagraphAfter = Allowed(a.Title.ParagraphAfter, 16, 16, 18, 20);
         a.Title.Color = ColorCode(a.Title.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         a.Body.Font = Font(a.Body.Font, "Newsreader", "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI");
-        a.Body.Size = Allowed(a.Body.Size, 15, 14, 15, 16, 17);
+        a.Body.Size = ValidFontSize(a.Body.Size, 15);
         a.Body.LineHeight = Allowed(a.Body.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Body.ParagraphAfter = Allowed(a.Body.ParagraphAfter, 16, 14, 16, 18);
         a.Body.FirstLineIndent = Allowed(a.Body.FirstLineIndent, 2, 0, 1, 2, 3);
@@ -253,12 +257,12 @@ public sealed class ReaderSettings
         a.Body.SelectionBackground = ColorCode(a.Body.SelectionBackground, "#DDE8F2",
             "#DDE8F2", "#E5EDE0", "#F3E9DC", "#EBE5F2", "#F2E5E7");
         a.Vocabulary.Font = Font(a.Vocabulary.Font, "Newsreader", "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI");
-        a.Vocabulary.Size = Allowed(a.Vocabulary.Size, 16, 15, 16, 17);
+        a.Vocabulary.Size = ValidFontSize(a.Vocabulary.Size, 16);
         a.Vocabulary.Color = ColorCode(a.Vocabulary.Color, "#B7394D", "#B7394D", "#9D3E68", "#7D50A1", "#1F6795", "#8B593B");
-        a.Phonetics.Size = Allowed(a.Phonetics.Size, 14, 13, 14, 15);
+        a.Phonetics.Size = ValidFontSize(a.Phonetics.Size, 14);
         a.Phonetics.Color = ColorCode(a.Phonetics.Color, "#0A7785", "#0A7785", "#256CA5", "#38735A", "#7657A0", "#995431");
         a.Meanings.Font = Font(a.Meanings.Font, "Source Han Serif SC", "Source Han Serif SC", "Microsoft YaHei");
-        a.Meanings.Size = Allowed(a.Meanings.Size, 15, 14, 15, 16);
+        a.Meanings.Size = ValidFontSize(a.Meanings.Size, 15);
         a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.5, 1.5, 1.6, 1.7);
         a.Meanings.Color = ColorCode(a.Meanings.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
         if (Audio.Accent is not ("uk" or "us")) Audio.Accent = "uk";
