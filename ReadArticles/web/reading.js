@@ -145,29 +145,55 @@ function measureScriptGeometry() {
     svg.replaceChildren();
     const base = svg.getBoundingClientRect();
     let previous = null;
+    const range = document.createRange();
+    const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+    function extendPrevious(next, firstRect) {
+      if (!previous) return;
+      range.setStartAfter(previous.span);
+      range.setEndBefore(next);
+      const text = range.toString();
+      const prefix = /^[\s,.;:?!…]*/u.exec(text)[0];
+      // Preserve the same-line bridge when the entire gap is allowed.
+      if (prefix.length && prefix.length === text.length && firstRect &&
+          Math.abs(previous.rect.top - firstRect.top) < 2) {
+        const gap = firstRect.left - previous.rect.right;
+        if (gap > 0) {
+          previous.segment.trailingGap = gap;
+          return;
+        }
+      }
+      // Otherwise stop at the last allowed punctuation on this visual line.
+      let remaining = prefix.trimEnd().length;
+      if (!remaining) return;
+      walker.currentNode = previous.span.lastChild;
+      while (remaining > 0) {
+        const node = walker.nextNode();
+        if (!node) break;
+        const part = node.data.slice(0, remaining);
+        for (const match of part.matchAll(/\S+/gu)) {
+          range.setStart(node, match.index);
+          range.setEnd(node, match.index + match[0].length);
+          for (const rect of range.getClientRects())
+            if (Math.abs(previous.rect.top - rect.top) < 2)
+              previous.segment.trailingGap = Math.max(previous.segment.trailingGap, rect.right - previous.rect.right);
+        }
+        remaining -= part.length;
+      }
+    }
     for (const unit of row.querySelectorAll(":scope > .script-sentence .script-timed-unit")) {
       const start = Number(unit.dataset.start), end = Number(unit.dataset.end);
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
         previous = null;
         continue;
       }
-      const range = document.createRange();
       range.selectNodeContents(unit);
       const lineRects = [...range.getClientRects()]
         .filter(rect => rect.width > 0.25 && rect.height > 0.25)
         .sort((a, b) => a.top - b.top || a.left - b.left);
+      extendPrevious(unit, lineRects[0]);
       if (!lineRects.length) {
         previous = null;
         continue;
-      }
-      // Extend only the last fragment across pure whitespace on the same visual line.
-      if (previous && Math.abs(previous.rect.top - lineRects[0].top) < 2) {
-        const gap = lineRects[0].left - previous.rect.right;
-        if (gap > 0) {
-          range.setStartAfter(previous.span);
-          range.setEndBefore(unit);
-          if (/^\s+$/u.test(range.toString())) previous.segment.trailingGap = gap;
-        }
       }
       const segments = [];
       for (const line of lineRects) {
@@ -184,6 +210,7 @@ function measureScriptGeometry() {
       });
       previous = { span: unit, rect: lineRects.at(-1), segment: segments.at(-1) };
     }
+    extendPrevious(svg);
   }
   paintScriptProgress(getPlayback());
 }
