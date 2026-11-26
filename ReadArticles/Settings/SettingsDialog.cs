@@ -55,12 +55,12 @@ internal sealed class SettingsDialog : Window
     ];
     private static readonly (string Value, string Label)[] EnglishFonts =
     [
-        ("Georgia", "Georgia"), ("Microsoft YaHei UI", "微软雅黑 UI"),
-        ("Nunito", "Nunito"), ("Segoe UI", "Segoe UI")
+        ("Newsreader", "Newsreader"), ("Source Serif 4", "Source Serif 4"),
+        ("Georgia", "Georgia"), ("Nunito", "Nunito"), ("Microsoft YaHei UI", "微软雅黑 UI")
     ];
     private static readonly (string Value, string Label)[] ChineseFonts =
     [
-        ("Microsoft YaHei", "微软雅黑"), ("SimSun", "宋体"), ("KaiTi", "楷体")
+        ("Source Han Serif SC", "思源宋体"), ("Microsoft YaHei", "微软雅黑")
     ];
 
     internal SettingsDialog(ReaderSettings current, Func<ReaderSettings, bool> commit)
@@ -174,7 +174,7 @@ internal sealed class SettingsDialog : Window
     }
 
     private static bool RequiresEnglishFontCheck(string name) =>
-        name is "Georgia" or "Nunito" or "Segoe UI";
+        name is "Newsreader" or "Source Serif 4" or "Georgia" or "Nunito";
 
     private bool IsAvailableEnglishFont(string name) =>
         !RequiresEnglishFontCheck(name) || installedFontNames.Contains(name);

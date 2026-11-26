@@ -686,9 +686,10 @@ internal static class WebReaderChecks
                 var draft = readSettings.Copy();
                 draft.Appearance.Body.Size = 16;
                 draft.Appearance.Body.Background = "#F7F1E6";
-                draft.Appearance.Title.Font = "Nunito";
-                draft.Appearance.Body.Font = "Nunito";
+                draft.Appearance.Title.Font = "Newsreader";
+                draft.Appearance.Body.Font = "Source Serif 4";
                 draft.Appearance.Vocabulary.Font = "Nunito";
+                draft.Appearance.Meanings.Font = "Source Han Serif SC";
                 draft.Appearance.Body.SelectionAddSize = 0.80;
                 draft.Appearance.Body.SelectionBackground = "#E5EDE0";
                 draft.Appearance.Body.ScriptColor = "#ECE6F3";
@@ -710,13 +711,16 @@ internal static class WebReaderChecks
                     .GetString() == "0.8em" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--title-font')")
-                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                        .GetString() == "\"Newsreader\", \"Source Serif 4\", \"Georgia\", \"Nunito\", \"Microsoft YaHei UI\", sans-serif" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--body-font')")
-                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                        .GetString() == "\"Source Serif 4\", \"Newsreader\", \"Georgia\", \"Nunito\", \"Microsoft YaHei UI\", sans-serif" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--word-font')")
-                        .GetString()!.StartsWith("\"Nunito\"", StringComparison.Ordinal) &&
+                        .GetString() == "\"Nunito\", \"Newsreader\", \"Source Serif 4\", \"Georgia\", \"Microsoft YaHei UI\", sans-serif" &&
+                    Evaluate(browser,
+                        "document.documentElement.style.getPropertyValue('--meaning-font')")
+                        .GetString() == "\"Source Han Serif SC\", \"Microsoft YaHei\", sans-serif" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--script-color')")
                         .GetString() == "#ECE6F3" &&

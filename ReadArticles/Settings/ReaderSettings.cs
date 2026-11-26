@@ -227,12 +227,12 @@ public sealed class ReaderSettings
         Appearance.Phonetics ??= new();
         Appearance.Meanings ??= new();
         var a = Appearance;
-        a.Title.Font = Font(a.Title.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI");
+        a.Title.Font = Font(a.Title.Font, "Newsreader", "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI");
         a.Title.Size = Allowed(a.Title.Size, 18, 16, 18, 20, 22, 24);
         a.Title.LineHeight = Allowed(a.Title.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Title.ParagraphAfter = Allowed(a.Title.ParagraphAfter, 16, 16, 18, 20);
         a.Title.Color = ColorCode(a.Title.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
-        a.Body.Font = Font(a.Body.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI");
+        a.Body.Font = Font(a.Body.Font, "Newsreader", "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI");
         a.Body.Size = Allowed(a.Body.Size, 15, 14, 15, 16, 17);
         a.Body.LineHeight = Allowed(a.Body.LineHeight, 1.7, 1.6, 1.7, 1.8);
         a.Body.ParagraphAfter = Allowed(a.Body.ParagraphAfter, 16, 14, 16, 18);
@@ -252,12 +252,12 @@ public sealed class ReaderSettings
         a.Body.SelectionAddSize = Allowed(a.Body.SelectionAddSize, 0.65, 0.65, 0.70, 0.75, 0.80);
         a.Body.SelectionBackground = ColorCode(a.Body.SelectionBackground, "#DDE8F2",
             "#DDE8F2", "#E5EDE0", "#F3E9DC", "#EBE5F2", "#F2E5E7");
-        a.Vocabulary.Font = Font(a.Vocabulary.Font, "Georgia", "Georgia", "Microsoft YaHei UI", "Nunito", "Segoe UI");
+        a.Vocabulary.Font = Font(a.Vocabulary.Font, "Newsreader", "Newsreader", "Source Serif 4", "Georgia", "Nunito", "Microsoft YaHei UI");
         a.Vocabulary.Size = Allowed(a.Vocabulary.Size, 16, 15, 16, 17);
         a.Vocabulary.Color = ColorCode(a.Vocabulary.Color, "#B7394D", "#B7394D", "#9D3E68", "#7D50A1", "#1F6795", "#8B593B");
         a.Phonetics.Size = Allowed(a.Phonetics.Size, 14, 13, 14, 15);
         a.Phonetics.Color = ColorCode(a.Phonetics.Color, "#0A7785", "#0A7785", "#256CA5", "#38735A", "#7657A0", "#995431");
-        a.Meanings.Font = Font(a.Meanings.Font, "Microsoft YaHei", "Microsoft YaHei", "SimSun", "KaiTi");
+        a.Meanings.Font = Font(a.Meanings.Font, "Source Han Serif SC", "Source Han Serif SC", "Microsoft YaHei");
         a.Meanings.Size = Allowed(a.Meanings.Size, 15, 14, 15, 16);
         a.Meanings.LineHeight = Allowed(a.Meanings.LineHeight, 1.5, 1.5, 1.6, 1.7);
         a.Meanings.Color = ColorCode(a.Meanings.Color, "#283747", "#283747", "#344054", "#3F4750", "#315247", "#513D4D");
@@ -277,7 +277,7 @@ public sealed class ReaderAppearance
 }
 public class ReaderTextStyle
 {
-    public string Font { get; set; } = "Georgia";
+    public string Font { get; set; } = "Newsreader";
     public double Size { get; set; } = 18;
     public double LineHeight { get; set; } = 1.7;
     public double ParagraphAfter { get; set; } = 6;
@@ -294,7 +294,7 @@ public sealed class ReaderBodyStyle : ReaderTextStyle
 }
 public sealed class ReaderWordStyle
 {
-    public string Font { get; set; } = "Georgia";
+    public string Font { get; set; } = "Newsreader";
     public double Size { get; set; } = 16;
     public string Color { get; set; } = "#B7394D";
 }
@@ -305,7 +305,7 @@ public sealed class ReaderPhoneticStyle
 }
 public sealed class ReaderMeaningStyle
 {
-    public string Font { get; set; } = "Microsoft YaHei";
+    public string Font { get; set; } = "Source Han Serif SC";
     public double Size { get; set; } = 15;
     public double LineHeight { get; set; } = 1.5;
     public string Color { get; set; } = "#283747";

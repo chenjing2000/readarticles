@@ -140,14 +140,17 @@ internal static class ReaderControlsChecks
                 invalid.Appearance.Body.Size = 99;
                 invalid.Appearance.Body.ParagraphAfter = -5;
                 invalid.Appearance.Body.SelectionAddSize = 0.60;
-                invalid.Appearance.Title.Font = "Noto Sans";
-                invalid.Appearance.Body.Font = "Nunito Sans";
-                invalid.Appearance.Vocabulary.Font = "Noto Sans";
+                invalid.Appearance.Title.Font = "Segoe UI";
+                invalid.Appearance.Body.Font = "Arial";
+                invalid.Appearance.Vocabulary.Font = "Times New Roman";
+                invalid.Appearance.Meanings.Font = "SimSun";
                 invalid.Appearance.Body.SelectionBackground = "#BAD";
                 invalid.Appearance.Title.LineHeight = 1.3;
                 invalid.Appearance.Vocabulary.Color = "#BAD";
                 JsonFiles.WriteAtomic(path, invalid);
+                byte[] original = File.ReadAllBytes(path);
                 var loaded = ReaderSettings.Load(out var warning);
+                Program.Check(File.ReadAllBytes(path).SequenceEqual(original));
                 var layout = new PaneLayout();
                 Program.Check(warning == null && layout.LeftWidth == 250 && layout.RightWidth == 300);
                 Program.Check(loaded.Appearance.Body.Size == 15 && loaded.Accent == "uk");
@@ -157,26 +160,38 @@ internal static class ReaderControlsChecks
                     loaded.Appearance.Body.LineHeight == 1.7 &&
                     loaded.Appearance.Body.ScriptColor == "#F6EDC2" &&
                     loaded.Appearance.Body.SelectionAddSize == 0.65 &&
-                    loaded.Appearance.Title.Font == "Georgia" &&
-                    loaded.Appearance.Body.Font == "Georgia" &&
-                    loaded.Appearance.Vocabulary.Font == "Georgia" &&
+                    loaded.Appearance.Title.Font == "Newsreader" &&
+                    loaded.Appearance.Body.Font == "Newsreader" &&
+                    loaded.Appearance.Vocabulary.Font == "Newsreader" &&
+                    loaded.Appearance.Meanings.Font == "Source Han Serif SC" &&
                     loaded.Appearance.Body.SelectionBackground == "#DDE8F2" &&
                     loaded.Appearance.Vocabulary.Size == 16 &&
                     loaded.Appearance.Phonetics.Size == 14 &&
                     loaded.Appearance.Vocabulary.Color == "#B7394D");
                 loaded.Appearance.Body.SelectionAddSize = 0.80;
-                loaded.Appearance.Title.Font = "Nunito";
+                loaded.Appearance.Title.Font = "Source Serif 4";
                 loaded.Appearance.Body.Font = "Nunito";
-                loaded.Appearance.Vocabulary.Font = "Nunito";
+                loaded.Appearance.Vocabulary.Font = "Georgia";
+                loaded.Appearance.Meanings.Font = "Microsoft YaHei";
                 loaded.Appearance.Body.SelectionBackground = "#EBE5F2";
                 loaded.Save();
                 loaded = ReaderSettings.Load(out warning);
                 Program.Check(warning == null &&
                     loaded.Appearance.Body.SelectionAddSize == 0.80 &&
-                    loaded.Appearance.Title.Font == "Nunito" &&
+                    loaded.Appearance.Title.Font == "Source Serif 4" &&
                     loaded.Appearance.Body.Font == "Nunito" &&
-                    loaded.Appearance.Vocabulary.Font == "Nunito" &&
+                    loaded.Appearance.Vocabulary.Font == "Georgia" &&
+                    loaded.Appearance.Meanings.Font == "Microsoft YaHei" &&
                     loaded.Appearance.Body.SelectionBackground == "#EBE5F2");
+                foreach (string retired in new[] { "KaiTi", "unknown" })
+                {
+                    loaded.Appearance.Meanings.Font = retired;
+                    JsonFiles.WriteAtomic(path, loaded);
+                    byte[] before = File.ReadAllBytes(path);
+                    loaded = ReaderSettings.Load(out warning);
+                    Program.Check(warning == null && loaded.Appearance.Meanings.Font == "Source Han Serif SC" &&
+                        loaded.Appearance.Title.Font == "Source Serif 4" && File.ReadAllBytes(path).SequenceEqual(before));
+                }
                 foreach (var (oldColor, expected) in new[]
                 {
                     ("#B64550", "#F6EDC2"), ("#A33D30", "#F6EDC2"), ("#E02020", "#F6EDC2"),
@@ -268,7 +283,10 @@ internal static class ReaderControlsChecks
                     defaults.Appearance.Body.SelectionAddSize == 0.65 &&
                     defaults.Appearance.Body.SelectionBackground == "#DDE8F2" &&
                     defaults.Appearance.Body.ScriptColor == "#F6EDC2" &&
-                    defaults.Appearance.Title.Font == "Georgia" &&
+                    defaults.Appearance.Title.Font == "Newsreader" &&
+                    defaults.Appearance.Body.Font == "Newsreader" &&
+                    defaults.Appearance.Vocabulary.Font == "Newsreader" &&
+                    defaults.Appearance.Meanings.Font == "Source Han Serif SC" &&
                     defaults.Appearance.Body.ParagraphAfter == 16 &&
                     defaults.Appearance.Phonetics.Size == 14);
                 Program.Check(((Button)window.FindName("SettingsButton")).ContextMenu is null);
@@ -461,14 +479,22 @@ internal static class ReaderControlsChecks
                     .SelectMany(row => row.Children.OfType<ComboBox>())
                     .ToArray();
                 var englishSelectors = fontDropdowns.Where(combo =>
-                    combo.Items.Count == 4 &&
+                    combo.Items.Count == 5 &&
                     combo.Items.OfType<ComboBoxItem>().All(item => item.Tag is string)).ToArray();
                 Program.Check(englishSelectors.Length == 3);
                 foreach (var selector in englishSelectors)
                     Program.Check(selector.Items.OfType<ComboBoxItem>()
                         .Select(item => item.Tag?.ToString())
-                        .SequenceEqual(new[] { "Georgia", "Microsoft YaHei UI",
-                            "Nunito", "Segoe UI" }));
+                        .SequenceEqual(new[] { "Newsreader", "Source Serif 4", "Georgia",
+                            "Nunito", "Microsoft YaHei UI" }));
+                var meanings = sections.Children.OfType<StackPanel>().Single(section =>
+                    section.Children.OfType<TextBlock>().Single().Text == "释义");
+                var meaningSelector = meanings.Children.OfType<Grid>().SelectMany(row =>
+                    row.Children.OfType<ComboBox>()).Single();
+                Program.Check(meaningSelector.Items.OfType<ComboBoxItem>().Select(item => (string)item.Tag)
+                    .SequenceEqual(new[] { "Source Han Serif SC", "Microsoft YaHei" }) &&
+                    meaningSelector.Items.OfType<ComboBoxItem>().Select(item => (string)item.Content)
+                    .SequenceEqual(new[] { "思源宋体", "微软雅黑" }) && meaningSelector.SelectedIndex == 0);
                 var audio = sections.Children.OfType<StackPanel>().Single(section =>
                     section.Children.OfType<TextBlock>().Single().Text == "音频");
                 Program.Check(audio.Children.OfType<Grid>().Count() == 2 &&
@@ -484,7 +510,8 @@ internal static class ReaderControlsChecks
                 // retain selectors from the previous draft visual tree.
                 var installed = (HashSet<string>)type.GetField("installedFontNames",
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
-                installed.Remove("Georgia");
+                installed.Add("Newsreader");
+                installed.Add("Source Serif 4");
                 var footer = ((Grid)dialog.Content).Children.OfType<Grid>().Single();
                 var resetButton = footer.Children.OfType<Button>().First();
                 resetButton.RaiseEvent(new RoutedEventArgs(
@@ -495,12 +522,31 @@ internal static class ReaderControlsChecks
                     BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
                 Program.Check(resetDraft.ExcludedFolders == ReaderSettings.DefaultExcludedFolders &&
                     resetDraft.Appearance.Body.ScriptColor == "#F6EDC2" &&
-                    resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
+                    resetDraft.Appearance.Meanings.Font == "Source Han Serif SC" &&
+                    resetDraft.Appearance.Title.Font == "Newsreader" &&
+                    resetDraft.Appearance.Body.Font == "Newsreader" &&
+                    resetDraft.Appearance.Vocabulary.Font == "Newsreader" &&
+                    selectors.Count == 3 && selectors.All(combo => combo.SelectedIndex == 0));
+                installed.Remove("Newsreader");
+                resetButton.RaiseEvent(new RoutedEventArgs(
+                    System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                resetDraft = (ReaderSettings)type.GetField("draft",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(resetDraft.Appearance.Title.Font == "Source Serif 4" &&
+                    resetDraft.Appearance.Body.Font == "Source Serif 4" &&
+                    resetDraft.Appearance.Vocabulary.Font == "Source Serif 4" &&
+                    selectors.Count == 3 && selectors.All(combo => combo.SelectedIndex == 1));
+                installed.Remove("Source Serif 4");
+                installed.Remove("Georgia");
+                installed.Remove("Nunito");
+                resetButton.RaiseEvent(new RoutedEventArgs(
+                    System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                resetDraft = (ReaderSettings)type.GetField("draft",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
+                Program.Check(resetDraft.Appearance.Title.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Body.Font == "Microsoft YaHei UI" &&
                     resetDraft.Appearance.Vocabulary.Font == "Microsoft YaHei UI" &&
-                    selectors.Count == 3 &&
-                    selectors.All(combo => combo.SelectedItem is ComboBoxItem item &&
-                        (string)item.Tag == "Microsoft YaHei UI"));
+                    selectors.Count == 3 && selectors.All(combo => combo.SelectedIndex == 4));
             }
             finally { dialog.Close(); }
         });
