@@ -135,7 +135,9 @@ body.splitter-dragging { user-select: none; cursor: col-resize; }
 .toolbar button:disabled { opacity: .42; cursor: default; }
 .toolbar button:not(:disabled):hover { background: #FBECE8; }
 .toolbar button:not(:disabled):active { background: #F4D8D0; }
-.selection-add { position: fixed; z-index: 30; width: 24px; height: 24px;
+.selection-add { position: fixed; z-index: 30;
+  width: max(24px, var(--selection-add-size, 0.65em));
+  height: max(24px, var(--selection-add-size, 0.65em));
   font-size: var(--body-size, 15px);
   border: 0; background: transparent; padding: 0; cursor: pointer; }
 .selection-add img { display: block; position: absolute; left: 0; top: 0;

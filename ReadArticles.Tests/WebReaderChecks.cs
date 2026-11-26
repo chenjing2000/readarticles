@@ -436,6 +436,36 @@ internal static class WebReaderChecks
                     selectionAction.GetProperty("nearEdge").GetProperty("y").GetInt32() ==
                         Evaluate(browser, "innerHeight").GetInt32() - 54);
 
+                Program.Check(EvaluateModule(browser, """
+                    (() => {
+                      const button = document.getElementById('selection-add');
+                      const root = document.documentElement.style;
+                      const oldSize = root.getPropertyValue('--body-size');
+                      const oldAdd = root.getPropertyValue('--selection-add-size');
+                      const hidden = button.hidden, oldLeft = button.style.left, oldTop = button.style.top;
+                      try {
+                        root.setProperty('--body-size', '40px');
+                        root.setProperty('--selection-add-size', '1.2em');
+                        button.hidden = false;
+                        const rect = { left: innerWidth - 30, top: innerHeight - 30,
+                          right: innerWidth - 10, bottom: innerHeight - 10, width: 20, height: 20 };
+                        positionSelectionAddButton({ getClientRects: () => [rect] }, button);
+                        const hit = button.getBoundingClientRect();
+                        const icon = button.querySelector('img').getBoundingClientRect();
+                        return hit.width === 48 && hit.height === 48 && icon.width === 48 && icon.height === 48 &&
+                          hit.left === innerWidth - 79 && hit.top === innerHeight - 78 &&
+                          hit.right <= innerWidth && hit.bottom <= innerHeight &&
+                          button.contains(document.elementFromPoint(hit.right - 1, hit.bottom - 1));
+                      } finally {
+                        root.setProperty('--body-size', oldSize);
+                        root.setProperty('--selection-add-size', oldAdd);
+                        button.style.left = oldLeft;
+                        button.style.top = oldTop;
+                        button.hidden = hidden;
+                      }
+                    })()
+                    """).GetBoolean());
+
                 // The frame-paced loop checks geometry at up to 60Hz, even
                 // without another selectionchange, and clears when selection ends.
                 JsonElement selectionTracking = EvaluateModule(browser, """
@@ -694,7 +724,13 @@ internal static class WebReaderChecks
                 draft.Appearance.Body.Font = "Source Serif 4";
                 draft.Appearance.Vocabulary.Font = "Nunito";
                 draft.Appearance.Meanings.Font = "Source Han Serif SC";
-                draft.Appearance.Body.SelectionAddSize = 0.80;
+                draft.Appearance.Title.LineHeight = 1.85;
+                draft.Appearance.Body.LineHeight = 1.65;
+                draft.Appearance.Meanings.LineHeight = 1.55;
+                draft.Appearance.Title.ParagraphAfter = 13;
+                draft.Appearance.Body.ParagraphAfter = 19;
+                draft.Appearance.Body.FirstLineIndent = 1;
+                draft.Appearance.Body.SelectionAddSize = 0.95;
                 draft.Appearance.Body.SelectionBackground = "#E5EDE0";
                 draft.Appearance.Body.ScriptColor = "#ECE6F3";
                 var applyDialog = typeof(ReadArticles.MainWindow).GetMethod(
@@ -713,7 +749,12 @@ internal static class WebReaderChecks
                       return ['--title-size', '--body-size', '--word-size', '--phonetic-size', '--meaning-size']
                         .map(name => style.getPropertyValue(name)).join(',') === '21px,19px,20px,18px,22px' &&
                         getComputedStyle(document.querySelector('#article-title')).fontSize === '21px' &&
-                        getComputedStyle(document.querySelector('#article-body')).fontSize === '19px';
+                        getComputedStyle(document.querySelector('#article-body')).fontSize === '19px' &&
+                        ['--title-line', '--body-line', '--meaning-line', '--title-after', '--body-after', '--body-indent']
+                          .map(name => style.getPropertyValue(name)).join(',') === '1.85,1.65,1.55,13px,19px,1em' &&
+                        Math.abs(parseFloat(getComputedStyle(document.querySelector('#article-body')).lineHeight) - 19 * 1.65) < .02 &&
+                        getComputedStyle(document.querySelector('#article-body .article-paragraph')).marginBottom === '19px' &&
+                        getComputedStyle(document.querySelector('#article-body .article-paragraph')).textIndent === '19px';
                     })()
                     """).GetBoolean());
                 Program.Check(Evaluate(browser,
@@ -721,7 +762,7 @@ internal static class WebReaderChecks
                     .GetString() == "#F7F1E6");
                 Program.Check(Evaluate(browser,
                     "document.documentElement.style.getPropertyValue('--selection-add-size')")
-                    .GetString() == "0.8em" &&
+                    .GetString() == "0.95em" &&
                     Evaluate(browser,
                         "document.documentElement.style.getPropertyValue('--title-font')")
                         .GetString() == "\"Newsreader\", \"Source Serif 4\", \"Georgia\", \"Nunito\", \"Microsoft YaHei UI\", sans-serif" &&

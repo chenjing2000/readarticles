@@ -135,17 +135,17 @@ internal static class ReaderControlsChecks
             {
                 var invalid = new ReaderSettings
                 {
-                    Accent = "invalid", ForwardStep = 1, BackwardStep = 1
+                    Accent = "invalid", ForwardStep = 0, BackwardStep = 61
                 };
                 invalid.Appearance.Body.Size = 100;
                 invalid.Appearance.Body.ParagraphAfter = -5;
-                invalid.Appearance.Body.SelectionAddSize = 0.60;
+                invalid.Appearance.Body.SelectionAddSize = 0.39;
                 invalid.Appearance.Title.Font = "Segoe UI";
                 invalid.Appearance.Body.Font = "Arial";
                 invalid.Appearance.Vocabulary.Font = "Times New Roman";
                 invalid.Appearance.Meanings.Font = "SimSun";
                 invalid.Appearance.Body.SelectionBackground = "#BAD";
-                invalid.Appearance.Title.LineHeight = 1.3;
+                invalid.Appearance.Title.LineHeight = 0.99;
                 invalid.Appearance.Vocabulary.Color = "#BAD";
                 JsonFiles.WriteAtomic(path, invalid);
                 byte[] original = File.ReadAllBytes(path);
@@ -227,6 +227,28 @@ internal static class ReaderControlsChecks
                         loaded.Appearance.Vocabulary.Size == 16 && loaded.Appearance.Phonetics.Size == 14 &&
                         loaded.Appearance.Meanings.Size == 15);
                 }
+                foreach (double bad in new[] { -1d, 61d, 1.234, double.NaN, double.PositiveInfinity })
+                {
+                    loaded.Appearance.Title.LineHeight = loaded.Appearance.Body.LineHeight =
+                        loaded.Appearance.Meanings.LineHeight = bad;
+                    loaded.Appearance.Title.ParagraphAfter = loaded.Appearance.Body.ParagraphAfter = bad;
+                    loaded.Appearance.Body.FirstLineIndent = loaded.Appearance.Body.SelectionAddSize = bad;
+                    loaded.ForwardStep = loaded.BackwardStep = bad;
+                    loaded.Normalize();
+                    Program.Check(loaded.Appearance.Title.LineHeight == 1.7 && loaded.Appearance.Body.LineHeight == 1.7 &&
+                        loaded.Appearance.Meanings.LineHeight == 1.5 && loaded.Appearance.Title.ParagraphAfter == 16 &&
+                        loaded.Appearance.Body.ParagraphAfter == 16 && loaded.Appearance.Body.FirstLineIndent == 2 &&
+                        loaded.Appearance.Body.SelectionAddSize == 0.65 && loaded.ForwardStep == 4 && loaded.BackwardStep == 5);
+                }
+                loaded.Appearance.Title.LineHeight = 1;
+                loaded.Appearance.Body.LineHeight = 3;
+                loaded.Appearance.Meanings.LineHeight = 1.55;
+                loaded.Appearance.Title.ParagraphAfter = 0;
+                loaded.Appearance.Body.ParagraphAfter = 40;
+                loaded.Appearance.Body.FirstLineIndent = 5;
+                loaded.Appearance.Body.SelectionAddSize = 1.2;
+                loaded.ForwardStep = 1;
+                loaded.BackwardStep = 60;
                 loaded.Appearance.Title.Size = 10;
                 loaded.Appearance.Body.Size = 40;
                 loaded.Appearance.Vocabulary.Size = 21;
@@ -236,7 +258,11 @@ internal static class ReaderControlsChecks
                 loaded = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && loaded.Appearance.Title.Size == 10 &&
                     loaded.Appearance.Body.Size == 40 && loaded.Appearance.Vocabulary.Size == 21 &&
-                    loaded.Appearance.Phonetics.Size == 22 && loaded.Appearance.Meanings.Size == 23);
+                    loaded.Appearance.Phonetics.Size == 22 && loaded.Appearance.Meanings.Size == 23 &&
+                    loaded.Appearance.Title.LineHeight == 1 && loaded.Appearance.Body.LineHeight == 3 &&
+                    loaded.Appearance.Meanings.LineHeight == 1.55 && loaded.Appearance.Title.ParagraphAfter == 0 &&
+                    loaded.Appearance.Body.ParagraphAfter == 40 && loaded.Appearance.Body.FirstLineIndent == 5 &&
+                    loaded.Appearance.Body.SelectionAddSize == 1.2 && loaded.ForwardStep == 1 && loaded.BackwardStep == 60);
                 byte[] persisted = File.ReadAllBytes(path);
                 byte[] backupBytes = File.ReadAllBytes(backup);
                 layout.ResizeLibrary(400, 900);
@@ -315,7 +341,8 @@ internal static class ReaderControlsChecks
                 Program.Check(player.Volume == 1.0 && pronunciationPlayer.Volume == 1.0);
                 Program.Check(window.ViewModel.OpenLibrary(TestData.LibraryRoot));
                 var draft = defaults.Copy();
-                draft.ForwardStep = 7;
+                draft.ForwardStep = 23;
+                draft.BackwardStep = 31;
                 draft.Accent = "us";
                 draft.Appearance.Body.Size = 17;
                 draft.Appearance.Body.Background = "#F7F1E6";
@@ -329,7 +356,7 @@ internal static class ReaderControlsChecks
                 Program.Check(window.ViewModel.Accent == "us");
                 var saved = ReaderSettings.Load(out warning);
                 Program.Check(warning == null && saved.Appearance.Body.Size == 17 &&
-                    saved.ForwardStep == 7 && saved.Accent == "us" &&
+                    saved.ForwardStep == 23 && saved.BackwardStep == 31 && saved.Accent == "us" &&
                     saved.Library == TestData.LibraryRoot &&
                     saved.Appearance.Body.Background == "#F7F1E6");
                 string missingRoot = Path.Combine(Path.GetTempPath(), "ReadArticles-refresh-settings-" + Guid.NewGuid().ToString("N"));
@@ -460,8 +487,8 @@ internal static class ReaderControlsChecks
                                 // retains the established compact layout.
                                 Program.Check(group.ColumnDefinitions.Select(c => c.Width.Value)
                                     .SequenceEqual(new[] { 100d, 20d }));
-                                Program.Check(group.Children.OfType<FrameworkElement>()
-                                    .Single(editor => editor is ComboBox or TextBox).Width == 100);
+                                Program.Check(group.Children.OfType<TextBox>().Single().Width == 100 &&
+                                    !group.Children.OfType<ComboBox>().Any());
                                 Program.Check(group.Children.OfType<TextBlock>()
                                     .Single().FontSize == 12);
                             }
@@ -490,14 +517,6 @@ internal static class ReaderControlsChecks
                     playbackSwatches.All(swatch =>
                         ((System.Windows.Media.SolidColorBrush)swatch.Children.OfType<TextBlock>()
                             .Single().Foreground).Color.ToString() == "#FF283747"));
-                var selectionRow = body.Children.OfType<Grid>().Single(row =>
-                    row.Children.OfType<TextBlock>().Any(label => label.Text == "选词加号"));
-                var selectionSize = selectionRow.Children.OfType<Grid>()
-                    .SelectMany(group => group.Children.OfType<ComboBox>()).Single();
-                Program.Check(selectionSize.Items.OfType<ComboBoxItem>()
-                    .Select(item => (double)item.Tag)
-                    .SequenceEqual(new[] { 0.65, 0.70, 0.75, 0.80 }) &&
-                    (double)((ComboBoxItem)selectionSize.SelectedItem).Tag == 0.65);
                 var fontDropdowns = sections.Children.OfType<StackPanel>()
                     .SelectMany(section => section.Children.OfType<Grid>())
                     .SelectMany(row => row.Children.OfType<ComboBox>())
@@ -505,7 +524,7 @@ internal static class ReaderControlsChecks
                 var englishSelectors = fontDropdowns.Where(combo =>
                     combo.Items.Count == 5 &&
                     combo.Items.OfType<ComboBoxItem>().All(item => item.Tag is string)).ToArray();
-                Program.Check(englishSelectors.Length == 3);
+                Program.Check(englishSelectors.Length == 3 && fontDropdowns.Length == 5);
                 foreach (var selector in englishSelectors)
                     Program.Check(selector.Items.OfType<ComboBoxItem>()
                         .Select(item => item.Tag?.ToString())
@@ -530,17 +549,20 @@ internal static class ReaderControlsChecks
                         .SelectMany(row => row.Children.OfType<TextBlock>())
                         .Any(label => label.Text == "播放音量"));
 
-                TextBox[] SizeBoxes() => sections.Children.OfType<StackPanel>()
+                TextBox[] NumberBoxes() => sections.Children.OfType<StackPanel>()
                     .SelectMany(section => section.Children.OfType<Grid>())
                     .SelectMany(row => row.Children.OfType<Grid>())
                     .SelectMany(group => group.Children.OfType<TextBox>()).ToArray();
-                var sizeBoxes = SizeBoxes();
-                Program.Check(sizeBoxes.Select(box => box.Text).SequenceEqual(new[] { "18", "15", "16", "14", "15" }) &&
-                    sizeBoxes.All(box => box.Width == 100 && box.Height == 30 && box.FontSize == 13 &&
-                        box.MaxLength == 2 && box.TextAlignment == TextAlignment.Center &&
+                var defaults = new[] { "18", "1.7", "16", "15", "1.7", "16", "2", "0.65",
+                    "16", "14", "15", "1.5", "4", "5" };
+                var boxes = NumberBoxes();
+                Program.Check(boxes.Select(box => box.Text).SequenceEqual(defaults) &&
+                    boxes.Select(box => box.MaxLength).SequenceEqual(new[] { 2, 4, 2, 2, 4, 2, 1, 4, 2, 2, 2, 4, 2, 2 }) &&
+                    boxes.All(box => box.Width == 100 && box.Height == 30 && box.FontSize == 13 &&
+                        box.TextAlignment == TextAlignment.Center &&
                         box.VerticalContentAlignment == VerticalAlignment.Center && !box.AcceptsReturn &&
                         !InputMethod.GetIsInputMethodEnabled(box)));
-                foreach (var box in sizeBoxes)
+                foreach (var box in boxes)
                 {
                     box.BringIntoView();
                     WpfTestHelpers.Pump();
@@ -548,53 +570,76 @@ internal static class ReaderControlsChecks
                     Program.Check(box.Template?.FindName("DeleteButton", box) is UIElement clear &&
                         clear.Visibility == Visibility.Collapsed);
                 }
-                var sizeBox = sizeBoxes[0];
-                bool RejectsTyping(string text)
+                bool RejectsTyping(TextBox box, string text)
                 {
                     var args = new TextCompositionEventArgs(Keyboard.PrimaryDevice,
-                        new TextComposition(InputManager.Current, sizeBox, text))
+                        new TextComposition(InputManager.Current, box, text))
                         { RoutedEvent = TextCompositionManager.PreviewTextInputEvent };
-                    sizeBox.RaiseEvent(args);
+                    box.RaiseEvent(args);
                     return args.Handled;
                 }
-                bool RejectsPaste(string text)
+                bool RejectsPaste(TextBox box, string text)
                 {
                     var args = new DataObjectPastingEventArgs(
                         new DataObject(DataFormats.UnicodeText, text), false, DataFormats.UnicodeText)
                         { RoutedEvent = DataObject.PastingEvent };
-                    sizeBox.RaiseEvent(args);
+                    box.RaiseEvent(args);
                     return args.CommandCancelled;
                 }
-                sizeBox.SelectAll();
-                Program.Check(!RejectsTyping("2") && !RejectsPaste("25") &&
-                    RejectsTyping("abc") && RejectsTyping(".") && RejectsTyping("-") &&
-                    RejectsTyping("１") && RejectsPaste("100") && RejectsPaste("2a") && RejectsPaste(" 2"));
+                foreach (var box in boxes)
+                {
+                    box.SelectAll();
+                    Program.Check(RejectsTyping(box, "abc") && RejectsTyping(box, "-") &&
+                        RejectsTyping(box, "１") && RejectsPaste(box, "2a") && RejectsPaste(box, " 2"));
+                    if (box.MaxLength == 4)
+                        Program.Check(!RejectsPaste(box, "1.75") && !RejectsPaste(box, ".65") &&
+                            !RejectsPaste(box, "1.") && RejectsPaste(box, "1.755") && RejectsPaste(box, "1..7") &&
+                            RejectsPaste(box, "12.3"));
+                    else
+                        Program.Check(RejectsTyping(box, ".") && RejectsPaste(box, "100") &&
+                            RejectsPaste(box, "1.5") && RejectsPaste(box, box.MaxLength == 1 ? "10" : "123") &&
+                            !RejectsPaste(box, box.MaxLength == 1 ? "2" : "25"));
+                }
+                var sizeBox = boxes[0];
                 sizeBox.Select(2, 0);
-                Program.Check(RejectsTyping("3") && RejectsPaste("3"));
+                Program.Check(RejectsTyping(sizeBox, "3") && RejectsPaste(sizeBox, "3"));
                 sizeBox.SelectAll();
                 sizeBox.SelectedText = "25";
                 Program.Check(sizeBox.Text == "25");
+                var lineBox = boxes[1];
+                lineBox.Text = "1.75";
+                lineBox.Select(1, 1);
+                lineBox.SelectedText = "";
+                Program.Check(lineBox.Text == "1.75");
+                lineBox.Text = defaults[1];
                 var saveButton = ((Grid)dialog.Content).Children.OfType<Grid>().Single()
                     .Children.OfType<Button>().Single(button => Equals(button.Content, "保存"));
-                foreach (string invalidSize in new[] { "", "0", "09", "41", "00" })
+                foreach (var (index, invalid) in new[] { (0, ""), (0, "0"), (0, "09"), (0, "41"), (0, "00"),
+                    (1, "."), (1, "0.99"), (1, "3.01"), (2, "41"), (4, "0"), (5, "99"),
+                    (6, "6"), (7, "0.39"), (7, "1.21"), (11, "3.1"), (12, "0"), (13, "61") })
                 {
-                    sizeBox.Text = invalidSize;
+                    boxes[index].Text = invalid;
                     saveButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                     var notice = (Popup)type.GetField("fontNotice", BindingFlags.Instance | BindingFlags.NonPublic)!
                         .GetValue(dialog)!;
-                    Program.Check(commitCalls == 0 && notice.IsOpen && ReferenceEquals(notice.PlacementTarget, sizeBox));
+                    Program.Check(commitCalls == 0 && notice.IsOpen &&
+                        ReferenceEquals(notice.PlacementTarget, boxes[index]));
+                    boxes[index].Text = defaults[index];
                 }
-                sizeBox.Text = "10";
-                sizeBoxes[1].Text = "40";
-                sizeBoxes[2].Text = "21";
-                sizeBoxes[3].Text = "22";
-                sizeBoxes[4].Text = "23";
+                var custom = new[] { "10", "1.", "0", "40", "3", "40", "5", ".65",
+                    "21", "22", "23", "1.55", "1", "60" };
+                for (int i = 0; i < boxes.Length; i++) boxes[i].Text = custom[i];
                 saveButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                 Program.Check(commitCalls == 1 && savedDraft is not null &&
                     savedDraft.Appearance.Title.Size == 10 && savedDraft.Appearance.Body.Size == 40 &&
                     savedDraft.Appearance.Vocabulary.Size == 21 && savedDraft.Appearance.Phonetics.Size == 22 &&
-                    savedDraft.Appearance.Meanings.Size == 23 && originalSettings.Appearance.Title.Size == 18 &&
-                    originalSettings.Appearance.Body.Size == 15);
+                    savedDraft.Appearance.Meanings.Size == 23 && savedDraft.Appearance.Title.LineHeight == 1 &&
+                    savedDraft.Appearance.Body.LineHeight == 3 && savedDraft.Appearance.Meanings.LineHeight == 1.55 &&
+                    savedDraft.Appearance.Title.ParagraphAfter == 0 && savedDraft.Appearance.Body.ParagraphAfter == 40 &&
+                    savedDraft.Appearance.Body.FirstLineIndent == 5 && savedDraft.Appearance.Body.SelectionAddSize == 0.65 &&
+                    savedDraft.ForwardStep == 1 && savedDraft.BackwardStep == 60 &&
+                    originalSettings.Appearance.Title.Size == 18 && originalSettings.Appearance.Body.Size == 15 &&
+                    originalSettings.ForwardStep == 4 && originalSettings.BackwardStep == 5);
 
                 // Reset must not reintroduce an unavailable default font or
                 // retain selectors from the previous draft visual tree.
@@ -617,7 +662,7 @@ internal static class ReaderControlsChecks
                     resetDraft.Appearance.Body.Font == "Newsreader" &&
                     resetDraft.Appearance.Vocabulary.Font == "Newsreader" &&
                     selectors.Count == 3 && selectors.All(combo => combo.SelectedIndex == 0));
-                Program.Check(SizeBoxes().Select(box => box.Text).SequenceEqual(new[] { "18", "15", "16", "14", "15" }));
+                Program.Check(NumberBoxes().Select(box => box.Text).SequenceEqual(defaults));
                 installed.Remove("Newsreader");
                 resetButton.RaiseEvent(new RoutedEventArgs(
                     System.Windows.Controls.Primitives.ButtonBase.ClickEvent));

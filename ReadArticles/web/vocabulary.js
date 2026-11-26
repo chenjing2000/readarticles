@@ -383,7 +383,7 @@ function hideSelectionAdd() {
 // Flip left/above near viewport edges; the visible em-sized glyph occupies
 // the click target's upper-left corner.
 export function positionSelectionAddButton(range, button) {
-  const size = 24;
+  const size = Math.ceil(button.getBoundingClientRect().width);
   const horizontalGap = 1;
   const verticalGap = 0;
   const fragments = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
@@ -431,8 +431,8 @@ function refreshSelectionAddPosition() {
     stopSelectionAddPositionTimer();
     return;
   }
-  positionSelectionAddButton(range, button);
   button.hidden = false;
+  positionSelectionAddButton(range, button);
   scheduleSelectionAddFrame();
 }
 
