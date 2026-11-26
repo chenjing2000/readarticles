@@ -476,12 +476,15 @@ internal static class ReaderControlsChecks
                 sizeBox.SelectedText = "25";
                 Program.Check(sizeBox.Text == "25");
                 var lineBox = boxes[1];
+                lineBox.BringIntoView();
+                lineBox.Focus();
+                WpfTestHelpers.Pump();
                 lineBox.Text = "1.7";
                 lineBox.SelectAll();
                 lineBox.SelectedText = "1.75";
                 Program.Check(lineBox.Text == "1.75" && lineBox.CanUndo);
                 lineBox.Select(1, 1);
-                Program.Check(!ApplicationCommands.Cut.CanExecute(null, lineBox) || lineBox.SelectionLength == 1);
+                Program.Check(lineBox.SelectionLength == 1 && ApplicationCommands.Cut.CanExecute(null, lineBox));
                 ApplicationCommands.Cut.Execute(null, lineBox);
                 Program.Check(lineBox.Text == "1.75");
                 lineBox.Undo();

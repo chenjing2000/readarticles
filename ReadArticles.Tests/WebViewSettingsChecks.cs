@@ -183,6 +183,7 @@ internal static class WebViewSettingsChecks
             byte[]? oldBackup = File.Exists(backup) ? File.ReadAllBytes(backup) : null;
             try
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllText(path, """{"Appearance":{"Title":{"Size":20},"Body":{}},"Audio":{}}""");
                 byte[] missingFields = File.ReadAllBytes(path);
                 var partial = ReaderSettings.Load(out var partialWarning);
